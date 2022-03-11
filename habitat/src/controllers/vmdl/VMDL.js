@@ -8,17 +8,19 @@ class InputParser {
     }
     
     next() {
-        let ch = this.parsed.charAt(pos++);
+        let ch = this.input.charAt(this.pos++);
         if (ch == "\n") {
             this.line++;
             this.col = 0;
         } else {
             this.col++;
         }
+
+        return ch;
     }
 
     peek() {
-        return this.parsed.charAt(pos);
+        return this.input.charAt(this.pos);
     }
 
     isEOF() {
@@ -31,16 +33,8 @@ class InputParser {
 }
 
 class TokenParser {
-    keywords = [
-        'in',
-        'not', 'and', 'or', 'to', 'into',
-        'any', 'all', 'leaf',
-        'new', 'now', 'no',
-        'as', 'is', 'has', 'from', 'times',
-        'seqnum', 'sysseqnum', 'depth', 'uuid4',
-        'root', 'farthest', 'closest', 'parent'
-    ];
-    current  = null;
+    mode    = [];
+    current = null;
 
     constructor(input) {
         this.input = new InputParser(input);
@@ -59,7 +53,7 @@ class TokenParser {
         return this.current;
     }
 
-    readWhile(pred) {
+    readWhilePred(pred) {
         let str = '';
         while (!this.input.isEOF() && pred(this.input.peek())) {
             str += this.input.next();
@@ -68,8 +62,35 @@ class TokenParser {
         return str;
     }
 
+    readWhileEscaped() {
+        let is_escaped = false
+        let str        = '';
+        let ch;
+
+        while (!this.input.isEOF()) {
+            ch = this.input.next();
+
+            if (is_escaped) {
+                str += ch;
+                is_escaped = false;
+            } else if (this.isEscape(ch)) {
+                is_escaped = true;
+            } else if (ch == '@') {
+                this.mode.push('key');
+                break;
+            } else if (ch == '#') {
+                this.mode.push('com');
+                break;
+            } else {
+                str += ch;
+            }
+        }
+
+        return str;
+    }
+
     readNext() {
-        this.readWhile(this.isWhitespace);
+        this.readWhilePred(this.isWhitespace);
 
         if (this.input.isEOF()) {
             return null;
@@ -78,55 +99,135 @@ class TokenParser {
         let ch = this.input.peek();
 
         if (ch == '#') {
-            readComment();
+            this.setMode('com');
+            this.input.next();
+        }
+        if (this.getMode() == 'com') {
+            this.unsetMode();
+            this.readComment();
+
             return this.readNext();
         }
 
         if (ch == '@') {
-            return this.readKeyword();
+            this.setMode('key');
+            this.input.next();
+        }
+        if (this.getMode() == 'key') {
+            this.unsetMode();
+            let keyword = this.readKeyword();
+
+            return keyword;
         }
 
-        if (ch == )
+        if (this.getMode() == 'json') {
+            return this.readJSON();
+        }
+
+        if (this.isIdentifier(ch)) {
+            return this.readTag();
+        }
+
+        if (this.isPunc(ch)) {
+            return this.readPunc();
+        }
+
+        this.input.badInput();
     }
 
     readComment() {
-        this.readWhile((ch) => {
+        this.readWhilePred((ch) => {
             return ch != "\n";
         })
 
+        this.mode = null;
         this.input.next();
     }
 
-    readKeyword() {
-        keyword = this.readWhile(isIdentifier).toLowerCase();
+    readJSON() {
+        let json_part = this.readWhileEscaped();
 
-
+        return { type: "json_part", val: json_part };
     }
 
+    readKeyword() {
+        let keyword = this.readWhilePred(this.isIdentifier).toLowerCase();
+
+        if (keyword == 'json') {
+            if (this.getMode() != 'json') {
+                this.setMode('json');
+            }
+        } else if (keyword == 'endjson') {
+            if (this.getMode() == 'json') {
+                this.unsetMode();
+            }
+        }
+
+        return { type: "key", val: keyword };
+    }
+
+    readTag() {
+        let tag = this.readWhilePred(this.isIdentifier);
+
+        return { type: "tag", val: tag };
+    }
+
+    readPunc() {
+        return { type: "punc", val: this.input.next() };
+    }
+    
     isWhitespace(ch) {
         return /\s/.test(ch);
     }
 
-    isIdentifier() {
+    isEscape(ch) {
+        return /\\/.test(ch);
+    }
+
+    isIdentifier(ch) {
         return /[-A-Za-z0-9_]/.test(ch);
     }
 
-    isData = () => {
-
+    isPunc(ch) {
+        return /[&|,.>()\[\]{};]/.test(ch);
     }
 
-    isStatement = () => {
+    setMode(mode) {
+        this.mode.push(mode);
+    }
 
+    unsetMode() {
+        this.mode.pop();
+    }
+
+    getMode() {
+        return this.mode[this.mode.length - 1];
     }
 }
 
 class StatementParser {
+    tokens = [];
 
+    constructor(input) {
+        this.input = new TokenParser(input);
+    }
+
+    parse() {
+        let token;
+
+        while (token = this.input.peek()) {
+            this.tokens.push(token);
+            this.input.next();
+        }
+    }
 }
 
 class VMDL {
     parse(input) {
-        parseStatements(input);
+        this.input = new StatementParser(input);
+        this.input.parse();
+
+        console.log(this.input.tokens);
     }
 }
 
