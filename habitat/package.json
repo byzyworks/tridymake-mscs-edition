@@ -1,0 +1,25 @@
+{
+  "name": "habitat",
+  "version": "1.0.0",
+  "description": "Modular application for provisioning and configuring virtual machines",
+  "main": "src/app.js",
+  "scripts": {
+    "inline": "node src/app.js inline",
+    "file": "node src/app.js file",
+    "console": "node src/app.js console",
+    "web": "node src/app.js web",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "J. E. Ellis",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.0.1",
+    "commander": "^9.0.0",
+    "express": "^4.17.3",
+    "inquirer": "^8.2.1",
+    "mongoose": "^6.2.5",
+    "morgan": "^1.10.0",
+    "winston": "^3.6.0"
+  },
+  "type": "module"
+}
