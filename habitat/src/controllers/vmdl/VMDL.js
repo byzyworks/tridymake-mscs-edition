@@ -145,9 +145,9 @@ class TokenParser {
     }
 
     readJSON() {
-        let json_part = this.readWhileEscaped();
+        let part = this.readWhileEscaped();
 
-        return { type: "json_part", val: json_part };
+        return { type: "part", val: part };
     }
 
     readKeyword() {
@@ -157,7 +157,7 @@ class TokenParser {
             if (this.getMode() != 'json') {
                 this.setMode('json');
             }
-        } else if (keyword == 'endjson') {
+        } else if (keyword == 'end') {
             if (this.getMode() == 'json') {
                 this.unsetMode();
             }
@@ -197,7 +197,7 @@ class TokenParser {
     }
 
     unsetMode() {
-        this.mode.pop();
+        return this.mode.pop();
     }
 
     getMode() {
@@ -206,19 +206,258 @@ class TokenParser {
 }
 
 class StatementParser {
-    tokens = [];
+    constructor() { }
 
-    constructor(input) {
-        this.input = new TokenParser(input);
-    }
+    parse(input) {
+        let tokens = [];
+        let modes  = [];
+        let root   = [];
 
-    parse() {
-        let token;
-
-        while (token = this.input.peek()) {
-            this.tokens.push(token);
-            this.input.next();
+        let badInput = () => {
+            throw new Error();
         }
+
+        let parseTokens = () => {
+            let input = new TokenParser(input);
+            let token;
+    
+            while (token = input.next()) {
+                tokens.push(token);
+            }
+        }
+    
+        let nextStatement = () => {
+            while (modes.pop() != 'stmt');
+            modes[modes.length - 1]++;
+            modes.push('stmt');
+        }
+    
+        let isPlaced = (obj) => {
+            ptr = root;
+            for (let i = 0; i < modes.length - 1; i++) {
+                if (!ptr[modes[i]]) {
+                    return false;
+                }
+                ptr = ptr[modes[i]];
+            }
+            if (ptr[obj]) {
+                return true;
+            }
+            return false;
+        }
+    
+        let emplace = (obj, opts = { replace: true }) => {
+            ptr = root;
+            for (let i = 0; i < modes.length - 2; i++) {
+                if (!ptr[modes[i]]) {
+                    if (Number.isInteger(modes[i])) {
+                        ptr.push({ });
+                    } else {
+                        ptr[modes[i]] = { };
+                    }
+                }
+                ptr = ptr[modes[i]];
+            }
+
+            idx = modes[modes.length - 1];
+            if (opts.replace) {
+                ptr[idx] = obj;
+            } else {
+                if (!ptr[idx] || !Array.isArray(ptr[idx])) {
+                    ptr[idx] = [];
+                }
+                ptr[idx].push(obj);
+            }
+        }
+    
+        let setMode = (mode) => {
+            modes.push(mode);
+        }
+
+        let setUniqueMode = (mode) => {
+            if (isPlaced(mode)) {
+                badInput();
+            } else {
+                setMode(mode);
+            }
+        }
+    
+        let unsetMode = () => {
+            return modes.pop();
+        }
+    
+        let getMode = () => {
+            return modes[modes.length - 1];
+        }
+
+        let parseTree = () => {
+            let tag_mode = 'primary';
+
+            let parseTreeTop = () => {
+                switch (token.type) {
+                    case 'key':
+                        switch (token.val) {
+                            case 'in':
+                                setUniqueMode('context');
+                                break;
+                            case 'new':
+                                setUniqueMode('operation');
+                                emplace('create');
+                                unsetMode();
+                                setUniqueMode('definition');
+                                break;
+                            case 'now':
+                                setUniqueMode('operation');
+                                emplace('update');
+                                unsetMode();
+                                setUniqueMode('definition');
+                                break;
+                            case 'no':
+                                setUniqueMode('operation');
+                                emplace('delete');
+                                unsetMode();
+                                setUniqueMode('definition');
+                                break;
+                            default:
+                                badInput();
+                        }
+                        break;
+                    case 'punc':
+                        switch (token.val) {
+                            case ';':
+                                nextStatement();
+                                break;
+                            default:
+                                badInput();
+                        }
+                        break;
+                    default:
+                        badInput();
+                }
+            }
+
+            let parseTreeContext = () => {
+                
+            }
+
+            let enterStack = () => {
+                modes.push('stack');
+                modes.push(0);
+                modes.push('stmt');
+            }
+        
+            let leaveStack = () => {
+                while (modes.pop() != 'stack');
+            }
+
+            let parseTreeDefinition = () => {
+                switch (token.type) {
+                    case 'tag':
+                        setMode('tags');
+                        if ((tag_mode == 'primary') || (tag_mode == 'secondary')) {
+                            emplace(token.val, { replace: false });
+                        }
+                        unsetMode();
+                        if (tag_mode == 'primary') {
+                            setMode('sys');
+                            emplace(token.val, { replace: true });
+                            unsetMode();
+                        }
+                        break;
+                    case 'key':
+                        switch (token.val) {
+                            case 'as':
+                                tag_mode = 'secondary';
+                                setMode('tags');
+                                emplace([], { replace: true });
+                                unsetMode();
+                                break;
+                            case 'is':
+                                setUniqueMode('heap');
+                                break;
+                            case 'has':
+                                break;
+                            case 'from':
+                                break;
+                            case 'times':
+                                break;
+                            default:
+                                badInput();
+                        }
+                        break;
+                    case 'punc':
+                        switch (token.val) {
+                            case '{':
+                                enterStack();
+                                break;
+                            case '}':
+                                leaveStack();
+                                break;
+                            default:
+                                badInput();
+                        }
+                        break;
+                    default:
+                        badInput();
+                }
+            }
+
+            let parseTreeHeapDefinition = () => {
+                switch (token.type) {
+                    case 'key':
+                        switch (token.val) {
+                            case 'json':
+                                setUniqueMode('type');
+                                emplace('json');
+                                unsetMode();
+                                setUniqueMode('data');
+                                break;
+                            case 'end':
+                                // continue here 
+                                break;
+                        }
+                        break;
+                    
+                }
+            }
+
+            enterStack();
+
+            init = true;
+            for (token of this.tokens) {
+                if (init) {
+                    switch (token.type) {
+                        case 'key':
+                            switch (token.val) {
+                                case 'vmdl':
+                                    break;
+                                case 'exit':
+                                    process.exit(0);
+                            }
+                    }
+                    
+                    init = false;
+                }
+    
+                switch (getMode()) {
+                    case 'stmt':
+                        parseTreeTop(token);
+                        break;
+                    case 'context':
+                        parseTreeContext(token);
+                        break;
+                    case 'definition':
+                        parseTreeDefinition(token);
+                        break;
+                    case 'heap':
+                        parseTreeHeapDefinition(token);
+                        break;
+                }
+            }
+        }
+
+        parseTokens();
+        parseTree();
     }
 }
 
