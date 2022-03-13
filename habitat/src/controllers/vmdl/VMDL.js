@@ -219,6 +219,122 @@ class TokenParser {
     }
 }
 
+class Stack {
+    constructor() {
+        this.arr = [ ];
+    }
+
+    toArray() {
+        return this.arr;
+    }
+    
+    push(item) {
+        this.arr.push(item);
+    }
+    
+    pop() {
+        if (this.isEmpty()) {
+            throw new Error('Stack underflow');
+        }
+        return this.arr.pop();
+    }
+
+    isEmpty() {
+        return this.arr.length == 0;
+    }
+    
+    peek() {
+        if (this.isEmpty()) {
+            return null;
+        }
+        return this.arr[this.arr.length - 1];
+    }
+    
+    clear() {
+        this.arr = [ ];
+    }
+}
+
+class Queue {
+    constructor() {
+        this.arr = [ ];
+    }
+
+    toArray() {
+        return this.arr;
+    }
+    
+    enqueue(item) {
+        this.arr.push(item);
+    }
+    
+    dequeue() {
+        if (this.isEmpty()) {
+            throw new Error('Queue underflow');
+        }
+        return this.arr.shift();
+    }
+
+    isEmpty() {
+        return this.arr.length == 0;
+    }
+    
+    peek() {
+        if (this.isEmpty()) {
+            return null;
+        }
+        return this.arr[0];
+    }
+    
+    clear() {
+        this.arr = [ ];
+    }
+}
+
+class InfixParser {
+    constructor(input) {
+        this.input = input;
+    }
+
+    parse() {
+        let prec = {
+            '!': 0,
+            '&': 1,
+            '|': 2,
+            '.': 3,
+            '>': 4
+        }
+
+        let ops = new Stack();
+        let out = new Queue();
+
+        for (let token of this.input) {
+            if (token.type == 't') {
+                out.enqueue(token);
+            } else if (token.val == '(') {
+                ops.push(token);
+            } else if (token.val == ')') {
+                while (!ops.isEmpty() && (ops.peek().val != '(')) {
+                    out.enqueue(ops.pop());
+                }
+                ops.pop();
+            } else {
+                // token is operator that isn't parantheses
+                while (!ops.isEmpty() && (prec[ops.peek().val] < prec[token.val])) {
+                    out.enqueue(ops.pop());
+                }
+                ops.push(token);
+            }
+        }
+
+        while (!ops.isEmpty()) {
+            out.enqueue(ops.pop());
+        }
+
+        return out.toArray();
+    }
+}
+
 class StatementParser {
     constructor(input) {
         this.input = new TokenParser(input);
@@ -304,7 +420,7 @@ class StatementParser {
 
             let getContextValue = () => {
                 let ptr = root;
-                for (let i = 0; i < context.length - 1; i++) {
+                for (let i = 0; i < context.length; i++) {
                     if (!ptr[context[i]]) {
                         return null;
                     }
@@ -467,10 +583,16 @@ class StatementParser {
                     let context_tokens = getContextValue();
                     if (context_tokens) {
                         let last_token = context_tokens[context_tokens.length - 1];
-                        if (last_token && ((last_token.type == 'tag') || (last_token.val == ')'))) {
-                            putContextValue({ type: 'op', val: '&' }, { replace: false });
+                        if (last_token && ((last_token.type == 't') || (last_token.val == ')'))) {
+                            putContextValue({ type: 'o', val: '&' }, { replace: false });
                         }
                     }
+                }
+
+                let finalizeExpression = () => {
+                    let parser = new InfixParser(getContextValue());
+                    let postfix = parser.parse();
+                    putContextValue(postfix, { replace: true });
                 }
 
                 assertContext(['stmt', 'context']);
@@ -478,12 +600,13 @@ class StatementParser {
                 switch (token.type) {
                     case 'tag':
                         autoPutAnd();
-                        putContextValue({ type: 'tag', val: token.val }, { replace: false });
+                        putContextValue({ type: 't', val: token.val }, { replace: false });
                         break;
                     case 'key':
                     case 'punc':
                         switch (token.val) {
                             case ';':
+                                finalizeExpression();
                                 leaveContext();
                                 enterContext('operation', { once: true });
                                 putContextValue('cswitch');
@@ -492,74 +615,58 @@ class StatementParser {
                                 break;
                             case '(':
                                 autoPutAnd();
-                                putContextValue({ type: 'op', val: '(' }, { replace: false });
+                                putContextValue({ type: 'o', val: '(' }, { replace: false });
                                 break;
                             case ')':
-                                putContextValue({ type: 'op', val: ')' }, { replace: false });
+                                putContextValue({ type: 'o', val: ')' }, { replace: false });
                                 break;
                             case 'not':
                             case '!':
                                 autoPutAnd();
-                                putContextValue({ type: 'op', val: '!' }, { replace: false });
+                                putContextValue({ type: 'o', val: '!' }, { replace: false });
                                 break;
                             case 'and':
                             case '&':
-                                putContextValue({ type: 'op', val: '&' }, { replace: false });
+                                putContextValue({ type: 'o', val: '&' }, { replace: false });
                                 break;
                             case 'or':
                             case '|':
                             case ',':
-                                putContextValue({ type: 'op', val: '|' }, { replace: false });
+                                putContextValue({ type: 'o', val: '|' }, { replace: false });
                                 break;
                             case 'to':
                             case '.':
                             case '>':
-                                putContextValue({ type: 'op', val: '.' }, { replace: false });
+                                putContextValue({ type: 'o', val: '.' }, { replace: false });
                                 break;
                             case 'into':
                             case '..':
                             case '>>':
-                                putContextValue({ type: 'op', val: '>' }, { replace: false });
+                                putContextValue({ type: 'o', val: '>' }, { replace: false });
                                 break;
                             case 'any':
                             case '*':
-                                putContextValue({ type: 'wc', val: 'any' }, { replace: false });
+                                autoPutAnd();
+                                putContextValue({ type: 't', val: '*' }, { replace: false });
                                 break;
                             case 'all':
                             case '**':
-                                putContextValue({ type: 'wc', val: 'all' }, { replace: false });
+                                autoPutAnd();
+                                putContextValue({ type: 't', val: '**' }, { replace: false });
                                 break;
                             case 'leaf':
                             case '***':
-                                putContextValue({ type: 'wc', val: 'leaf' }, { replace: false });
-                                break;
-                            case 'new':
-                                leaveContext();
-                                enterContext('operation', { once: true });
-                                putContextValue('create');
-                                leaveContext();
-                                enterContext('definition', { once: true });
-                                break;
-                            case 'now':
-                                leaveContext();
-                                enterContext('operation', { once: true });
-                                putContextValue('update');
-                                leaveContext();
-                                enterContext('definition', { once: true });
-                                break;
-                            case 'no':
-                                leaveContext();
-                                enterContext('operation', { once: true });
-                                putContextValue('delete');
-                                leaveContext();
-                                enterContext('affected', { once: true });
+                                autoPutAnd();
+                                putContextValue({ type: 't', val: '***' }, { replace: false });
                                 break;
                             default:
+                                finalizeExpression();
                                 leaveContextAndRetry(token);
                                 break;
                         }
                         break;
                     default:
+                        finalizeExpression();
                         leaveContextAndRetry(token);
                         break;
                 }
@@ -610,8 +717,8 @@ class StatementParser {
                 }
             }
 
-            let parseTreeAffected = (token) => {
-                assertContext(['stmt', 'affected']);
+            let parseTreeAffect = (token) => {
+                assertContext(['stmt', 'affect']);
                 
                 switch (token.type) {
                     case 'key':
@@ -786,7 +893,7 @@ class StatementParser {
                     case 'definition':
                         parseTreeDefinition(token);
                         break;
-                    case 'affected':
+                    case 'affect':
                         parseTreeAffected(token);
                         break;
                     case 'tags':
