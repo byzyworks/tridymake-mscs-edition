@@ -33,7 +33,7 @@ class InputParser {
 }
 
 class TokenParser {
-    mode    = [];
+    mode    = [ ];
     current = null;
 
     constructor(input) {
@@ -132,6 +132,10 @@ class TokenParser {
             return this.readPunc();
         }
 
+        if (this.isMultiPunc(ch)) {
+            return this.readMultiPunc();
+        }
+
         this.input.badInput();
     }
 
@@ -175,6 +179,12 @@ class TokenParser {
     readPunc() {
         return { type: "punc", val: this.input.next() };
     }
+
+    readMultiPunc() {
+        let punc = this.readWhilePred(this.isMultiPunc);
+
+        return { type: "punc", val: punc };
+    }
     
     isWhitespace(ch) {
         return /\s/.test(ch);
@@ -189,7 +199,11 @@ class TokenParser {
     }
 
     isPunc(ch) {
-        return /[&|,.>()\[\]{};]/.test(ch);
+        return /[!&|,()\[\]{};]/.test(ch);
+    }
+
+    isMultiPunc(ch) {
+        return /[.>*]/.test(ch);
     }
 
     setMode(mode) {
@@ -206,117 +220,413 @@ class TokenParser {
 }
 
 class StatementParser {
-    constructor() { }
+    constructor(input) {
+        this.input = new TokenParser(input);
+    }
 
-    parse(input) {
-        let tokens = [];
-        let modes  = [];
-        let root   = [];
+    parse() {
+        let tokens = [ ];
 
-        let badInput = () => {
-            throw new Error();
+        let badInput = (msg) => {
+            throw new Error(msg);
         }
 
         let parseTokens = () => {
-            let input = new TokenParser(input);
             let token;
-    
-            while (token = input.next()) {
+            while (token = this.input.next()) {
                 tokens.push(token);
             }
         }
-    
-        let nextStatement = () => {
-            while (modes.pop() != 'stmt');
-            modes[modes.length - 1]++;
-            modes.push('stmt');
-        }
-    
-        let isPlaced = (obj) => {
-            ptr = root;
-            for (let i = 0; i < modes.length - 1; i++) {
-                if (!ptr[modes[i]]) {
-                    return false;
-                }
-                ptr = ptr[modes[i]];
-            }
-            if (ptr[obj]) {
-                return true;
-            }
-            return false;
-        }
-    
-        let emplace = (obj, opts = { replace: true }) => {
-            ptr = root;
-            for (let i = 0; i < modes.length - 2; i++) {
-                if (!ptr[modes[i]]) {
-                    if (Number.isInteger(modes[i])) {
-                        ptr.push({ });
-                    } else {
-                        ptr[modes[i]] = { };
-                    }
-                }
-                ptr = ptr[modes[i]];
-            }
-
-            idx = modes[modes.length - 1];
-            if (opts.replace) {
-                ptr[idx] = obj;
-            } else {
-                if (!ptr[idx] || !Array.isArray(ptr[idx])) {
-                    ptr[idx] = [];
-                }
-                ptr[idx].push(obj);
-            }
-        }
-    
-        let setMode = (mode) => {
-            modes.push(mode);
-        }
-
-        let setUniqueMode = (mode) => {
-            if (isPlaced(mode)) {
-                badInput();
-            } else {
-                setMode(mode);
-            }
-        }
-    
-        let unsetMode = () => {
-            return modes.pop();
-        }
-    
-        let getMode = () => {
-            return modes[modes.length - 1];
-        }
 
         let parseTree = () => {
-            let tag_mode = 'primary';
+            let context = [ ];
+            let root    = { };
+            
+            let hasContextValue = (last) => {
+                let ptr = root;
+                for (let i = 0; i < context.length - 1; i++) {
+                    if (!ptr[context[i]]) {
+                        return false;
+                    }
+                    ptr = ptr[context[i]];
+                }
+                if (ptr[last]) {
+                    return true;
+                }
+                return false;
+            }
+        
+            let putContextValue = (obj, opts = { replace: true, once: false }) => {
+                let ptr = root;
+                
+                for (let i = 0; i < context.length - 1; i++) {
+                    if (!ptr[context[i]]) {
+                        if (Number.isInteger(context[i])) {
+                            if (Number.isInteger(context[i + 1])) {
+                                ptr.push([ ]);
+                                console.assert(ptr[context[i]]);
+                            } else {
+                                let obj = { };
+                                obj[context[i + 1]] = { };
+                                ptr.push(obj);
+                                console.assert(ptr[context[i]]);
+                            }
+                        } else {
+                            if (Number.isInteger(context[i + 1])) {
+                                ptr[context[i]] = [ ];
+                            } else {
+                                let obj = { };
+                                obj[context[i + 1]] = { };
+                                ptr[context[i]] = { };
+                            }
+                        }
+                    }
+                    
+                    ptr = ptr[context[i]];
+                }
+    
+                let idx = context[context.length - 1];
+                if (opts.once && ptr[idx]) {
+                    badInput();
+                } else if (opts.replace) {
+                    ptr[idx] = obj;
+                } else {
+                    if (!ptr[idx]) {
+                        ptr[idx] = [ ];
+                    } else if (!Array.isArray(ptr[idx])) {
+                        temp = ptr[idx];
+                        ptr[idx] = [ ];
+                        ptr[idx].push(temp);
+                    }
+                    ptr[idx].push(obj);
+                }
+            }
 
-            let parseTreeTop = () => {
+            let getContextValue = () => {
+                let ptr = root;
+                for (let i = 0; i < context.length - 1; i++) {
+                    if (!ptr[context[i]]) {
+                        return null;
+                    }
+                    ptr = ptr[context[i]];
+                }
+                return ptr;
+            }
+        
+            let assertContext = (assert) => {
+                let failed = false;
+                
+                let off = context.length - assert.length;
+
+                for (let i = 0; i < assert.length; i++) {
+                    if (context[off + i] != assert[i]) {
+                        failed = true;
+                        break;
+                    }
+                }
+
+                if (failed) {
+                    failed = [ ];
+                    for (let i = off; i < context.length; i++) {
+                        failed.push(context[i]);
+                    }
+                }
+
+                if (failed) {
+                    let msg = '';
+                    msg += 'Unmatching context. Expected ';
+                    msg += JSON.stringify(assert);
+                    msg += ', but got ';
+                    msg += JSON.stringify(failed);
+                    msg += ' instead.'
+                    throw new Error(msg);
+                }
+            }
+
+            let enterContext = (mode, opts = { once: false, assert: null }) => {
+                if (opts.once && hasContextValue(mode)) {
+                    badInput(getContext());
+                }
+
+                context.push(mode);
+
+                if (opts.assert) {
+                    assertContext(opts.assert);
+                }
+            }
+        
+            let leaveContext = () => {
+                return context.pop();
+            }
+        
+            let getContext = () => {
+                return context[context.length - 1];
+            }
+
+            let nextStatement = () => {
+                while (context.pop() != 'stmt');
+                if (hasContextValue(context[context.length - 1])) {
+                    context[context.length - 1]++;
+                }
+                context.push('stmt');
+            }
+    
+            let enterStack = () => {
+                if (getContext() == 'stack') {
+                    assertContext(['stmt', 'definition', 'stack']);
+                } else if (context.length != 0) {
+                    assertContext(['stmt', 'definition']);
+                    context.push('stack');
+                } else {
+                    context.push('stack');
+                }
+                context.push(0);
+                context.push('stmt');
+            }
+        
+            let leaveStack = () => {
+                while (context.pop() != 'stack');
+            }
+
+            let leaveContextAndRetry = (token) => {
+                leaveContext();
+                parseTreeMain(token);
+            }
+
+            let parseTreeInit = (token) => {
+                assertContext(['stmt', 'init']);
+
+                switch (token.type) {
+                    case 'key':
+                        switch (token.val) {
+                            case 'vmdl':
+                                leaveContext();
+                                break;
+                            case 'exit':
+                                process.exit(0);
+                            default:
+                                leaveContextAndRetry(token);
+                                break;
+                        }
+                        break;
+                    default:
+                        leaveContextAndRetry(token);
+                        break;
+                }
+            }
+
+            let parseTreeRoot = (token) => {
+                assertContext(['stmt']);
+
                 switch (token.type) {
                     case 'key':
                         switch (token.val) {
                             case 'in':
-                                setUniqueMode('context');
+                                enterContext('context', { once: true });
                                 break;
                             case 'new':
-                                setUniqueMode('operation');
-                                emplace('create');
-                                unsetMode();
-                                setUniqueMode('definition');
+                                enterContext('operation', { once: true });
+                                putContextValue('create');
+                                leaveContext();
+                                enterContext('definition', { once: true });
                                 break;
                             case 'now':
-                                setUniqueMode('operation');
-                                emplace('update');
-                                unsetMode();
-                                setUniqueMode('definition');
+                                enterContext('operation', { once: true });
+                                putContextValue('update');
+                                leaveContext();
+                                enterContext('definition', { once: true });
                                 break;
                             case 'no':
-                                setUniqueMode('operation');
-                                emplace('delete');
-                                unsetMode();
-                                setUniqueMode('definition');
+                                enterContext('operation', { once: true });
+                                putContextValue('delete');
+                                leaveContext();
+                                break;
+                            default:
+                                badInput(getContext());
+                        }
+                        break;
+                    case 'punc':
+                        switch (token.val) {
+                            case ';':
+                                nextStatement();
+                                break;
+                            case '}':
+                                leaveStack();
+                                break;
+                            default:
+                                badInput(getContext());
+                        }
+                        break;
+                    default:
+                        badInput(getContext());
+                }
+            }
+
+            let parseTreeContext = (token) => {
+                let autoPutAnd = () => {
+                    let context_tokens = getContextValue();
+                    if (context_tokens) {
+                        let last_token = context_tokens[context_tokens.length - 1];
+                        if (last_token && ((last_token.type == 'tag') || (last_token.val == ')'))) {
+                            putContextValue({ type: 'op', val: '&' }, { replace: false });
+                        }
+                    }
+                }
+
+                assertContext(['stmt', 'context']);
+
+                switch (token.type) {
+                    case 'tag':
+                        autoPutAnd();
+                        putContextValue({ type: 'tag', val: token.val }, { replace: false });
+                        break;
+                    case 'key':
+                    case 'punc':
+                        switch (token.val) {
+                            case ';':
+                                leaveContext();
+                                enterContext('operation', { once: true });
+                                putContextValue('cswitch');
+                                leaveContext();
+                                nextStatement();
+                                break;
+                            case '(':
+                                autoPutAnd();
+                                putContextValue({ type: 'op', val: '(' }, { replace: false });
+                                break;
+                            case ')':
+                                putContextValue({ type: 'op', val: ')' }, { replace: false });
+                                break;
+                            case 'not':
+                            case '!':
+                                autoPutAnd();
+                                putContextValue({ type: 'op', val: '!' }, { replace: false });
+                                break;
+                            case 'and':
+                            case '&':
+                                putContextValue({ type: 'op', val: '&' }, { replace: false });
+                                break;
+                            case 'or':
+                            case '|':
+                            case ',':
+                                putContextValue({ type: 'op', val: '|' }, { replace: false });
+                                break;
+                            case 'to':
+                            case '.':
+                            case '>':
+                                putContextValue({ type: 'op', val: '.' }, { replace: false });
+                                break;
+                            case 'into':
+                            case '..':
+                            case '>>':
+                                putContextValue({ type: 'op', val: '>' }, { replace: false });
+                                break;
+                            case 'any':
+                            case '*':
+                                putContextValue({ type: 'wc', val: 'any' }, { replace: false });
+                                break;
+                            case 'all':
+                            case '**':
+                                putContextValue({ type: 'wc', val: 'all' }, { replace: false });
+                                break;
+                            case 'leaf':
+                            case '***':
+                                putContextValue({ type: 'wc', val: 'leaf' }, { replace: false });
+                                break;
+                            case 'new':
+                                leaveContext();
+                                enterContext('operation', { once: true });
+                                putContextValue('create');
+                                leaveContext();
+                                enterContext('definition', { once: true });
+                                break;
+                            case 'now':
+                                leaveContext();
+                                enterContext('operation', { once: true });
+                                putContextValue('update');
+                                leaveContext();
+                                enterContext('definition', { once: true });
+                                break;
+                            case 'no':
+                                leaveContext();
+                                enterContext('operation', { once: true });
+                                putContextValue('delete');
+                                leaveContext();
+                                enterContext('affected', { once: true });
+                                break;
+                            default:
+                                leaveContextAndRetry(token);
+                                break;
+                        }
+                        break;
+                    default:
+                        leaveContextAndRetry(token);
+                        break;
+                }
+            }
+
+            let parseTreeDefinition = (token) => {
+                assertContext(['stmt', 'definition']);
+                
+                switch (token.type) {
+                    case 'tag':
+                        enterContext('sys', { once: true });
+                        putContextValue(token.val);
+                        leaveContext();
+                        break;
+                    case 'key':
+                        switch (token.val) {
+                            case 'as':
+                                enterContext('tags', { once: true });
+                                break;
+                            case 'is':
+                                enterContext('heap', { once: true });
+                                break;
+                            case 'has':
+                                enterContext('stack', { once: true });
+                                break;
+                            case 'times':
+                                enterContext('count', { once: true });
+                                break;
+                            default:
+                                leaveContextAndRetry(token);
+                                break;
+                        }
+                        break;
+                    case 'punc':
+                        switch (token.val) {
+                            case ';':
+                                leaveContext();
+                                nextStatement();
+                                break;
+                            default:
+                                leaveContextAndRetry(token);
+                                break;
+                        }
+                        break;
+                    default:
+                        leaveContextAndRetry(token);
+                        break;
+                }
+            }
+
+            let parseTreeAffected = (token) => {
+                assertContext(['stmt', 'affected']);
+                
+                switch (token.type) {
+                    case 'key':
+                        switch (token.val) {
+                            case 'tags':
+                                putContextValue('tags', { once: true });
+                                leaveContext();
+                                break;
+                            case 'heap':
+                                putContextValue('heap', { once: true });
+                                leaveContext();
+                                break;
+                            case 'stack':
+                                putContextValue('stack', { once: true });
+                                leaveContext();
                                 break;
                             default:
                                 badInput();
@@ -325,6 +635,8 @@ class StatementParser {
                     case 'punc':
                         switch (token.val) {
                             case ';':
+                                putContextValue('any', { once: true });
+                                leaveContext();
                                 nextStatement();
                                 break;
                             default:
@@ -336,112 +648,137 @@ class StatementParser {
                 }
             }
 
-            let parseTreeContext = () => {
-                
-            }
+            let parseTreeTagsDefinition = (token) => {
+                assertContext(['stmt', 'definition', 'tags']);
 
-            let enterStack = () => {
-                modes.push('stack');
-                modes.push(0);
-                modes.push('stmt');
-            }
-        
-            let leaveStack = () => {
-                while (modes.pop() != 'stack');
-            }
-
-            let parseTreeDefinition = () => {
                 switch (token.type) {
                     case 'tag':
-                        setMode('tags');
-                        if ((tag_mode == 'primary') || (tag_mode == 'secondary')) {
-                            emplace(token.val, { replace: false });
+                        putContextValue(token.val, { replace: false });
+                        break;
+                    case 'punc':
+                        switch (token.val) {
+                            case ';':
+                                leaveContext();
+                                leaveContext();
+                                nextStatement();
+                                break;
+                            default:
+                                let tags = getContextValue();
+                                if (tags && tags.length != 0) {
+                                    leaveContextAndRetry(token);
+                                } else {
+                                    badInput(getContext());
+                                }
+                                break;
                         }
-                        unsetMode();
-                        if (tag_mode == 'primary') {
-                            setMode('sys');
-                            emplace(token.val, { replace: true });
-                            unsetMode();
+                        break;
+                    default:
+                        let tags = getContextValue();
+                        if (tags && tags.length != 0) {
+                            leaveContextAndRetry(token);
+                        } else {
+                            badInput(getContext());
                         }
+                        break;
+                }
+            }
+
+            let parseTreeHeapDefinition = (token) => {
+                assertContext(['stmt', 'definition', 'heap']);
+
+                switch (token.type) {
+                    case 'key':
+                        switch (token.val) {
+                            case 'json':
+                                enterContext('type', { once: true });
+                                putContextValue('json');
+                                leaveContext();
+                                enterContext('data', { once: true });
+                                break;
+                            default:
+                                badInput(getContext());
+                        }
+                        break;
+                    default:
+                        badInput(getContext());
+                }
+            }
+
+            let parseTreeHeapDataDefinition = (token) => {
+                assertContext(['stmt', 'definition', 'heap', 'data']);
+
+                switch (token.type) {
+                    case 'part':
+                        putContextValue(token, { replace: false });
                         break;
                     case 'key':
                         switch (token.val) {
-                            case 'as':
-                                tag_mode = 'secondary';
-                                setMode('tags');
-                                emplace([], { replace: true });
-                                unsetMode();
+                            case 'end':
+                                leaveContext();
+                                leaveContext();
                                 break;
-                            case 'is':
-                                setUniqueMode('heap');
-                                break;
-                            case 'has':
-                                break;
-                            case 'from':
-                                break;
-                            case 'times':
+                            case 'seqnum':
+                            case 'sysseqnum':
+                            case 'depth':
+                            case 'uuid':
+                            case 'root':
+                            case 'farthest':
+                            case 'closest':
+                            case 'parent':
+                                putContextValue(token, { replace: false });
                                 break;
                             default:
-                                badInput();
+                                badInput(getContext());
                         }
                         break;
+                    default:
+                        badInput(getContext());
+                }
+            }
+
+            let parseTreeStackDefinition = (token) => {
+                assertContext(['stmt', 'definition', 'stack']);
+
+                switch (token.type) {
                     case 'punc':
                         switch (token.val) {
                             case '{':
                                 enterStack();
                                 break;
-                            case '}':
-                                leaveStack();
-                                break;
                             default:
-                                badInput();
+                                badInput(getContext());
                         }
                         break;
                     default:
-                        badInput();
+                        badInput(getContext());
                 }
             }
 
-            let parseTreeHeapDefinition = () => {
+            let parseTreeCountDefinition = (token) => {
+                assertContext(['stmt', 'definition', 'count']);
+
                 switch (token.type) {
-                    case 'key':
-                        switch (token.val) {
-                            case 'json':
-                                setUniqueMode('type');
-                                emplace('json');
-                                unsetMode();
-                                setUniqueMode('data');
-                                break;
-                            case 'end':
-                                // continue here 
-                                break;
+                    case 'tag':
+                        if (Number.isInteger(token.val)) {
+                            putContextValue(token.val);
+                            leaveContext();
+                            break;
+                        } else {
+                            badInput(getContext());
                         }
                         break;
-                    
+                    default:
+                        badInput(getContext());
                 }
             }
 
-            enterStack();
-
-            init = true;
-            for (token of this.tokens) {
-                if (init) {
-                    switch (token.type) {
-                        case 'key':
-                            switch (token.val) {
-                                case 'vmdl':
-                                    break;
-                                case 'exit':
-                                    process.exit(0);
-                            }
-                    }
-                    
-                    init = false;
-                }
-    
-                switch (getMode()) {
+            let parseTreeMain = (token) => {
+                switch (getContext()) {
+                    case 'init':
+                        parseTreeInit(token);
+                        break;
                     case 'stmt':
-                        parseTreeTop(token);
+                        parseTreeRoot(token);
                         break;
                     case 'context':
                         parseTreeContext(token);
@@ -449,24 +786,52 @@ class StatementParser {
                     case 'definition':
                         parseTreeDefinition(token);
                         break;
+                    case 'affected':
+                        parseTreeAffected(token);
+                        break;
+                    case 'tags':
+                        parseTreeTagsDefinition(token);
+                        break;
                     case 'heap':
                         parseTreeHeapDefinition(token);
                         break;
+                    case 'data':
+                        parseTreeHeapDataDefinition(token);
+                        break;
+                    case 'stack':
+                        parseTreeStackDefinition(token);
+                        break;
+                    case 'extend':
+                        parseTreeExtendDefinition(token);
+                        break;
+                    case 'count':
+                        parseTreeCountDefinition(token);
+                        break;
                 }
             }
+
+            enterStack();
+            enterContext('init');
+            
+            let init = true;
+            for (let token of tokens) {
+                parseTreeMain(token);
+            }
+
+            return root;
         }
 
         parseTokens();
-        parseTree();
+        return parseTree();
     }
 }
 
 class VMDL {
     parse(input) {
-        this.input = new StatementParser(input);
-        this.input.parse();
+        let parser = new StatementParser(input);
+        let tree   = parser.parse();
 
-        console.log(this.input.tokens);
+        console.log(JSON.stringify(tree));
     }
 }
 
