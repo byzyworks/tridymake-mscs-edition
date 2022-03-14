@@ -359,12 +359,12 @@ class InputParser {
                             case ',':
                                 putContextValue({ type: 'o', val: '|' }, { replace: false });
                                 break;
-                            case 'to':
+                            case 'of':
                             case '.':
                             case '>':
                                 putContextValue({ type: 'o', val: '.' }, { replace: false });
                                 break;
-                            case 'into':
+                            case 'from':
                             case '..':
                             case '>>':
                                 putContextValue({ type: 'o', val: '>' }, { replace: false });
