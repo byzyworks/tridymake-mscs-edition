@@ -417,9 +417,6 @@ class InputParser {
                             case 'has':
                                 enterContext('stack', { once: true });
                                 break;
-                            case 'times':
-                                enterContext('count', { once: true });
-                                break;
                             default:
                                 leaveContextAndRetry(token);
                                 break;
@@ -586,24 +583,6 @@ class InputParser {
                 }
             }
 
-            let parseTreeCountDefinition = (token) => {
-                assertContext(['stmt', 'definition', 'count']);
-
-                switch (token.type) {
-                    case 'tag':
-                        if (Number.isInteger(token.val)) {
-                            putContextValue(token.val);
-                            leaveContext();
-                            break;
-                        } else {
-                            badInput(getContext());
-                        }
-                        break;
-                    default:
-                        badInput(getContext());
-                }
-            }
-
             let parseTreeMain = (token) => {
                 switch (getContext()) {
                     case 'init':
@@ -632,12 +611,6 @@ class InputParser {
                         break;
                     case 'stack':
                         parseTreeStackDefinition(token);
-                        break;
-                    case 'extend':
-                        parseTreeExtendDefinition(token);
-                        break;
-                    case 'count':
-                        parseTreeCountDefinition(token);
                         break;
                 }
             }
