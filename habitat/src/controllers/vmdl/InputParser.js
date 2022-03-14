@@ -2,8 +2,10 @@ import { parser as tokenParser } from './TokenParser.js';
 import { parser as infixParser } from './InfixParser.js';
 
 class InputParser {
-    root  = { };
-    carry = [ ];
+    root       = { };
+    carry      = [ ];
+    last_depth = 0;
+    last_ended = false;
 
     constructor() {
         this.parser       = tokenParser;
@@ -33,31 +35,33 @@ class InputParser {
             for (token of this.carry) {
                 pool.push(token);
             }
-            this.carry = [ ];
+            
             while (token = this.parser.next()) {
                 pool.push(token);
             }
 
             let idx;
 
-            let last_depth  = 0;
-            let last_ended  = false;
             let stmt_cutoff = null;
-            for (idx = 0; idx < pool.length; idx++) {
+            for (idx = this.carry.length; idx < pool.length; idx++) {
                 if (pool[idx].val == '{') {
-                    last_depth++;
+                    this.last_depth++;
                 } else if (pool[idx].val == '}') {
-                    last_depth--;
-                } else if (pool[idx].val == ';') {
-                    last_ended = true;
-                } else {
-                    last_ended = false;
+                    this.last_depth--;
                 }
 
-                if (last_ended && last_depth == 0) {
+                if (pool[idx].val == ';') {
+                    this.last_ended = true;
+                } else {
+                    this.last_ended = false;
+                }
+
+                if (this.last_ended && this.last_depth == 0) {
                     stmt_cutoff = idx;
                 }
             }
+
+            this.carry = [ ];
 
             if (stmt_cutoff) {
                 for (idx = 0; idx <= stmt_cutoff; idx++) {
@@ -214,7 +218,10 @@ class InputParser {
                 } else {
                     context.push('stack');
                 }
-                context.push(0);
+
+                let done = getContextValue() ?? [ ];
+                context.push(done.length);
+
                 context.push('stmt');
             }
         
