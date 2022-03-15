@@ -5,9 +5,9 @@ class VMDL {
         this.parser = inputParser;
     }
 
-    parse(input) {
+    parse(input, opts) {
         this.parser.load(input);
-        let tree = this.parser.parse();
+        let tree = this.parser.parse(opts);
 
         console.log(JSON.stringify(tree));
     }

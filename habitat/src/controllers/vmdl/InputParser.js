@@ -21,14 +21,16 @@ class InputParser {
         return this.carry.length == 0;
     }
 
-    parse() {
+    parse(opts = { }) {
+        opts.accept_carry = opts.accept_carry ?? false;
+
         let tokens = [ ];
 
         let badInput = (msg) => {
             throw new Error(msg);
         }
 
-        let parseTokens = () => {
+        let parseTokensWithCarry = () => {
             let pool = [ ];
 
             let token;
@@ -75,6 +77,37 @@ class InputParser {
                 for (idx = 0; idx < pool.length; idx++) {
                     this.carry.push(pool[idx]);
                 }
+            }
+        }
+
+        let parseTokensWithoutCarry = () => {
+            let carry_needed = false;
+
+            let token;
+            while (token = this.parser.next()) {
+                tokens.push(token);
+                
+                if (token.val == '{') {
+                    this.last_depth++;
+                } else if (token.val == '}') {
+                    this.last_depth--;
+                }
+
+                if (token.val == ';') {
+                    this.last_ended = true;
+                } else {
+                    this.last_ended = false;
+                }
+
+                if (this.last_ended && this.last_depth == 0) {
+                    carry_needed = false;
+                } else {
+                    carry_needed = true;
+                }
+            }
+            
+            if (carry_needed) {
+                badInput();
             }
         }
 
@@ -494,7 +527,11 @@ class InputParser {
             return this.tree.getRaw();
         }
 
-        parseTokens();
+        if (opts.accept_carry) {
+            parseTokensWithCarry();
+        } else {
+            parseTokensWithoutCarry();
+        }
         return parseTree();
     }
 }

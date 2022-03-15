@@ -25,6 +25,6 @@ export const cli = async () => {
             ]);
         }
         
-        vmdl.parse(answers.parsed);
+        vmdl.parse(answers.parsed, { accept_carry: true });
     }
 }
