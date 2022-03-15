@@ -18,6 +18,10 @@ export class Stack {
         return this.arr.pop();
     }
 
+    length() {
+        return this.arr.length;
+    }
+
     isEmpty() {
         return this.arr.length == 0;
     }

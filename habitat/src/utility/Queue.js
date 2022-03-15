@@ -18,6 +18,10 @@ export class Queue {
         return this.arr.shift();
     }
 
+    length() {
+        return this.arr.length;
+    }
+
     isEmpty() {
         return this.arr.length == 0;
     }
