@@ -7,9 +7,22 @@ class VMDL {
 
     parse(input, opts) {
         this.parser.load(input);
-        const tree = this.parser.parse(opts);
 
-        console.log(JSON.stringify(tree));
+        let tree;
+        try {
+            tree = this.parser.parse(opts);
+        } catch (err) {
+            if (err instanceof SyntaxError) {
+                console.error(err.message);
+                if (err.stack) {
+
+                }
+            } else {
+                throw err;
+            }
+        }
+
+        return tree;
     }
 
     carryIsEmpty() {

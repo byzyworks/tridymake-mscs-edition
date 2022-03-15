@@ -31,8 +31,8 @@ class CharParser {
         return this.peek() == '';
     }
 
-    badInput() {
-        throw new Error();
+    badInput(ch) {
+        throw new Error('');
     }
 }
 

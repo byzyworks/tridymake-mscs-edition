@@ -108,7 +108,7 @@ class TokenParser {
             return this.readMultiPunc();
         }
 
-        this.parser.badInput();
+        this.parser.badInput(ch);
     }
 
     readComment() {
@@ -171,11 +171,11 @@ class TokenParser {
     }
 
     isPunc(ch) {
-        return /[!&|,()\[\]{};]/.test(ch);
+        return /[!&|,:()\[\]{};]/.test(ch);
     }
 
     isMultiPunc(ch) {
-        return /[.>*]/.test(ch);
+        return /[.*]/.test(ch);
     }
 
     setMode(mode) {

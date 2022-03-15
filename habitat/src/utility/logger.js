@@ -1,11 +1,10 @@
 import winston from 'winston';
 import morgan  from 'morgan';
 
-import * as common from './common';
+import * as common from './common.js';
 
 export const log_levels     = winston.config.npm.levels;
 const        log_level_opts = Object.keys(log_levels);
-export type  LogLevel       = (typeof log_level_opts)[number];
 
 export const format = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),

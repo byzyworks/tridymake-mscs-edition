@@ -254,15 +254,14 @@ class InputParser {
                                 break;
                             case 'of':
                             case '.':
-                            case '>':
                                 failIfNoPrecedingTags();
                                 this.tree.putPosValue({ type: 'o', val: '.' }, { ready: false });
                                 break;
                             case 'from':
+                            case ':':
                             case '..':
-                            case '>>':
                                 failIfNoPrecedingTags();
-                                this.tree.putPosValue({ type: 'o', val: '>' }, { ready: false });
+                                this.tree.putPosValue({ type: 'o', val: ':' }, { ready: false });
                                 break;
                             case 'any':
                             case '*':
@@ -343,6 +342,10 @@ class InputParser {
                 switch (token.type) {
                     case 'key':
                         switch (token.val) {
+                            case 'machine':
+                                this.tree.setPosValue('machine');
+                                this.tree.leavePos();
+                                break;
                             case 'tags':
                                 this.tree.setPosValue('tags');
                                 this.tree.leavePos();
@@ -362,7 +365,6 @@ class InputParser {
                     case 'punc':
                         switch (token.val) {
                             case ';':
-                                this.tree.setPosValue('any');
                                 this.tree.nextItem();
                                 break;
                             default:
@@ -514,7 +516,7 @@ class InputParser {
                 this.tree.enterStack();
                 this.tree.enterPos('init');
 
-                for (let token of tokens) {
+                for (const token of tokens) {
                     parseTreeMain(token);
                 }
 

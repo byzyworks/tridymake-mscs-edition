@@ -6,7 +6,7 @@
             "request": "launch",
             "name": "Launch CLI",
             "program": "${workspaceFolder}/habitat/src/app.js",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/habitat",
             "args": ["console", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal"
@@ -16,7 +16,7 @@
             "request": "launch",
             "name": "Launch REST API",
             "program": "${workspaceFolder}/habitat/src/app.js",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/habitat",
             "args": ["web", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal"
