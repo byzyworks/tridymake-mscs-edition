@@ -12,7 +12,7 @@ class CharParser {
     }
 
     next() {
-        let ch = this.input.charAt(this.pos++);
+        const ch = this.input.charAt(this.pos++);
         if (ch == "\n") {
             this.line++;
             this.col = 0;
@@ -36,4 +36,4 @@ class CharParser {
     }
 }
 
-export let parser = new CharParser();
+export const parser = new CharParser();

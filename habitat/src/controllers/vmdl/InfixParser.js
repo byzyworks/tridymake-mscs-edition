@@ -9,7 +9,7 @@ class InfixParser {
     }
 
     parse() {
-        let prec = {
+        const prec = {
             '!': 0,
             '&': 1,
             '|': 2,
@@ -17,8 +17,8 @@ class InfixParser {
             '>': 4
         }
 
-        let ops = new Stack();
-        let out = new Queue();
+        const ops = new Stack();
+        const out = new Queue();
 
         for (let token of this.input) {
             if (token.type == 't') {
@@ -47,4 +47,4 @@ class InfixParser {
     }
 }
 
-export let parser = new InfixParser();
+export const parser = new InfixParser();

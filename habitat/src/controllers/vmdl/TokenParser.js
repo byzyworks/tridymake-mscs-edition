@@ -13,7 +13,7 @@ class TokenParser {
     }
 
     next() {
-        let token    = this.current;
+        const token  = this.current;
         this.current = null;
 
         return token || this.readNext();
@@ -68,7 +68,7 @@ class TokenParser {
             return null;
         }
 
-        let ch = this.parser.peek();
+        const ch = this.parser.peek();
 
         if (ch == '#') {
             this.setMode('com');
@@ -121,13 +121,13 @@ class TokenParser {
     }
 
     readJSON() {
-        let part = this.readWhileEscaped();
+        const part = this.readWhileEscaped();
 
         return { type: "part", val: part };
     }
 
     readKeyword() {
-        let keyword = this.readWhilePred(this.isIdentifier).toLowerCase();
+        const keyword = this.readWhilePred(this.isIdentifier).toLowerCase();
 
         if (keyword == 'json') {
             if (this.getMode() != 'json') {
@@ -143,7 +143,7 @@ class TokenParser {
     }
 
     readTag() {
-        let tag = this.readWhilePred(this.isIdentifier);
+        const tag = this.readWhilePred(this.isIdentifier);
 
         return { type: "tag", val: tag };
     }
@@ -153,7 +153,7 @@ class TokenParser {
     }
 
     readMultiPunc() {
-        let punc = this.readWhilePred(this.isMultiPunc);
+        const punc = this.readWhilePred(this.isMultiPunc);
 
         return { type: "punc", val: punc };
     }
@@ -191,4 +191,4 @@ class TokenParser {
     }
 }
 
-export let parser = new TokenParser();
+export const parser = new TokenParser();

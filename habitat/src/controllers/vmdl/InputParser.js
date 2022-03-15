@@ -24,14 +24,14 @@ class InputParser {
     parse(opts = { }) {
         opts.accept_carry = opts.accept_carry ?? false;
 
-        let tokens = [ ];
+        const tokens = [ ];
 
-        let badInput = (msg) => {
+        const badInput = (msg) => {
             throw new Error(msg);
         }
 
-        let parseTokensWithCarry = () => {
-            let pool = [ ];
+        const parseTokensWithCarry = () => {
+            const pool = [ ];
 
             let token;
 
@@ -80,7 +80,7 @@ class InputParser {
             }
         }
 
-        let parseTokensWithoutCarry = () => {
+        const parseTokensWithoutCarry = () => {
             let carry_needed = false;
 
             let token;
@@ -111,13 +111,13 @@ class InputParser {
             }
         }
 
-        let parseTree = () => {
-            let leaveTreePosAndRetry = (token) => {
+        const parseTree = () => {
+            const leaveTreePosAndRetry = (token) => {
                 this.tree.leavePos();
                 parseTreeMain(token);
             }
 
-            let parseTreeInit = (token) => {
+            const parseTreeInit = (token) => {
                 this.tree.assertPos(['stmt', 'init']);
 
                 switch (token.type) {
@@ -139,7 +139,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeRoot = (token) => {
+            const parseTreeRoot = (token) => {
                 this.tree.assertPos(['stmt']);
 
                 switch (token.type) {
@@ -187,30 +187,27 @@ class InputParser {
                 }
             }
 
-
-
-            let parseTreeContext = (token) => {
+            const parseTreeContext = (token) => {
                 this.tree.assertPos(['stmt', 'context']);
 
-                let autoPutAnd = () => {
-                    let context_tokens = this.tree.getPosValue();
+                const autoPutAnd = () => {
+                    const context_tokens = this.tree.getPosValue();
                     if (context_tokens) {
-                        let last_token = context_tokens[context_tokens.length - 1];
+                        const last_token = context_tokens[context_tokens.length - 1];
                         if (last_token && ((last_token.type == 't') || (last_token.val == ')'))) {
                             this.tree.putPosValue({ type: 'o', val: '&' }, { ready: false });
-                            this.is_tag_mode = true;
                         }
                     }
                 }
 
-                let finalizeExpression = () => {
+                const finalizeExpression = () => {
                     this.infix_parser.load(this.tree.getPosValue());
-                    let postfix = this.infix_parser.parse();
+                    const postfix = this.infix_parser.parse();
                     this.tree.setPosValue(postfix, { ready: true });
                 }
 
-                let failIfNoPrecedingTags = () => {
-                    let current = this.tree.getPosValue();
+                const failIfNoPrecedingTags = () => {
+                    const current = this.tree.getPosValue();
                     if (!current || (current[current.length - 1].type != 't')) {
                         this.tree.badInput();
                     }
@@ -295,7 +292,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeDefinition = (token) => {
+            const parseTreeDefinition = (token) => {
                 this.tree.assertPos(['stmt', 'definition']);
                 
                 switch (token.type) {
@@ -340,7 +337,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeAffect = (token) => {
+            const parseTreeAffect = (token) => {
                 this.tree.assertPos(['stmt', 'affect']);
                 
                 switch (token.type) {
@@ -377,7 +374,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeTagsDefinition = (token) => {
+            const parseTreeTagsDefinition = (token) => {
                 this.tree.assertPos(['stmt', 'definition', 'tags']);
 
                 switch (token.type) {
@@ -410,7 +407,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeHeapDefinition = (token) => {
+            const parseTreeHeapDefinition = (token) => {
                 this.tree.assertPos(['stmt', 'definition', 'heap']);
 
                 switch (token.type) {
@@ -431,7 +428,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeHeapDataDefinition = (token) => {
+            const parseTreeHeapDataDefinition = (token) => {
                 this.tree.assertPos(['stmt', 'definition', 'heap', 'data']);
 
                 switch (token.type) {
@@ -463,7 +460,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeStackDefinition = (token) => {
+            const parseTreeStackDefinition = (token) => {
                 this.tree.assertPos(['stmt', 'definition', 'stack']);
 
                 switch (token.type) {
@@ -481,7 +478,7 @@ class InputParser {
                 }
             }
 
-            let parseTreeMain = (token) => {
+            const parseTreeMain = (token) => {
                 switch (this.tree.getTopPos()) {
                     case 'init':
                         parseTreeInit(token);
@@ -536,4 +533,4 @@ class InputParser {
     }
 }
 
-export let parser = new InputParser();
+export const parser = new InputParser();

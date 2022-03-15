@@ -79,13 +79,13 @@ export class AbstractSyntaxTree {
     }
 
     leavePos() {
-        let pos = this.getTopPos();
+        const pos = this.getTopPos();
 
         if (this.ptr.to_ready[pos] === false) {
             this.badInput();
         }
 
-        let left = this.pos.pop();
+        const left = this.pos.pop();
 
         this.changed_pos = true;
 
@@ -112,7 +112,7 @@ export class AbstractSyntaxTree {
 
         this.updatePtrs();
 
-        let pos = this.getTopPos();
+        const pos = this.getTopPos();
 
         this.ptr.to_value[pos] = value;
 
@@ -135,12 +135,12 @@ export class AbstractSyntaxTree {
 
         this.updatePtrs();
 
-        let pos = this.getTopPos();
+        const pos = this.getTopPos();
 
         if (!this.ptr.to_value[pos]) {
             this.ptr.to_value[pos] = [ ];
         } else if (!Array.isArray(this.ptr.to_value[pos])) {
-            let temp = this.ptr.to_value[pos];
+            const temp = this.ptr.to_value[pos];
             this.ptr.to_value[pos] = [ ];
             this.ptr.to_value[pos].push(temp);
         }
@@ -168,7 +168,7 @@ export class AbstractSyntaxTree {
     assertPos(assert) {
         let failed = false;
                 
-        let off = this.pos.length - assert.length;
+        const off = this.pos.length - assert.length;
 
         for (let i = 0; i < assert.length; i++) {
             if (this.pos[off + i] != assert[i]) {
@@ -209,7 +209,7 @@ export class AbstractSyntaxTree {
             this.enterPos('stack');
         }
 
-        let done = this.getPosValue() ?? [ ];
+        const done = this.getPosValue() ?? [ ];
         this.enterPos(done.length);
 
         this.enterPos('stmt');
@@ -231,7 +231,7 @@ export class AbstractSyntaxTree {
         while (this.leavePos() != 'stmt');
 
         if (!this.isPosEmpty()) {
-            let idx = this.leavePos();
+            const idx = this.leavePos();
             this.enterPos(idx + 1);
         }
 

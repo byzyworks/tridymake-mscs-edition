@@ -7,7 +7,7 @@ class VMDL {
 
     parse(input, opts) {
         this.parser.load(input);
-        let tree = this.parser.parse(opts);
+        const tree = this.parser.parse(opts);
 
         console.log(JSON.stringify(tree));
     }
@@ -17,4 +17,4 @@ class VMDL {
     }
 }
 
-export let vmdl = new VMDL();
+export const vmdl = new VMDL();
