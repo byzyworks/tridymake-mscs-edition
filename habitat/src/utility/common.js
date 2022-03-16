@@ -12,3 +12,15 @@ export const overlay = (target, source) => {
         }
     }
 }
+
+export const isEmpty = (obj) => {
+    if (Array.isArray(obj)) {
+        return obj.length === 0;
+    } else if (typeof obj === 'object' && obj !== null) {
+        return Object.keys(obj).length === 0;
+    } else if (typeof obj === 'string') {
+        return obj === '';
+    } else {
+        return obj === undefined;
+    }
+}

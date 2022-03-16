@@ -1,7 +1,8 @@
 import inquirer from 'inquirer';
 import chalk    from 'chalk';
 
-import { vmdl } from './controllers/vmdl/VMDL.js';
+import { vmdl }    from './controllers/vmdl/VMDL.js';
+import { isEmpty } from './utility/common.js';
 
 let answers;
 
@@ -27,6 +28,8 @@ export const cli = async () => {
         
         const out = vmdl.parse(answers.parsed, { accept_carry: true });
 
-        console.log(JSON.stringify(out));
+        if (!isEmpty(out['stack'])) {
+            console.log(JSON.stringify(out));
+        }
     }
 }

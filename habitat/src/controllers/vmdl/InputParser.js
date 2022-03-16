@@ -1,13 +1,13 @@
 import { parser as tokenParser } from './TokenParser.js';
 import { parser as infixParser } from './InfixParser.js';
-import { AbstractSyntaxTree }    from './AbstractSyntaxTree.js';
+import { StateTree }             from './StateTree.js';
+import { isEmpty }               from '../../utility/common.js';
 import { SyntaxError }           from '../../utility/error.js';
 
 class InputParser {
-    tree        = new AbstractSyntaxTree();
-    carry       = [ ];
-    last_depth  = 0;
-    last_ended  = false;
+    carry      = [ ];
+    last_depth = 0;
+    last_ended = false;
 
     constructor() {
         this.parser       = tokenParser;
@@ -19,13 +19,14 @@ class InputParser {
     }
 
     carryIsEmpty() {
-        return this.carry.length == 0;
+        return this.carry.length === 0;
     }
 
     parse(opts = { }) {
         opts.accept_carry = opts.accept_carry ?? false;
 
         const tokens = [ ];
+        const astree = new StateTree();
 
         const parseTokensWithCarry = () => {
             const pool = [ ];
@@ -110,18 +111,18 @@ class InputParser {
 
         const parseTree = () => {
             const leaveTreePosAndRetry = (token) => {
-                this.tree.leavePos();
+                astree.leavePos();
                 parseTreeMain(token);
             }
 
             const parseTreeInit = (token) => {
-                this.tree.assertPos(['stmt', 'init']);
+                astree.assertPos(['init']);
 
                 switch (token.type) {
                     case 'key':
                         switch (token.val) {
                             case 'vmdl':
-                                this.tree.leavePos();
+                                astree.leavePos();
                                 break;
                             case 'exit':
                                 process.exit(0);
@@ -137,31 +138,29 @@ class InputParser {
             }
 
             const parseTreeRoot = (token) => {
-                this.tree.assertPos(['stmt']);
-
                 switch (token.type) {
                     case 'key':
                         switch (token.val) {
                             case 'in':
-                                this.tree.enterPos('context');
+                                astree.enterPos('context');
                                 break;
                             case 'new':
-                                this.tree.enterPos('operation');
-                                this.tree.setPosValue('create');
-                                this.tree.leavePos();
-                                this.tree.enterPos('definition');
+                                astree.enterPos('operation');
+                                astree.setPosValue('create');
+                                astree.leavePos();
+                                astree.enterPos('definition');
                                 break;
                             case 'now':
-                                this.tree.enterPos('operation');
-                                this.tree.setPosValue('update');
-                                this.tree.leavePos();
-                                this.tree.enterPos('definition');
+                                astree.enterPos('operation');
+                                astree.setPosValue('update');
+                                astree.leavePos();
+                                astree.enterPos('definition');
                                 break;
                             case 'no':
-                                this.tree.enterPos('operation');
-                                this.tree.setPosValue('delete');
-                                this.tree.leavePos();
-                                this.tree.enterPos('affect');
+                                astree.enterPos('operation');
+                                astree.setPosValue('delete');
+                                astree.leavePos();
+                                astree.enterPos('affect');
                                 break;
                             default:
                                 throw new SyntaxError(`Unexpected keyword "${token.val}".`);
@@ -170,10 +169,10 @@ class InputParser {
                     case 'punc':
                         switch (token.val) {
                             case ';':
-                                this.tree.nextItem();
+                                astree.nextItem();
                                 break;
                             case '}':
-                                this.tree.leaveStack();
+                                astree.leaveStack();
                                 break;
                             default:
                                 throw new SyntaxError(`Unexpected token "${token.val}".`);
@@ -185,26 +184,26 @@ class InputParser {
             }
 
             const parseTreeContext = (token) => {
-                this.tree.assertPos(['stmt', 'context']);
+                astree.assertPos(['context']);
 
                 const autoPutAnd = () => {
-                    if (expression && ((previous.type == 't') || (previous.val == ')'))) {
-                        this.tree.putPosValue({ type: 'o', val: '&' }, { ready: false });
+                    if (!isEmpty(expression) && ((previous.type == 't') || (previous.val == ')'))) {
+                        astree.putPosValue({ type: 'o', val: '&' }, { ready: false });
                     }
                 }
 
                 const finalizeExpression = () => {
-                    if (!expression) {
+                    if (isEmpty(expression)) {
                         throw new SyntaxError(`Missing context expression (required after @IN).`);
                     }
 
                     this.infix_parser.load(expression);
                     const postfix = this.infix_parser.parse();
-                    this.tree.setPosValue(postfix, { ready: true });
+                    astree.setPosValue(postfix, { ready: true });
                 }
 
                 const failIfNoPrecedingTags = () => {
-                    if (!expression || ((previous.type != 't') && (previous.val != ')'))) {
+                    if (isEmpty(expression) || ((previous.type != 't') && (previous.val != ')'))) {
                         throw new SyntaxError(`Unexpected operator "${token.val}" - this needs to follow a tag.`);
                     }
                 }
@@ -224,17 +223,17 @@ class InputParser {
                     }
                 }
 
-                const expression = this.tree.getPosValue();
+                const expression = astree.getPosValue();
 
                 let previous;
-                if (expression) {
+                if (!isEmpty(expression)) {
                     previous = expression[expression.length - 1];
                 }
 
                 switch (token.type) {
                     case 'tag':
                         autoPutAnd();
-                        this.tree.putPosValue({ type: 't', val: token.val });
+                        astree.putPosValue({ type: 't', val: token.val });
                         break;
                     case 'key':
                     case 'punc':
@@ -242,61 +241,61 @@ class InputParser {
                             case ';':
                                 failIfNoPrecedingTags();
                                 finalizeExpression();
-                                this.tree.leavePos();
-                                this.tree.enterPos('operation');
-                                this.tree.setPosValue('cswitch');
-                                this.tree.nextItem();
+                                astree.leavePos();
+                                astree.enterPos('operation');
+                                astree.setPosValue('cswitch');
+                                astree.nextItem();
                                 break;
                             case '(':
                                 autoPutAnd();
-                                this.tree.putPosValue({ type: 'o', val: '(' }, { ready: false });
+                                astree.putPosValue({ type: 'o', val: '(' }, { ready: false });
                                 break;
                             case ')':
                                 failIfNoPrecedingTags();
                                 failIfNoPrecedingLeftParentheses();
-                                this.tree.putPosValue({ type: 'o', val: ')' }, { ready: true });
+                                astree.putPosValue({ type: 'o', val: ')' }, { ready: true });
                                 break;
                             case 'not':
                             case '!':
                                 autoPutAnd();
-                                this.tree.putPosValue({ type: 'o', val: '!' }, { ready: false });
+                                astree.putPosValue({ type: 'o', val: '!' }, { ready: false });
                                 break;
                             case 'and':
                             case '&':
                                 failIfNoPrecedingTags();
-                                this.tree.putPosValue({ type: 'o', val: '&' }, { ready: false });
+                                astree.putPosValue({ type: 'o', val: '&' }, { ready: false });
                                 break;
                             case 'or':
                             case '|':
                             case ',':
                                 failIfNoPrecedingTags();
-                                this.tree.putPosValue({ type: 'o', val: '|' }, { ready: false });
+                                astree.putPosValue({ type: 'o', val: '|' }, { ready: false });
                                 break;
                             case 'of':
                             case '.':
                                 failIfNoPrecedingTags();
-                                this.tree.putPosValue({ type: 'o', val: '.' }, { ready: false });
+                                astree.putPosValue({ type: 'o', val: '.' }, { ready: false });
                                 break;
                             case 'from':
                             case ':':
                             case '..':
                                 failIfNoPrecedingTags();
-                                this.tree.putPosValue({ type: 'o', val: ':' }, { ready: false });
+                                astree.putPosValue({ type: 'o', val: ':' }, { ready: false });
                                 break;
                             case 'any':
                             case '*':
                                 autoPutAnd();
-                                this.tree.putPosValue({ type: 't', val: '*' }, { ready: true });
+                                astree.putPosValue({ type: 't', val: '*' }, { ready: true });
                                 break;
                             case 'all':
                             case '**':
                                 autoPutAnd();
-                                this.tree.putPosValue({ type: 't', val: '**' }, { ready: true });
+                                astree.putPosValue({ type: 't', val: '**' }, { ready: true });
                                 break;
                             case 'leaf':
                             case '***':
                                 autoPutAnd();
-                                this.tree.putPosValue({ type: 't', val: '***' }, { ready: true });
+                                astree.putPosValue({ type: 't', val: '***' }, { ready: true });
                                 break;
                             default:
                                 failIfNoPrecedingTags();
@@ -314,28 +313,28 @@ class InputParser {
             }
 
             const parseTreeDefinition = (token) => {
-                this.tree.assertPos(['stmt', 'definition']);
+                astree.assertPos(['definition']);
                 
                 switch (token.type) {
                     case 'tag':
-                        this.tree.enterPos('sys');
-                        this.tree.setPosValue(token.val);
-                        this.tree.leavePos();
-                        this.tree.enterPos('tags');
-                        this.tree.putPosValue(token.val, { final: false });
-                        this.tree.leavePos();
+                        astree.enterPos('sys');
+                        astree.setPosValue(token.val);
+                        astree.leavePos();
+                        astree.enterPos('tags');
+                        astree.putPosValue(token.val, { final: false });
+                        astree.leavePos();
                         break;
                     case 'key':
                         switch (token.val) {
                             case 'as':
-                                this.tree.enterPos('tags');
-                                this.tree.setPosValue([ ]);
+                                astree.enterPos('tags');
+                                astree.setPosValue([ ]);
                                 break;
                             case 'is':
-                                this.tree.enterPos('heap');
+                                astree.enterPos('heap');
                                 break;
                             case 'has':
-                                this.tree.enterPos('stack');
+                                astree.enterPos('stack');
                                 break;
                             default:
                                 leaveTreePosAndRetry(token);
@@ -345,7 +344,7 @@ class InputParser {
                     case 'punc':
                         switch (token.val) {
                             case ';':
-                                this.tree.nextItem();
+                                astree.nextItem();
                                 break;
                             default:
                                 leaveTreePosAndRetry(token);
@@ -359,26 +358,26 @@ class InputParser {
             }
 
             const parseTreeAffect = (token) => {
-                this.tree.assertPos(['stmt', 'affect']);
+                astree.assertPos(['affect']);
                 
                 switch (token.type) {
                     case 'key':
                         switch (token.val) {
                             case 'machine':
-                                this.tree.setPosValue('machine');
-                                this.tree.leavePos();
+                                astree.setPosValue('machine');
+                                astree.leavePos();
                                 break;
                             case 'tags':
-                                this.tree.setPosValue('tags');
-                                this.tree.leavePos();
+                                astree.setPosValue('tags');
+                                astree.leavePos();
                                 break;
                             case 'heap':
-                                this.tree.setPosValue('heap');
-                                this.tree.leavePos();
+                                astree.setPosValue('heap');
+                                astree.leavePos();
                                 break;
                             case 'stack':
-                                this.tree.setPosValue('stack');
-                                this.tree.leavePos();
+                                astree.setPosValue('stack');
+                                astree.leavePos();
                                 break;
                             default:
                                 throw new SyntaxError(`Unexpected keyword "${token.val}".`);
@@ -387,7 +386,7 @@ class InputParser {
                     case 'punc':
                         switch (token.val) {
                             case ';':
-                                this.tree.nextItem();
+                                astree.nextItem();
                                 break;
                             default:
                                 throw new SyntaxError(`Unexpected token "${token.val}".`);
@@ -399,16 +398,16 @@ class InputParser {
             }
 
             const parseTreeTagsDefinition = (token) => {
-                this.tree.assertPos(['stmt', 'definition', 'tags']);
+                astree.assertPos(['definition', 'tags']);
 
                 switch (token.type) {
                     case 'tag':
-                        this.tree.putPosValue(token.val);
+                        astree.putPosValue(token.val);
                         break;
                     case 'key':
                         switch (token.val) {
                             case 'none':
-                                this.tree.leavePos();
+                                astree.leavePos();
                                 break;
                             default:
                                 leaveTreePosAndRetry(token);
@@ -418,7 +417,7 @@ class InputParser {
                     case 'punc':
                         switch (token.val) {
                             case ';':
-                                this.tree.nextItem();
+                                astree.nextItem();
                                 break;
                             default:
                                 leaveTreePosAndRetry(token);
@@ -432,16 +431,16 @@ class InputParser {
             }
 
             const parseTreeHeapDefinition = (token) => {
-                this.tree.assertPos(['stmt', 'definition', 'heap']);
+                astree.assertPos(['definition', 'heap']);
 
                 switch (token.type) {
                     case 'key':
                         switch (token.val) {
                             case 'json':
-                                this.tree.enterPos('type');
-                                this.tree.setPosValue('json');
-                                this.tree.leavePos();
-                                this.tree.enterPos('data');
+                                astree.enterPos('type');
+                                astree.setPosValue('json');
+                                astree.leavePos();
+                                astree.enterPos('data');
                                 break;
                             default:
                                 throw new SyntaxError(`Unexpected keyword "${token.val}".`);
@@ -453,17 +452,17 @@ class InputParser {
             }
 
             const parseTreeHeapDataDefinition = (token) => {
-                this.tree.assertPos(['stmt', 'definition', 'heap', 'data']);
+                astree.assertPos(['definition', 'heap', 'data']);
 
                 switch (token.type) {
                     case 'part':
-                        this.tree.putPosValue(token);
+                        astree.putPosValue(token);
                         break;
                     case 'key':
                         switch (token.val) {
                             case 'end':
-                                this.tree.leavePos();
-                                this.tree.leavePos();
+                                astree.leavePos();
+                                astree.leavePos();
                                 break;
                             case 'seqnum':
                             case 'sysseqnum':
@@ -473,7 +472,7 @@ class InputParser {
                             case 'farthest':
                             case 'closest':
                             case 'parent':
-                                this.tree.putPosValue(token);
+                                astree.putPosValue(token);
                                 break;
                             default:
                                 throw new SyntaxError(`Unexpected keyword "${token.val}".`);
@@ -485,13 +484,13 @@ class InputParser {
             }
 
             const parseTreeStackDefinition = (token) => {
-                this.tree.assertPos(['stmt', 'definition', 'stack']);
+                astree.assertPos(['definition', 'stack']);
 
                 switch (token.type) {
                     case 'punc':
                         switch (token.val) {
                             case '{':
-                                this.tree.enterStack();
+                                astree.enterStack();
                                 break;
                             default:
                                 throw new SyntaxError(`Unexpected token "${token.val}".`);
@@ -503,12 +502,9 @@ class InputParser {
             }
 
             const parseTreeMain = (token) => {
-                switch (this.tree.getTopPos()) {
+                switch (astree.getTopPos()) {
                     case 'init':
                         parseTreeInit(token);
-                        break;
-                    case 'stmt':
-                        parseTreeRoot(token);
                         break;
                     case 'context':
                         parseTreeContext(token);
@@ -531,21 +527,24 @@ class InputParser {
                     case 'stack':
                         parseTreeStackDefinition(token);
                         break;
+                    default:
+                        parseTreeRoot(token);
+                        break;
                 }
             }
 
             if (tokens.length > 0) {
-                this.tree.enterStack();
-                this.tree.enterPos('init');
+                astree.enterStack();
+                astree.enterPos('init');
 
                 for (const token of tokens) {
                     parseTreeMain(token);
                 }
 
-                this.tree.leaveStack({ root: true });
+                astree.leaveStack({ root: true });
             }
 
-            return this.tree.getRaw();
+            return astree.getRaw();
         }
 
         if (opts.accept_carry) {

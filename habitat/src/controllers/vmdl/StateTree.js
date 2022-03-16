@@ -1,11 +1,12 @@
-import { LogicError } from '../../utility/error.js'
+import { LogicError } from '../../utility/error.js';
+import { isEmpty }    from '../../utility/common.js';
 
-export class AbstractSyntaxTree {
+export class StateTree {
     pos  = [ ];
     tree = {
         value: { },
-        final: { },
-        ready: { }
+        ready: { },
+        final: { }
     };
     ptr = {
         to_value: null,
@@ -37,9 +38,9 @@ export class AbstractSyntaxTree {
                         this.ptr.to_ready.push([ ]);
                         this.ptr.to_final.push([ ]);
                     } else {
-                        this.ptr.to_value.push({ [this.pos[i + 1]]: { } });
-                        this.ptr.to_ready.push({ [this.pos[i + 1]]: { } });
-                        this.ptr.to_final.push({ [this.pos[i + 1]]: { } });
+                        this.ptr.to_value.push({ });
+                        this.ptr.to_ready.push({ });
+                        this.ptr.to_final.push({ });
                     }
                 } else {
                     if (Number.isInteger(this.pos[i + 1])) {
@@ -47,9 +48,9 @@ export class AbstractSyntaxTree {
                         this.ptr.to_ready[this.pos[i]] = [ ];
                         this.ptr.to_final[this.pos[i]] = [ ];
                     } else {
-                        this.ptr.to_value[this.pos[i]] = { [this.pos[i + 1]]: { } };
-                        this.ptr.to_ready[this.pos[i]] = { [this.pos[i + 1]]: { } };
-                        this.ptr.to_final[this.pos[i]] = { [this.pos[i + 1]]: { } };
+                        this.ptr.to_value[this.pos[i]] = { };
+                        this.ptr.to_ready[this.pos[i]] = { };
+                        this.ptr.to_final[this.pos[i]] = { };
                     }
                 }
             }
@@ -164,10 +165,9 @@ export class AbstractSyntaxTree {
     }
 
     assertPos(assert) {
-        let failed = false;
-                
         const off = this.pos.length - assert.length;
 
+        let failed = false;
         for (let i = 0; i < assert.length; i++) {
             if (this.pos[off + i] != assert[i]) {
                 failed = true;
@@ -175,36 +175,29 @@ export class AbstractSyntaxTree {
             }
         }
 
+        let fail_list = [ ]
         if (failed) {
-            failed = [ ];
             for (let i = off; i < this.pos.length; i++) {
-                failed.push(this.pos[i]);
+                fail_list.push(this.pos[i]);
             }
         }
 
-        if (failed) {
-            throw new LogicError(`Unmatching AST position. Expected ${JSON.stringify(assert)}, but got ${JSON.stringify(failed)} instead.`);
+        if (!isEmpty(fail_list)) {
+            throw new LogicError(`Unmatching AST position. Expected ${JSON.stringify(assert)}, but got ${JSON.stringify(fail_list)} instead.`);
         }
     }
 
     isPosRoot() {
-        return this.pos.length == 0;
+        return this.pos.length === 0;
     }
 
     enterStack() {
-        if (this.getTopPos() == 'stack') {
-            this.assertPos(['stmt', 'definition', 'stack']);
-        } else if (!this.isPosRoot()) {
-            this.assertPos(['stmt', 'definition']);
-            this.enterPos('stack');
-        } else {
+        if (this.getTopPos() != 'stack') {
             this.enterPos('stack');
         }
 
         const done = this.getPosValue() ?? [ ];
         this.enterPos(done.length);
-
-        this.enterPos('stmt');
     }
 
     leaveStack(opts = { }) {
@@ -220,14 +213,14 @@ export class AbstractSyntaxTree {
     }
 
     nextItem() {
-        while (this.leavePos() != 'stmt');
+        while (this.pos[this.pos.length - 2] != 'stack') {
+            this.leavePos();
+        }
 
         if (!this.isPosEmpty()) {
             const idx = this.leavePos();
             this.enterPos(idx + 1);
         }
-
-        this.enterPos('stmt');
     }
 
     getRaw() {

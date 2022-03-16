@@ -1,15 +1,20 @@
 import { parser as inputParser } from './InputParser.js';
-import { SyntaxError }           from '../../utility/error.js';
-import { logger }                from '../../utility/logger.js';
+//import { compositor }            from './Compositor.js';
 
 class VMDL {
     constructor() {
-        this.parser = inputParser;
+        this.parser     = inputParser;
+        //this.compositor = compositor;
     }
 
     parse(input, opts) {
+        let tree;
+
         this.parser.load(input);
-        let tree = this.parser.parse(opts);
+        tree = this.parser.parse(opts);
+
+        //this.compositor.load(tree);
+        //tree = this.compositor.parse(tree);
 
         return tree;
     }
