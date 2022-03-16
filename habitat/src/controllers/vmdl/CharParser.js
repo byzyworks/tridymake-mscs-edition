@@ -8,6 +8,9 @@ class CharParser {
     }
     
     load(raw) {
+        this.line = 1;
+        this.col  = 0;
+
         this.input += raw;
     }
 
@@ -31,8 +34,12 @@ class CharParser {
         return this.peek() == '';
     }
 
-    badInput(ch) {
-        throw new Error('');
+    getLine() {
+        return this.line;
+    }
+
+    getCol() {
+        return this.col;
     }
 }
 

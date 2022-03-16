@@ -1,4 +1,6 @@
 import { parser as inputParser } from './InputParser.js';
+import { SyntaxError }           from '../../utility/error.js';
+import { logger }                from '../../utility/logger.js';
 
 class VMDL {
     constructor() {
@@ -7,20 +9,7 @@ class VMDL {
 
     parse(input, opts) {
         this.parser.load(input);
-
-        let tree;
-        try {
-            tree = this.parser.parse(opts);
-        } catch (err) {
-            if (err instanceof SyntaxError) {
-                console.error(err.message);
-                if (err.stack) {
-
-                }
-            } else {
-                throw err;
-            }
-        }
+        let tree = this.parser.parse(opts);
 
         return tree;
     }

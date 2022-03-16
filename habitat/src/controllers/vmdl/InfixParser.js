@@ -14,7 +14,7 @@ class InfixParser {
             '&': 1,
             '|': 2,
             '.': 3,
-            '>': 4
+            ':': 4
         }
 
         const ops = new Stack();

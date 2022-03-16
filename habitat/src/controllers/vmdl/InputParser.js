@@ -1,6 +1,7 @@
 import { parser as tokenParser } from './TokenParser.js';
 import { parser as infixParser } from './InfixParser.js';
-import { AbstractSyntaxTree } from './AbstractSyntaxTree.js';
+import { AbstractSyntaxTree }    from './AbstractSyntaxTree.js';
+import { SyntaxError }           from '../../utility/error.js';
 
 class InputParser {
     tree        = new AbstractSyntaxTree();
@@ -25,10 +26,6 @@ class InputParser {
         opts.accept_carry = opts.accept_carry ?? false;
 
         const tokens = [ ];
-
-        const badInput = (msg) => {
-            throw new Error(msg);
-        }
 
         const parseTokensWithCarry = () => {
             const pool = [ ];
@@ -107,7 +104,7 @@ class InputParser {
             }
             
             if (carry_needed) {
-                badInput();
+                throw new SyntaxError(`The input given contains an incomplete VMDL statement (missing final ";" or "}").`);
             }
         }
 
@@ -167,7 +164,7 @@ class InputParser {
                                 this.tree.enterPos('affect');
                                 break;
                             default:
-                                this.tree.badInput();
+                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
                         }
                         break;
                     case 'punc':
@@ -179,11 +176,11 @@ class InputParser {
                                 this.tree.leaveStack();
                                 break;
                             default:
-                                this.tree.badInput();
+                                throw new SyntaxError(`Unexpected token "${token.val}".`);
                         }
                         break;
                     default:
-                        this.tree.badInput();
+                        throw new SyntaxError(`Unexpected token "${token.val}".`);
                 }
             }
 
@@ -191,26 +188,47 @@ class InputParser {
                 this.tree.assertPos(['stmt', 'context']);
 
                 const autoPutAnd = () => {
-                    const context_tokens = this.tree.getPosValue();
-                    if (context_tokens) {
-                        const last_token = context_tokens[context_tokens.length - 1];
-                        if (last_token && ((last_token.type == 't') || (last_token.val == ')'))) {
-                            this.tree.putPosValue({ type: 'o', val: '&' }, { ready: false });
-                        }
+                    if (expression && ((previous.type == 't') || (previous.val == ')'))) {
+                        this.tree.putPosValue({ type: 'o', val: '&' }, { ready: false });
                     }
                 }
 
                 const finalizeExpression = () => {
-                    this.infix_parser.load(this.tree.getPosValue());
+                    if (!expression) {
+                        throw new SyntaxError(`Missing context expression (required after @IN).`);
+                    }
+
+                    this.infix_parser.load(expression);
                     const postfix = this.infix_parser.parse();
                     this.tree.setPosValue(postfix, { ready: true });
                 }
 
                 const failIfNoPrecedingTags = () => {
-                    const current = this.tree.getPosValue();
-                    if (!current || (current[current.length - 1].type != 't')) {
-                        this.tree.badInput();
+                    if (!expression || ((previous.type != 't') && (previous.val != ')'))) {
+                        throw new SyntaxError(`Unexpected operator "${token.val}" - this needs to follow a tag.`);
                     }
+                }
+
+                const failIfNoPrecedingLeftParentheses = () => {
+                    let counter = 0;
+                    for (let token of expression) {
+                        if (token.val == '(') {
+                            counter++;
+                        } else if (token.val == ')') {
+                            counter--;
+                        }
+
+                        if (counter < 0) {
+                            throw new SyntaxError(`Unexpected operator "${token.val}" - this needs to follow a matching left parentheses.`);
+                        }
+                    }
+                }
+
+                const expression = this.tree.getPosValue();
+
+                let previous;
+                if (expression) {
+                    previous = expression[expression.length - 1];
                 }
 
                 switch (token.type) {
@@ -222,6 +240,7 @@ class InputParser {
                     case 'punc':
                         switch (token.val) {
                             case ';':
+                                failIfNoPrecedingTags();
                                 finalizeExpression();
                                 this.tree.leavePos();
                                 this.tree.enterPos('operation');
@@ -234,6 +253,7 @@ class InputParser {
                                 break;
                             case ')':
                                 failIfNoPrecedingTags();
+                                failIfNoPrecedingLeftParentheses();
                                 this.tree.putPosValue({ type: 'o', val: ')' }, { ready: true });
                                 break;
                             case 'not':
@@ -279,12 +299,14 @@ class InputParser {
                                 this.tree.putPosValue({ type: 't', val: '***' }, { ready: true });
                                 break;
                             default:
+                                failIfNoPrecedingTags();
                                 finalizeExpression();
                                 leaveTreePosAndRetry(token);
                                 break;
                         }
                         break;
                     default:
+                        failIfNoPrecedingTags();
                         finalizeExpression();
                         leaveTreePosAndRetry(token);
                         break;
@@ -359,7 +381,7 @@ class InputParser {
                                 this.tree.leavePos();
                                 break;
                             default:
-                                this.tree.badInput();
+                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
                         }
                         break;
                     case 'punc':
@@ -368,11 +390,11 @@ class InputParser {
                                 this.tree.nextItem();
                                 break;
                             default:
-                                this.tree.badInput();
+                                throw new SyntaxError(`Unexpected token "${token.val}".`);
                         }
                         break;
                     default:
-                        this.tree.badInput();
+                        throw new SyntaxError(`Unexpected token "${token.val}".`);
                 }
             }
 
@@ -422,11 +444,11 @@ class InputParser {
                                 this.tree.enterPos('data');
                                 break;
                             default:
-                                this.tree.badInput();
+                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
                         }
                         break;
                     default:
-                        this.tree.badInput();
+                        throw new SyntaxError(`Unexpected token "${token.val}".`);
                 }
             }
 
@@ -454,11 +476,11 @@ class InputParser {
                                 this.tree.putPosValue(token);
                                 break;
                             default:
-                                this.tree.badInput();
+                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
                         }
                         break;
                     default:
-                        this.tree.badInput();
+                        throw new SyntaxError(`Unexpected token "${token.val}".`);
                 }
             }
 
@@ -472,11 +494,11 @@ class InputParser {
                                 this.tree.enterStack();
                                 break;
                             default:
-                                this.tree.badInput();
+                                throw new SyntaxError(`Unexpected token "${token.val}".`);
                         }
                         break;
                     default:
-                        this.tree.badInput();
+                        throw new SyntaxError(`Unexpected token "${token.val}".`);
                 }
             }
 

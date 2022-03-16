@@ -7,17 +7,30 @@
             "name": "Launch CLI",
             "program": "${workspaceFolder}/habitat/src/app.js",
             "cwd": "${workspaceFolder}/habitat",
-            "args": ["console", "--log-level", "debug"],
+            "args": ["console"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch REST API",
+            "name": "Launch REST API (Development)",
             "program": "${workspaceFolder}/habitat/src/app.js",
             "cwd": "${workspaceFolder}/habitat",
             "args": ["web", "--log-level", "debug"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch REST API (Production)",
+            "program": "${workspaceFolder}/habitat/src/app.js",
+            "cwd": "${workspaceFolder}/habitat",
+            "args": ["web"],
             "outputCapture": "std",
             "console": "externalTerminal"
         }

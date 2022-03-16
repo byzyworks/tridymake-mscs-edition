@@ -1,3 +1,5 @@
+import { LogicError } from '../../utility/error.js'
+
 export class AbstractSyntaxTree {
     pos  = [ ];
     tree = {
@@ -16,10 +18,6 @@ export class AbstractSyntaxTree {
         this.ptr.to_value = this.tree.value;
         this.ptr.to_ready = this.tree.ready;
         this.ptr.to_final = this.tree.final;
-    }
-
-    badInput() {
-        throw new Error(JSON.stringify(this.pos));
     }
 
     updatePtrs() {
@@ -66,7 +64,7 @@ export class AbstractSyntaxTree {
 
     enterPos(pos, assert = null) {
         if (this.ptr.to_final[pos] === true) {
-            this.badInput();
+            throw new LogicError(`Attempted to enter AST position "${pos}" from ${JSON.stringify(this.pos)}, but "${pos}" has already been finalized.`);
         }
 
         this.pos.push(pos);
@@ -82,7 +80,7 @@ export class AbstractSyntaxTree {
         const pos = this.getTopPos();
 
         if (this.ptr.to_ready[pos] === false) {
-            this.badInput();
+            throw new LogicError(`Attempted to leave AST position "${pos}" from ${JSON.stringify(this.pos)}, but "${pos}" is not modified sufficiently yet.`);
         }
 
         const left = this.pos.pop();
@@ -185,13 +183,7 @@ export class AbstractSyntaxTree {
         }
 
         if (failed) {
-            let msg = '';
-            msg += 'Unmatching context. Expected ';
-            msg += JSON.stringify(assert);
-            msg += ', but got ';
-            msg += JSON.stringify(failed);
-            msg += ' instead.'
-            throw new Error(msg);
+            throw new LogicError(`Unmatching AST position. Expected ${JSON.stringify(assert)}, but got ${JSON.stringify(failed)} instead.`);
         }
     }
 
@@ -222,7 +214,7 @@ export class AbstractSyntaxTree {
 
         if (!opts.root) {
             if (this.isPosRoot()) {
-                this.badInput();
+                throw new LogicError(`Attempted to descend from the root stack, which isn't allowed.`);
             }
         }
     }

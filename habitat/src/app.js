@@ -2,7 +2,7 @@
 
 import fs from 'fs';
 
-import { program }    from 'commander';
+import { program } from 'commander';
 
 import { vmdl }               from './controllers/vmdl/VMDL.js';
 import { errorHandler }       from './utility/error.js';

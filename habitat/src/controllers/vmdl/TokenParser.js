@@ -1,4 +1,5 @@
 import { parser as charParser } from './CharParser.js';
+import { SyntaxError }          from '../../utility/error.js';
 
 class TokenParser {
     mode    = [ ];
@@ -108,7 +109,8 @@ class TokenParser {
             return this.readMultiPunc();
         }
 
-        this.parser.badInput(ch);
+        const anomaly = this.readWhile(this.isNonWhitespace);
+        this.throwSyntaxError(`Unrecognized symbol "${anomaly}".`);
     }
 
     readComment() {
@@ -162,6 +164,10 @@ class TokenParser {
         return /\s/.test(ch);
     }
 
+    isNonWhitespace(ch) {
+        return !/\s/.test(ch);
+    }
+
     isEscape(ch) {
         return /\\/.test(ch);
     }
@@ -188,6 +194,12 @@ class TokenParser {
 
     getMode() {
         return this.mode[this.mode.length - 1];
+    }
+
+    throwSyntaxError(msg) {
+        const line = this.parser.getLine();
+        const col  = this.parser.getCol();
+        throw new SyntaxError(`line ${line}, col ${col}: ${msg}`);
     }
 }
 

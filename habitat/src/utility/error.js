@@ -2,9 +2,20 @@ import { StatusCodes } from 'http-status-codes';
 
 import { logger } from './logger.js';
 
+export class LogicError extends Error {
+    constructor(description) {
+        description = 'Logic Error: ' + description;
+
+        super(description);
+        Object.setPrototypeOf(this, new.target.prototype);
+
+        Error.captureStackTrace(this);
+    }
+}
+
 export class SyntaxError extends Error {
     constructor(description) {
-        description += 'Syntax Error: ';
+        description = 'Syntax Error: ' + description;
 
         super(description);
         Object.setPrototypeOf(this, new.target.prototype);
