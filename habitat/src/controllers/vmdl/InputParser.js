@@ -154,60 +154,60 @@ class InputParser {
                 }
                 
                 const handleContext = () => {
-                    const readWhileContextExpressionTerminal = () => {
-                        const isTaglikeContextToken = () => {
-                            return false ||
-                                isToken('tag', null, token) ||
-                                isToken('key', 'any', token) ||
-                                isToken('punc', '*', token) ||
-                                isToken('key', 'all', token) ||
-                                isToken('punc', '**', token) ||
-                                isToken('key', 'leaf', token) ||
-                                isToken('punc', '***', token)
-                            ;
-                        }
-                
-                        const handleTaglikeContextToken = () => {
-                            const token = currentToken();
-                            switch (token.type) {
-                                case 'tag':
-                                    context.push({ type: 't', val: currentToken().val });
-                                    break;
-                                default:
-                                    switch (token.val) {
-                                        case 'any':
-                                        case '*':
-                                            context.push({ type: 't', val: '@any' });
-                                            break;
-                                        case 'all':
-                                        case '**':
-                                            context.push({ type: 't', val: '@all' });
-                                            break;
-                                        case 'leaf':
-                                        case '***':
-                                            context.push({ type: 't', val: '@leaf' });
-                                            break;
-                                    }
-                                    break;
-                            }
-                            nextToken();
-                        }
-                
-                        const context = [ ];
-                    
-                        if (isTaglikeContextToken()) {
-                            handleTaglikeContextToken();
-                    
-                            while (isTaglikeContextToken()) {
-                                context.push({ type: 'o', val: '&' });
-                                handleTaglikeContextToken();
-                            }
-                        }
-                    
-                        return context;
-                    }
-                    
                     const readWhileContextExpression = () => {
+                        const readWhileContextExpressionTerminal = () => {
+                            const isTaglikeContextToken = () => {
+                                return false ||
+                                    isToken('tag', null, token) ||
+                                    isToken('key', 'any', token) ||
+                                    isToken('punc', '*', token) ||
+                                    isToken('key', 'all', token) ||
+                                    isToken('punc', '**', token) ||
+                                    isToken('key', 'leaf', token) ||
+                                    isToken('punc', '***', token)
+                                ;
+                            }
+    
+                            const handleTaglikeContextToken = () => {
+                                const token = currentToken();
+                                switch (token.type) {
+                                    case 'tag':
+                                        context.push({ type: 't', val: currentToken().val });
+                                        break;
+                                    default:
+                                        switch (token.val) {
+                                            case 'any':
+                                            case '*':
+                                                context.push({ type: 't', val: '@any' });
+                                                break;
+                                            case 'all':
+                                            case '**':
+                                                context.push({ type: 't', val: '@all' });
+                                                break;
+                                            case 'leaf':
+                                            case '***':
+                                                context.push({ type: 't', val: '@leaf' });
+                                                break;
+                                        }
+                                        break;
+                                }
+                                nextToken();
+                            }
+    
+                            const context = [ ];
+                        
+                            if (isTaglikeContextToken()) {
+                                handleTaglikeContextToken();
+                        
+                                while (isTaglikeContextToken()) {
+                                    context.push({ type: 'o', val: '&' });
+                                    handleTaglikeContextToken();
+                                }
+                            }
+                        
+                            return context;
+                        }
+
                         const isUnaryOpContextToken = () => {
                             return false ||
                                 isToken('key', 'not') ||
@@ -263,64 +263,57 @@ class InputParser {
                             }
                             nextToken();
                         }
-                
-                        let context = [ ];
-                        
-                        let is_enclosed = false;
 
-                        if (isUnaryOpContextToken()) {
-                            handleUnaryOpContextToken();
-                        }
-                    
-                        if (isToken('punc', '(')) {
-                            context.push({ type: 'o', val: '(' });
-                            nextToken();
-                    
-                            is_enclosed = true;
-                        }
-                    
-                        let a = readWhileContextExpressionTerminal();
-                        if (isEmpty(a)) {
-                            a = readWhileContextExpression();
-                            if (isEmpty(a)) {
-                                handleUnexpected();
-                            }
-                        }
-                        context = context.concat(a);
+                        const handleContextSubExpression = () => {
+                            let is_enclosed = false;
 
-                        if (is_enclosed) {
-                            if (isToken('punc', ')')) {
-                                context.push({ type: 'o', val: ')' });
-                                nextToken();
-                            } else {
-                                handleUnexpected();
-                            }
-
-                            is_enclosed = false;
-                        }
-                    
-                        while (isBinaryOpContextToken()) {
-                            handleBinaryOpContextToken();
-
-                            if (isUnaryOpContextToken()) {
+                            while (isUnaryOpContextToken()) {
                                 handleUnaryOpContextToken();
                             }
-                        
+    
                             if (isToken('punc', '(')) {
                                 context.push({ type: 'o', val: '(' });
                                 nextToken();
-                        
+                                
                                 is_enclosed = true;
                             }
-                    
-                            let b = readWhileContextExpressionTerminal();
-                            if (isEmpty(b)) {
-                                b = readWhileContextExpression();
-                                if (isEmpty(b)) {
-                                    handleUnexpected();
+                            
+                            while (isUnaryOpContextToken()) {
+                                handleUnaryOpContextToken();
+                            }
+
+                            let sub;
+                            let runs = 0;
+                            while (true) {
+                                sub = readWhileContextExpressionTerminal();
+                                if (isEmpty(sub)) {
+                                    if (isUnaryOpContextToken() || isToken('punc', '(')) {
+                                        if (runs > 0) {
+                                            context.push({ type: 'o', val: '&' });
+                                        }
+
+                                        sub = readWhileContextExpression();
+                                    } else if (isBinaryOpContextToken()) {
+                                        handleBinaryOpContextToken();
+                                        
+                                        sub = readWhileContextExpression();
+                                    }
+                                }
+                                
+                                for (const piece of sub) {
+                                    context.push(piece);
+                                }
+
+                                if (isEmpty(sub)) {
+                                    break;
+                                } else {
+                                    runs++;
                                 }
                             }
-                            context = context.concat(b);
+    
+                            if (runs === 0) {
+                                handleUnexpected();
+                            }
 
                             if (is_enclosed) {
                                 if (isToken('punc', ')')) {
@@ -329,20 +322,17 @@ class InputParser {
                                 } else {
                                     handleUnexpected();
                                 }
-    
-                                is_enclosed = false;
                             }
                         }
-                    
-                        if (is_enclosed) {
-                            if (isToken('punc', ')')) {
-                                context.push({ type: 'o', val: ')' });
-                                nextToken();
-                            } else {
-                                handleUnexpected();
-                            }
+                        
+                        let context = [ ];
+
+                        handleContextSubExpression();
+                        while (isBinaryOpContextToken()) {
+                            handleBinaryOpContextToken();
+                            handleContextSubExpression();
                         }
-                    
+                        
                         return context;
                     }
 
@@ -351,7 +341,8 @@ class InputParser {
                         return this.infix_parser.parse();
                     }
 
-                    const context = toPostfix(readWhileContextExpression());
+                    let context = readWhileContextExpression();
+                    context = toPostfix(context);
 
                     astree.enterPos('context');
                     astree.setPosValue(context);

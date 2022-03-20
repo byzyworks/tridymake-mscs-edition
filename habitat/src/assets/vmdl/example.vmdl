@@ -36,3 +36,6 @@
 @in linux machine @from habitat
 @new payload
 @as default-linux-payload;
+
+# Huge context expression for the sake of it.
+@in (linux machine) @or (windows (machine @or container) @and @not freebsd @not ((openbsd))) @of vbox @from habitat;
