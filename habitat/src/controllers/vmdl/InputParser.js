@@ -267,16 +267,16 @@ class InputParser {
                         let context = [ ];
                         
                         let is_enclosed = false;
+
+                        if (isUnaryOpContextToken()) {
+                            handleUnaryOpContextToken();
+                        }
                     
                         if (isToken('punc', '(')) {
                             context.push({ type: 'o', val: '(' });
                             nextToken();
                     
                             is_enclosed = true;
-                        }
-                    
-                        if (isUnaryOpContextToken()) {
-                            handleUnaryOpContextToken();
                         }
                     
                         let a = readWhileContextExpressionTerminal();
@@ -287,9 +287,31 @@ class InputParser {
                             }
                         }
                         context = context.concat(a);
+
+                        if (is_enclosed) {
+                            if (isToken('punc', ')')) {
+                                context.push({ type: 'o', val: ')' });
+                                nextToken();
+                            } else {
+                                handleUnexpected();
+                            }
+
+                            is_enclosed = false;
+                        }
                     
                         while (isBinaryOpContextToken()) {
                             handleBinaryOpContextToken();
+
+                            if (isUnaryOpContextToken()) {
+                                handleUnaryOpContextToken();
+                            }
+                        
+                            if (isToken('punc', '(')) {
+                                context.push({ type: 'o', val: '(' });
+                                nextToken();
+                        
+                                is_enclosed = true;
+                            }
                     
                             let b = readWhileContextExpressionTerminal();
                             if (isEmpty(b)) {
@@ -299,6 +321,17 @@ class InputParser {
                                 }
                             }
                             context = context.concat(b);
+
+                            if (is_enclosed) {
+                                if (isToken('punc', ')')) {
+                                    context.push({ type: 'o', val: ')' });
+                                    nextToken();
+                                } else {
+                                    handleUnexpected();
+                                }
+    
+                                is_enclosed = false;
+                            }
                         }
                     
                         if (is_enclosed) {
