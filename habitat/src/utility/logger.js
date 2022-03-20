@@ -32,7 +32,7 @@ export const transports = {
         )
     }),
     console: new winston.transports.Console({
-        level: 'debug'
+        level: 'info'
     })
 };
 

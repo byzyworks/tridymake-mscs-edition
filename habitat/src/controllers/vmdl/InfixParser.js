@@ -1,5 +1,6 @@
 import { Stack } from '../../utility/Stack.js';
 import { Queue } from '../../utility/Queue.js';
+import { errorHandler } from '../../utility/error.js';
 
 class InfixParser {
     constructor() { }

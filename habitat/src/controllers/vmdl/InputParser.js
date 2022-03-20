@@ -1,8 +1,10 @@
-import { parser as tokenParser } from './TokenParser.js';
-import { parser as infixParser } from './InfixParser.js';
-import { StateTree }             from './StateTree.js';
-import { isEmpty }               from '../../utility/common.js';
-import { SyntaxError }           from '../../utility/error.js';
+import { parser as tokenParser }  from './TokenParser.js';
+import { parser as infixParser }  from './InfixParser.js';
+import { StateTree }              from './StateTree.js';
+import { isEmpty }                from '../../utility/common.js';
+import { SyntaxError }            from '../../utility/error.js';
+
+export let interactive_exit = false;
 
 class InputParser {
     carry      = [ ];
@@ -16,6 +18,10 @@ class InputParser {
 
     load(input) {
         this.parser.load(input);
+    }
+
+    clear() {
+        this.parser.clear();
     }
 
     carryIsEmpty() {
@@ -110,439 +116,481 @@ class InputParser {
         }
 
         const parseTree = () => {
-            const leaveTreePosAndRetry = (token) => {
-                astree.leavePos();
-                parseTreeMain(token);
+            let it = 0;
+
+            const currentToken = () => {
+                return tokens[it];
             }
 
-            const parseTreeInit = (token) => {
-                astree.assertPos(['init']);
+            const nextToken = () => {
+                if (it < tokens.length) {
+                    it++;
 
-                switch (token.type) {
-                    case 'key':
-                        switch (token.val) {
-                            case 'vmdl':
-                                astree.leavePos();
-                                break;
-                            case 'exit':
-                                process.exit(0);
-                            default:
-                                leaveTreePosAndRetry(token);
-                                break;
-                        }
-                        break;
-                    default:
-                        leaveTreePosAndRetry(token);
-                        break;
+                    if (it < tokens.length) {
+                        return tokens[it];
+                    } else {
+                        return null;
+                    }
                 }
             }
 
-            const parseTreeRoot = (token) => {
-                switch (token.type) {
-                    case 'key':
-                        switch (token.val) {
-                            case 'in':
-                                astree.enterPos('context');
-                                break;
-                            case 'new':
-                                astree.enterPos('operation');
-                                astree.setPosValue('create');
-                                astree.leavePos();
-                                astree.enterPos('definition');
-                                break;
-                            case 'now':
-                                astree.enterPos('operation');
-                                astree.setPosValue('update');
-                                astree.leavePos();
-                                astree.enterPos('definition');
-                                break;
-                            case 'no':
-                                astree.enterPos('operation');
-                                astree.setPosValue('delete');
-                                astree.leavePos();
-                                astree.enterPos('affect');
-                                break;
-                            default:
-                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
-                        }
-                        break;
-                    case 'punc':
-                        switch (token.val) {
-                            case ';':
-                                astree.nextItem();
-                                break;
-                            case '}':
-                                astree.leaveStack();
-                                break;
-                            default:
-                                throw new SyntaxError(`Unexpected token "${token.val}".`);
-                        }
-                        break;
-                    default:
-                        throw new SyntaxError(`Unexpected token "${token.val}".`);
-                }
+            const hasTokensLeft = () => {
+                return it < tokens.length;
             }
 
-            const parseTreeContext = (token) => {
-                astree.assertPos(['context']);
+            const handleStatement = (token) => {
+                const isToken = (type, value) => {
+                    return (((tokens[it].type == type) || (type === null)) && ((tokens[it].val == value) || (value === null)));
+                }
 
-                const autoPutAnd = () => {
-                    if (!isEmpty(expression) && ((previous.type == 't') || (previous.val == ')'))) {
-                        astree.putPosValue({ type: 'o', val: '&' }, { ready: false });
+                const handleUnexpected = () => {
+                    token = currentToken();
+                    switch (token.type) {
+                        case 'key':
+                            throw new SyntaxError(`line ${token.pos.line}, col ${token.pos.col}: Unexpected keyword "${token.val}".`);
+                        default:
+                            throw new SyntaxError(`line ${token.pos.line}, col ${token.pos.col}: Unexpected token "${token.val}".`);
                     }
                 }
-
-                const finalizeExpression = () => {
-                    if (isEmpty(expression)) {
-                        throw new SyntaxError(`Missing context expression (required after @IN).`);
-                    }
-
-                    this.infix_parser.load(expression);
-                    const postfix = this.infix_parser.parse();
-                    astree.setPosValue(postfix, { ready: true });
-                }
-
-                const failIfNoPrecedingTags = () => {
-                    if (isEmpty(expression) || ((previous.type != 't') && (previous.val != ')'))) {
-                        throw new SyntaxError(`Unexpected operator "${token.val}" - this needs to follow a tag.`);
-                    }
-                }
-
-                const failIfNoPrecedingLeftParentheses = () => {
-                    let counter = 0;
-                    for (let token of expression) {
-                        if (token.val == '(') {
-                            counter++;
-                        } else if (token.val == ')') {
-                            counter--;
-                        }
-
-                        if (counter < 0) {
-                            throw new SyntaxError(`Unexpected operator "${token.val}" - this needs to follow a matching left parentheses.`);
-                        }
-                    }
-                }
-
-                const expression = astree.getPosValue();
-
-                let previous;
-                if (!isEmpty(expression)) {
-                    previous = expression[expression.length - 1];
-                }
-
-                switch (token.type) {
-                    case 'tag':
-                        autoPutAnd();
-                        astree.putPosValue({ type: 't', val: token.val });
-                        break;
-                    case 'key':
-                    case 'punc':
-                        switch (token.val) {
-                            case ';':
-                                failIfNoPrecedingTags();
-                                finalizeExpression();
-                                astree.leavePos();
-                                astree.enterPos('operation');
-                                astree.setPosValue('cswitch');
-                                astree.nextItem();
-                                break;
-                            case '(':
-                                autoPutAnd();
-                                astree.putPosValue({ type: 'o', val: '(' }, { ready: false });
-                                break;
-                            case ')':
-                                failIfNoPrecedingTags();
-                                failIfNoPrecedingLeftParentheses();
-                                astree.putPosValue({ type: 'o', val: ')' }, { ready: true });
-                                break;
-                            case 'not':
-                            case '!':
-                                autoPutAnd();
-                                astree.putPosValue({ type: 'o', val: '!' }, { ready: false });
-                                break;
-                            case 'and':
-                            case '&':
-                                failIfNoPrecedingTags();
-                                astree.putPosValue({ type: 'o', val: '&' }, { ready: false });
-                                break;
-                            case 'or':
-                            case '|':
-                            case ',':
-                                failIfNoPrecedingTags();
-                                astree.putPosValue({ type: 'o', val: '|' }, { ready: false });
-                                break;
-                            case 'of':
-                            case '.':
-                                failIfNoPrecedingTags();
-                                astree.putPosValue({ type: 'o', val: '.' }, { ready: false });
-                                break;
-                            case 'from':
-                            case ':':
-                            case '..':
-                                failIfNoPrecedingTags();
-                                astree.putPosValue({ type: 'o', val: ':' }, { ready: false });
-                                break;
-                            case 'any':
-                            case '*':
-                                autoPutAnd();
-                                astree.putPosValue({ type: 't', val: '*' }, { ready: true });
-                                break;
-                            case 'all':
-                            case '**':
-                                autoPutAnd();
-                                astree.putPosValue({ type: 't', val: '**' }, { ready: true });
-                                break;
-                            case 'leaf':
-                            case '***':
-                                autoPutAnd();
-                                astree.putPosValue({ type: 't', val: '***' }, { ready: true });
-                                break;
-                            default:
-                                failIfNoPrecedingTags();
-                                finalizeExpression();
-                                leaveTreePosAndRetry(token);
-                                break;
-                        }
-                        break;
-                    default:
-                        failIfNoPrecedingTags();
-                        finalizeExpression();
-                        leaveTreePosAndRetry(token);
-                        break;
-                }
-            }
-
-            const parseTreeDefinition = (token) => {
-                astree.assertPos(['definition']);
                 
-                switch (token.type) {
-                    case 'tag':
-                        astree.enterPos('sys');
-                        astree.setPosValue(token.val);
+                const handleContext = () => {
+                    const readWhileContextExpressionTerminal = () => {
+                        const isTaglikeContextToken = () => {
+                            return false ||
+                                isToken('tag', null, token) ||
+                                isToken('key', 'any', token) ||
+                                isToken('punc', '*', token) ||
+                                isToken('key', 'all', token) ||
+                                isToken('punc', '**', token) ||
+                                isToken('key', 'leaf', token) ||
+                                isToken('punc', '***', token)
+                            ;
+                        }
+                
+                        const handleTaglikeContextToken = () => {
+                            const token = currentToken();
+                            switch (token.type) {
+                                case 'tag':
+                                    context.push({ type: 't', val: currentToken().val });
+                                    break;
+                                default:
+                                    switch (token.val) {
+                                        case 'any':
+                                        case '*':
+                                            context.push({ type: 't', val: '@any' });
+                                            break;
+                                        case 'all':
+                                        case '**':
+                                            context.push({ type: 't', val: '@all' });
+                                            break;
+                                        case 'leaf':
+                                        case '***':
+                                            context.push({ type: 't', val: '@leaf' });
+                                            break;
+                                    }
+                                    break;
+                            }
+                            nextToken();
+                        }
+                
+                        const context = [ ];
+                    
+                        if (isTaglikeContextToken()) {
+                            handleTaglikeContextToken();
+                    
+                            while (isTaglikeContextToken()) {
+                                context.push({ type: 'o', val: '&' });
+                                handleTaglikeContextToken();
+                            }
+                        }
+                    
+                        return context;
+                    }
+                    
+                    const readWhileContextExpression = () => {
+                        const isUnaryOpContextToken = () => {
+                            return false ||
+                                isToken('key', 'not') ||
+                                isToken('punc', '!')
+                            ;
+                        }
+                        
+                        const handleUnaryOpContextToken = () => {
+                            switch (currentToken().val) {
+                                case 'not':
+                                case '!':
+                                    context.push({ type: 'o', val: '!' });
+                                    break;
+                            }
+                            nextToken();
+                        }
+                        
+                        const isBinaryOpContextToken = () => {
+                            return false ||
+                                isToken('key', 'and', token) ||
+                                isToken('punc', '&', token) ||
+                                isToken('key', 'or', token) ||
+                                isToken('punc', '|', token) ||
+                                isToken('punc', ',', token) ||
+                                isToken('key', 'of', token) ||
+                                isToken('punc', '.', token) ||
+                                isToken('key', 'from', token) ||
+                                isToken('punc', ':', token) ||
+                                isToken('punc', '..', token)
+                            ;
+                        }
+                        
+                        const handleBinaryOpContextToken = () => {
+                            switch (currentToken().val) {
+                                case 'and':
+                                case '&':
+                                    context.push({ type: 'o', val: '&' });
+                                    break;
+                                case 'or':
+                                case '|':
+                                case ',':
+                                    context.push({ type: 'o', val: '|' });
+                                    break;
+                                case 'of':
+                                case '.':
+                                    context.push({ type: 'o', val: '.' });
+                                    break;
+                                case 'from':
+                                case ':':
+                                case '..':
+                                    context.push({ type: 'o', val: ':' });
+                                    break;
+                            }
+                            nextToken();
+                        }
+                
+                        let context = [ ];
+                        
+                        let is_enclosed = false;
+                    
+                        if (isToken('punc', '(')) {
+                            context.push({ type: 'o', val: '(' });
+                            nextToken();
+                    
+                            is_enclosed = true;
+                        }
+                    
+                        if (isUnaryOpContextToken()) {
+                            handleUnaryOpContextToken();
+                        }
+                    
+                        let a = readWhileContextExpressionTerminal();
+                        if (isEmpty(a)) {
+                            a = readWhileContextExpression();
+                            if (isEmpty(a)) {
+                                handleUnexpected();
+                            }
+                        }
+                        context = context.concat(a);
+                    
+                        while (isBinaryOpContextToken()) {
+                            handleBinaryOpContextToken();
+                    
+                            let b = readWhileContextExpressionTerminal();
+                            if (isEmpty(b)) {
+                                b = readWhileContextExpression();
+                                if (isEmpty(b)) {
+                                    handleUnexpected();
+                                }
+                            }
+                            context = context.concat(b);
+                        }
+                    
+                        if (is_enclosed) {
+                            if (isToken('punc', ')')) {
+                                context.push({ type: 'o', val: ')' });
+                                nextToken();
+                            } else {
+                                handleUnexpected();
+                            }
+                        }
+                    
+                        return context;
+                    }
+
+                    const toPostfix = (expression) => {
+                        this.infix_parser.load(expression);
+                        return this.infix_parser.parse();
+                    }
+
+                    const context = toPostfix(readWhileContextExpression());
+
+                    astree.enterPos('context');
+                    astree.setPosValue(context);
+                    astree.leavePos();
+                }
+                
+                const handleOperation = () => {
+                    if (isToken('key', 'new')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('create');
                         astree.leavePos();
+                        astree.enterPos('definition');
+                    } else if (isToken('key', 'now')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('update');
+                        astree.leavePos();
+                        astree.enterPos('definition');
+                    } else if (isToken('key', 'no')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('delete');
+                        astree.leavePos();
+                        astree.enterPos('affect');
+                    } else {
+                        handleUnexpected();
+                    }
+                    nextToken();
+                }
+                
+                const handleDefinition = () => {
+                    const handleSysDefinition = () => {
+                        if (isToken('tag', null)) {
+                            const token = currentToken();
+                    
+                            astree.enterPos('sys');
+                            astree.setPosValue(token.val);
+                            astree.leavePos();
+                    
+                            astree.enterPos('tags');
+                            astree.setPosValue([token.val]);
+                            astree.leavePos();
+                    
+                            nextToken();
+                        } else {
+                            handleUnexpected();
+                        }
+                    }
+                
+                    const handleTagsDefinition = () => {
+                        const readWhileTag = () => {
+                            const isTagVariable = () => {
+                                return false ||
+                                    isToken('key', 'uuid')
+                                ;
+                            }
+                            
+                            const tags = [ ];
+                            while (true) {
+                                if (isToken('tag', null) || isTagVariable()) {
+                                    let new_tag = currentToken().val;
+                                    if (isTagVariable()) {
+                                        new_tag = '@' + new_tag;
+                                    }
+
+                                    for (const current_tag of tags) {
+                                        if (new_tag == current_tag) {
+                                            handleUnexpected();
+                                        }
+                                    }
+
+                                    tags.push(new_tag);
+                                    
+                                    nextToken();
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            for (let i = 0; i < tags.length; i++) {
+                                for (let j = i + 1; j < tags.length; j++) {
+                                    if (tags[i] == tags[j]) {
+                                        handleUnexpected();
+                                    }
+                                }
+                            }
+                        
+                            return tags;
+                        }
+
                         astree.enterPos('tags');
-                        astree.putPosValue(token.val, { final: false });
-                        astree.leavePos();
-                        break;
-                    case 'key':
-                        switch (token.val) {
-                            case 'as':
-                                astree.enterPos('tags');
-                                astree.setPosValue([ ]);
-                                break;
-                            case 'is':
-                                astree.enterPos('heap');
-                                break;
-                            case 'has':
-                                astree.enterPos('stack');
-                                break;
-                            default:
-                                leaveTreePosAndRetry(token);
-                                break;
-                        }
-                        break;
-                    case 'punc':
-                        switch (token.val) {
-                            case ';':
-                                astree.nextItem();
-                                break;
-                            default:
-                                leaveTreePosAndRetry(token);
-                                break;
-                        }
-                        break;
-                    default:
-                        leaveTreePosAndRetry(token);
-                        break;
-                }
-            }
-
-            const parseTreeAffect = (token) => {
-                astree.assertPos(['affect']);
                 
-                switch (token.type) {
-                    case 'key':
-                        switch (token.val) {
-                            case 'machine':
-                                astree.setPosValue('machine');
-                                astree.leavePos();
-                                break;
-                            case 'tags':
-                                astree.setPosValue('tags');
-                                astree.leavePos();
-                                break;
-                            case 'heap':
-                                astree.setPosValue('heap');
-                                astree.leavePos();
-                                break;
-                            case 'stack':
-                                astree.setPosValue('stack');
-                                astree.leavePos();
-                                break;
-                            default:
-                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
+                        if (isToken('key', 'none')) {
+                            nextToken();
+                
+                            astree.setPosValue([ ]);
+                        } else {
+                            const tags = readWhileTag();
+                
+                            if (isEmpty(tags)) {
+                                handleUnexpected();
+                            }
+                    
+                            astree.setPosValue(tags);
                         }
-                        break;
-                    case 'punc':
-                        switch (token.val) {
-                            case ';':
-                                astree.nextItem();
-                                break;
-                            default:
-                                throw new SyntaxError(`Unexpected token "${token.val}".`);
+                
+                        astree.leavePos();
+                    }
+                
+                    const handleHeapDefinition = () => {
+                        const readWhileHeapData = () => {
+                            const isHeapVariable = () => {
+                                return false ||
+                                    isToken('key', 'root') ||
+                                    isToken('key', 'farthest') ||
+                                    isToken('key', 'closest') ||
+                                    isToken('key', 'parent') ||
+                                    isToken('key', 'seqnum') ||
+                                    isToken('key', 'sysseqnum') ||
+                                    isToken('key', 'depth') ||
+                                    isToken('key', 'uuid')
+                                ;
+                            }
+                            
+                            const data = [ ];
+                            while (isToken('part', null) || isHeapVariable()) {
+                                token = currentToken().val;
+                                if (isHeapVariable()) {
+                                    token = '@' + token;
+                                }
+
+                                data.push(token);
+
+                                nextToken();
+                            }
+                        
+                            return data;
                         }
-                        break;
-                    default:
-                        throw new SyntaxError(`Unexpected token "${token.val}".`);
+
+                        astree.enterPos('heap');
+                
+                        if (isToken('key', 'json')) {
+                            astree.enterPos('type');
+                            astree.setPosValue('json');
+                            astree.leavePos();
+                        } else {
+                            handleUnexpected();
+                        }
+                        nextToken();
+                        
+                        const data = readWhileHeapData();
+                
+                        astree.enterPos('data');
+                        astree.setPosValue(data);
+                        astree.leavePos();
+                
+                        if (!isToken('key', 'end')) {
+                            handleUnexpected();
+                        }
+                        nextToken();
+                
+                        astree.leavePos();
+                    }
+                
+                    const handleStackDefinition = () => {
+                        if (!isToken('punc', '{')) {
+                            handleUnexpected();
+                        }
+                        astree.enterStack();
+                        nextToken();
+                
+                        while (!isToken('punc', '}')) {
+                            handleStatement();
+                        }
+                        astree.leaveStack();
+                        nextToken();
+                    }
+                    
+                    handleSysDefinition();
+
+                    if (isToken('key', 'as')) {
+                        nextToken();
+
+                        handleTagsDefinition();
+                    }
+
+                    if (isToken('key', 'is')) {
+                        nextToken();
+
+                        handleHeapDefinition();
+                    }
+
+                    if (isToken('key', 'has')) {
+                        nextToken();
+
+                        handleStackDefinition();
+                    }
                 }
-            }
-
-            const parseTreeTagsDefinition = (token) => {
-                astree.assertPos(['definition', 'tags']);
-
-                switch (token.type) {
-                    case 'tag':
-                        astree.putPosValue(token.val);
-                        break;
-                    case 'key':
-                        switch (token.val) {
-                            case 'none':
-                                astree.leavePos();
-                                break;
-                            default:
-                                leaveTreePosAndRetry(token);
-                                break;
-                        }
-                        break;
-                    case 'punc':
-                        switch (token.val) {
-                            case ';':
-                                astree.nextItem();
-                                break;
-                            default:
-                                leaveTreePosAndRetry(token);
-                                break;
-                        }
-                        break;
-                    default:
-                        leaveTreePosAndRetry(token);
-                        break;
+                
+                const handleAffected = () => {
+                    const isAffectedVariable = () => {
+                        return false ||
+                            isToken('key', 'machine') ||
+                            isToken('key', 'tags') ||
+                            isToken('key', 'heap') ||
+                            isToken('key', 'stack')
+                        ;
+                    }
+                
+                    if (isAffectedVariable()) {
+                        astree.enterPos('affected');
+                        astree.setPosValue(currentToken().val);
+                        astree.leavePos();
+                    } else {
+                        handleUnexpected();
+                    }
+                    nextToken();
                 }
-            }
 
-            const parseTreeHeapDefinition = (token) => {
-                astree.assertPos(['definition', 'heap']);
-
-                switch (token.type) {
-                    case 'key':
-                        switch (token.val) {
-                            case 'json':
-                                astree.enterPos('type');
-                                astree.setPosValue('json');
-                                astree.leavePos();
-                                astree.enterPos('data');
-                                break;
-                            default:
-                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
-                        }
-                        break;
-                    default:
-                        throw new SyntaxError(`Unexpected token "${token.val}".`);
+                if (isToken('key', 'vmdl')) {
+                    nextToken();
                 }
-            }
-
-            const parseTreeHeapDataDefinition = (token) => {
-                astree.assertPos(['definition', 'heap', 'data']);
-
-                switch (token.type) {
-                    case 'part':
-                        astree.putPosValue(token);
-                        break;
-                    case 'key':
-                        switch (token.val) {
-                            case 'end':
-                                astree.leavePos();
-                                astree.leavePos();
-                                break;
-                            case 'seqnum':
-                            case 'sysseqnum':
-                            case 'depth':
-                            case 'uuid':
-                            case 'root':
-                            case 'farthest':
-                            case 'closest':
-                            case 'parent':
-                                astree.putPosValue(token);
-                                break;
-                            default:
-                                throw new SyntaxError(`Unexpected keyword "${token.val}".`);
-                        }
-                        break;
-                    default:
-                        throw new SyntaxError(`Unexpected token "${token.val}".`);
+                
+                if (isToken('key', 'exit')) {
+                    interactive_exit = true;
+                    nextToken();
                 }
-            }
 
-            const parseTreeStackDefinition = (token) => {
-                astree.assertPos(['definition', 'stack']);
+                if (isToken('punc', ';')) {
+                    nextToken();
 
-                switch (token.type) {
-                    case 'punc':
-                        switch (token.val) {
-                            case '{':
-                                astree.enterStack();
-                                break;
-                            default:
-                                throw new SyntaxError(`Unexpected token "${token.val}".`);
-                        }
-                        break;
-                    default:
-                        throw new SyntaxError(`Unexpected token "${token.val}".`);
+                    return;
                 }
-            }
 
-            const parseTreeMain = (token) => {
+                if (isToken('key', 'in')) {
+                    nextToken();
+
+                    handleContext();
+
+                    if (isToken('punc', ';')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('cswitch');
+                        astree.leavePos();
+                        
+                        astree.nextItem();
+                        nextToken();
+
+                        return;
+                    }
+                }
+
+                handleOperation();
                 switch (astree.getTopPos()) {
-                    case 'init':
-                        parseTreeInit(token);
-                        break;
-                    case 'context':
-                        parseTreeContext(token);
-                        break;
                     case 'definition':
-                        parseTreeDefinition(token);
-                        break;
-                    case 'affect':
-                        parseTreeAffected(token);
-                        break;
-                    case 'tags':
-                        parseTreeTagsDefinition(token);
-                        break;
-                    case 'heap':
-                        parseTreeHeapDefinition(token);
-                        break;
-                    case 'data':
-                        parseTreeHeapDataDefinition(token);
-                        break;
-                    case 'stack':
-                        parseTreeStackDefinition(token);
+                        handleDefinition();
                         break;
                     default:
-                        parseTreeRoot(token);
+                        handleAffected();
                         break;
                 }
-            }
 
-            if (tokens.length > 0) {
-                astree.enterStack();
-                astree.enterPos('init');
-
-                for (const token of tokens) {
-                    parseTreeMain(token);
+                if (isToken('punc', ';')) {
+                    astree.nextItem();
+                    nextToken();
+                } else {
+                    handleUnexpected();
                 }
-
-                astree.leaveStack({ root: true });
             }
+
+            astree.enterStack();
+            while (hasTokensLeft()) {
+                handleStatement();
+            }
+            astree.leaveStack({ root: true });
 
             return astree.getRaw();
         }
@@ -552,6 +600,8 @@ class InputParser {
         } else {
             parseTokensWithoutCarry();
         }
+        this.parser.clear();
+
         return parseTree();
     }
 }

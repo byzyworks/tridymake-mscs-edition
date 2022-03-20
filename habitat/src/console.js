@@ -1,13 +1,15 @@
 import inquirer from 'inquirer';
 import chalk    from 'chalk';
 
-import { vmdl }    from './controllers/vmdl/VMDL.js';
-import { isEmpty } from './utility/common.js';
+import { interactive_exit }          from './controllers/vmdl/InputParser.js';
+import { vmdl }                      from './controllers/vmdl/VMDL.js';
+import { SyntaxError, errorHandler } from './utility/error.js';
+import { isEmpty }                   from './utility/common.js';
 
 let answers;
 
 export const cli = async () => {
-    while (true) {
+    while (!interactive_exit) {
         if (vmdl.carryIsEmpty()) {
             answers = await inquirer.prompt([
                 {
@@ -26,9 +28,20 @@ export const cli = async () => {
             ]);
         }
         
-        const out = vmdl.parse(answers.parsed, { accept_carry: true });
+        let out;
+        let retry = false;
+        try {
+            out = vmdl.parse(answers.parsed, { accept_carry: true });
+        } catch (err) {
+            if (err instanceof SyntaxError) {
+                errorHandler.handle(err);
+                retry = true;
+            } else {
+                throw err;
+            }
+        }
 
-        if (!isEmpty(out['stack'])) {
+        if (!retry && !isEmpty(out['stack'])) {
             console.log(JSON.stringify(out));
         }
     }

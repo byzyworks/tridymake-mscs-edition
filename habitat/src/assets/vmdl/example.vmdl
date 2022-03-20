@@ -1,0 +1,38 @@
+@vmdl;
+
+# Creates a new Habitat instance.
+@new habitat;
+
+# Creates a new network.
+@in habitat
+@new module;
+
+# Create a new VirtualBox controller inside this network.
+@in module @of habitat
+@new vbox;
+
+# Create a new machine of this VirtualBox controller.
+@in vbox @of module @of habitat
+@new machine
+@as dns-server ubuntu linux machine @uuid
+@is @json {
+    "template": "ubnt-temp-1",
+    "security": "@root"
+} @end
+@has {
+    @new payload
+    @as bind9-payload payload;
+    
+    @new payload
+    @as amplification-attack-bind9-payload vulnerability optional-payload payload
+    @is @json {
+        "if": "security",
+        "op": "lt",
+        "val": "0.4"
+    } @end;
+};
+
+# Give a default payload to all (already declared) Linux-based machines.
+@in linux machine @from habitat
+@new payload
+@as default-linux-payload;

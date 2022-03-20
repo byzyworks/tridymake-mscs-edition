@@ -4,7 +4,43 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch CLI",
+            "name": "Launch Example File (Development)",
+            "program": "${workspaceFolder}/habitat/src/app.js",
+            "cwd": "${workspaceFolder}/habitat",
+            "args": ["file", "src/assets/vmdl/example.vmdl", "--log-level", "debug"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Example File (Production)",
+            "program": "${workspaceFolder}/habitat/src/app.js",
+            "cwd": "${workspaceFolder}/habitat",
+            "args": ["file", "src/assets/vmdl/example.vmdl"],
+            "outputCapture": "std",
+            "console": "externalTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Interactive CLI (Development)",
+            "program": "${workspaceFolder}/habitat/src/app.js",
+            "cwd": "${workspaceFolder}/habitat",
+            "args": ["console", "--log-level", "debug"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Interactive CLI (Production)",
             "program": "${workspaceFolder}/habitat/src/app.js",
             "cwd": "${workspaceFolder}/habitat",
             "args": ["console"],

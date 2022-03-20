@@ -1,24 +1,13 @@
-import { LogicError } from '../../utility/error.js';
-import { isEmpty }    from '../../utility/common.js';
+import { isEmpty } from '../../utility/common.js';
 
 export class StateTree {
     pos  = [ ];
-    tree = {
-        value: { },
-        ready: { },
-        final: { }
-    };
-    ptr = {
-        to_value: null,
-        to_ready: null,
-        to_final: null
-    };
+    tree = { };
+    ptr  = null;
     changed_pos = true;
 
     constructor() {
-        this.ptr.to_value = this.tree.value;
-        this.ptr.to_ready = this.tree.ready;
-        this.ptr.to_final = this.tree.final;
+        this.ptr = this.tree;
     }
 
     updatePtrs() {
@@ -26,48 +15,32 @@ export class StateTree {
             return;
         }
 
-        this.ptr.to_value = this.tree.value;
-        this.ptr.to_ready = this.tree.ready;
-        this.ptr.to_final = this.tree.final;
+        this.ptr = this.tree;
 
         for (let i = 0; i < this.pos.length - 1; i++) {
-            if (!this.ptr.to_value[this.pos[i]]) {
+            if (!this.ptr[this.pos[i]]) {
                 if (Number.isInteger(this.pos[i])) {
                     if (Number.isInteger(this.pos[i + 1])) {
-                        this.ptr.to_value.push([ ]);
-                        this.ptr.to_ready.push([ ]);
-                        this.ptr.to_final.push([ ]);
+                        this.ptr.push([ ]);
                     } else {
-                        this.ptr.to_value.push({ });
-                        this.ptr.to_ready.push({ });
-                        this.ptr.to_final.push({ });
+                        this.ptr.push({ });
                     }
                 } else {
                     if (Number.isInteger(this.pos[i + 1])) {
-                        this.ptr.to_value[this.pos[i]] = [ ];
-                        this.ptr.to_ready[this.pos[i]] = [ ];
-                        this.ptr.to_final[this.pos[i]] = [ ];
+                        this.ptr[this.pos[i]] = [ ];
                     } else {
-                        this.ptr.to_value[this.pos[i]] = { };
-                        this.ptr.to_ready[this.pos[i]] = { };
-                        this.ptr.to_final[this.pos[i]] = { };
+                        this.ptr[this.pos[i]] = { };
                     }
                 }
             }
             
-            this.ptr.to_value = this.ptr.to_value[this.pos[i]];
-            this.ptr.to_ready = this.ptr.to_ready[this.pos[i]];
-            this.ptr.to_final = this.ptr.to_final[this.pos[i]];
+            this.ptr = this.ptr[this.pos[i]];
         }
 
         this.changed_pos = false;
     }
 
     enterPos(pos, assert = null) {
-        if (this.ptr.to_final[pos] === true) {
-            throw new LogicError(`Attempted to enter AST position "${pos}" from ${JSON.stringify(this.pos)}, but "${pos}" has already been finalized.`);
-        }
-
         this.pos.push(pos);
 
         if (assert) {
@@ -79,10 +52,6 @@ export class StateTree {
 
     leavePos() {
         const pos = this.getTopPos();
-
-        if (this.ptr.to_ready[pos] === false) {
-            throw new LogicError(`Attempted to leave AST position "${pos}" from ${JSON.stringify(this.pos)}, but "${pos}" is not modified sufficiently yet.`);
-        }
 
         const left = this.pos.pop();
 
@@ -102,66 +71,36 @@ export class StateTree {
     getPosValue() {
         this.updatePtrs();
 
-        return this.ptr.to_value[this.getTopPos()];
+        return this.ptr[this.getTopPos()];
     }
 
-    setPosValue(value, opts = { }) {
-        opts.ready = opts.ready ?? true;
-        opts.final = opts.final ?? true;
-
+    setPosValue(value) {
         this.updatePtrs();
 
         const pos = this.getTopPos();
 
-        this.ptr.to_value[pos] = value;
-
-        if (opts.ready) {
-            this.ptr.to_ready[pos] = true;
-        } else {
-            this.ptr.to_ready[pos] = false;
-        }
-        
-        if (opts.final) {
-            this.ptr.to_final[pos] = true;
-        } else {
-            this.ptr.to_final[pos] = false;
-        }
+        this.ptr[pos] = value;
     }
 
-    putPosValue(value, opts = { }) {
-        opts.ready = opts.ready ?? true;
-        opts.final = opts.final ?? true;
-
+    putPosValue(value) {
         this.updatePtrs();
 
         const pos = this.getTopPos();
 
-        if (!this.ptr.to_value[pos]) {
-            this.ptr.to_value[pos] = [ ];
-        } else if (!Array.isArray(this.ptr.to_value[pos])) {
-            const temp = this.ptr.to_value[pos];
-            this.ptr.to_value[pos] = [ ];
-            this.ptr.to_value[pos].push(temp);
+        if (!this.ptr[pos]) {
+            this.ptr[pos] = [ ];
+        } else if (!Array.isArray(this.ptr[pos])) {
+            const temp = this.ptr[pos];
+            this.ptr[pos] = [ ];
+            this.ptr[pos].push(temp);
         }
-        this.ptr.to_value[pos].push(value);
-        
-        if (opts.ready) {
-            this.ptr.to_ready[pos] = true;
-        } else {
-            this.ptr.to_ready[pos] = false;
-        }
-        
-        if (opts.final) {
-            this.ptr.to_final[pos] = true;
-        } else {
-            this.ptr.to_final[pos] = false;
-        }
+        this.ptr[pos].push(value);
     }
 
     isPosEmpty() {
         this.updatePtrs();
 
-        return this.ptr.to_value[this.getTopPos()] === undefined;
+        return this.ptr[this.getTopPos()] === undefined;
     }
 
     assertPos(assert) {
@@ -224,6 +163,6 @@ export class StateTree {
     }
 
     getRaw() {
-        return this.tree.value;
+        return this.tree;
     }
 }

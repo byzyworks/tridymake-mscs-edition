@@ -41,7 +41,7 @@ program.command('file')
             skip = true;
         }
 
-        if (skip) {
+        if (!skip) {
             const out = vmdl.parse(input, { accept_carry: false });
 
             console.log(JSON.stringify(out));

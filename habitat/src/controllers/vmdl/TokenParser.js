@@ -1,8 +1,11 @@
 import { parser as charParser } from './CharParser.js';
 import { SyntaxError }          from '../../utility/error.js';
 
+import { Stack } from '../../utility/Stack.js';
+import { isEmpty } from '../../utility/common.js';
+
 class TokenParser {
-    mode    = [ ];
+    mode    = new Stack();
     current = null;
 
     constructor() {
@@ -11,6 +14,10 @@ class TokenParser {
 
     load(input) {
         this.parser.load(input);
+    }
+
+    clear() {
+        this.parser.clear();
     }
 
     next() {
@@ -72,28 +79,28 @@ class TokenParser {
         const ch = this.parser.peek();
 
         if (ch == '#') {
-            this.setMode('com');
+            this.mode.push('com');
             this.parser.next();
         }
-        if (this.getMode() == 'com') {
-            this.unsetMode();
+        if (this.mode.peek() == 'com') {
+            this.mode.pop();
             this.readComment();
 
             return this.readNext();
         }
 
         if (ch == '@') {
-            this.setMode('key');
+            this.mode.push('key');
             this.parser.next();
         }
-        if (this.getMode() == 'key') {
-            this.unsetMode();
-            let keyword = this.readKeyword();
+        if (this.mode.peek() == 'key') {
+            this.mode.pop();
+            const keyword = this.readKeyword();
 
             return keyword;
         }
 
-        if (this.getMode() == 'json') {
+        if (this.mode.peek() == 'json') {
             return this.readJSON();
         }
 
@@ -109,8 +116,9 @@ class TokenParser {
             return this.readMultiPunc();
         }
 
-        const anomaly = this.readWhile(this.isNonWhitespace);
-        this.throwSyntaxError(`Unrecognized symbol "${anomaly}".`);
+        const pos = this.getPos();
+        const anomaly = this.readWhilePred(this.isNonWhitespace);
+        throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Unknown token type of "${anomaly}".`);
     }
 
     readComment() {
@@ -118,88 +126,87 @@ class TokenParser {
             return ch != "\n";
         })
 
-        this.mode = null;
+        this.mode = new Stack();
         this.parser.next();
     }
 
     readJSON() {
-        const part = this.readWhileEscaped();
+        const pos = this.getPos();
 
-        return { type: "part", val: part };
+        const part = this.readWhileEscaped().replace(/\s+/g, '');
+
+        return { type: "part", val: part, pos: pos };
     }
 
     readKeyword() {
+        const pos = this.getPos();
+        pos.col--;
+
         const keyword = this.readWhilePred(this.isIdentifier).toLowerCase();
 
+        if (isEmpty(keyword)) {
+            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid keyword after "@".`);
+        }
+
         if (keyword == 'json') {
-            if (this.getMode() != 'json') {
-                this.setMode('json');
+            if (this.mode.peek() != 'json') {
+                this.mode.push('json');
             }
         } else if (keyword == 'end') {
-            if (this.getMode() == 'json') {
-                this.unsetMode();
+            if (this.mode.peek() == 'json') {
+                this.mode.pop();
             }
         }
 
-        return { type: "key", val: keyword };
+        return { type: "key", val: keyword, pos: pos };
     }
 
     readTag() {
+        const pos = this.getPos();
+
         const tag = this.readWhilePred(this.isIdentifier);
 
-        return { type: "tag", val: tag };
+        return { type: "tag", val: tag, pos: pos };
     }
 
     readPunc() {
-        return { type: "punc", val: this.parser.next() };
+        return { type: "punc", val: this.parser.next(), pos: this.getPos() };
     }
 
     readMultiPunc() {
+        const pos = this.getPos();
+
         const punc = this.readWhilePred(this.isMultiPunc);
 
-        return { type: "punc", val: punc };
+        return { type: "punc", val: punc, pos: pos };
     }
     
     isWhitespace(ch) {
-        return /\s/.test(ch);
+        return /\s/g.test(ch);
     }
 
     isNonWhitespace(ch) {
-        return !/\s/.test(ch);
+        return !/\s/g.test(ch);
     }
 
     isEscape(ch) {
-        return /\\/.test(ch);
+        return /\\/g.test(ch);
     }
 
     isIdentifier(ch) {
-        return /[-A-Za-z0-9_]/.test(ch);
+        return /[-A-Za-z0-9_]/g.test(ch);
     }
 
     isPunc(ch) {
-        return /[!&|,:()\[\]{};]/.test(ch);
+        return /[!&|,:()\[\]{};]/g.test(ch);
     }
 
     isMultiPunc(ch) {
-        return /[.*]/.test(ch);
+        return /[.*]/g.test(ch);
     }
 
-    setMode(mode) {
-        this.mode.push(mode);
-    }
-
-    unsetMode() {
-        return this.mode.pop();
-    }
-
-    getMode() {
-        return this.mode[this.mode.length - 1];
-    }
-
-    throwSyntaxError(msg) {
-        const line = this.parser.getLine();
-        const col  = this.parser.getCol();
-        throw new SyntaxError(`line ${line}, col ${col}: ${msg}`);
+    getPos() {
+        return { line: this.parser.getLine(), col: this.parser.getCol() };
     }
 }
 
