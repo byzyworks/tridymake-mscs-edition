@@ -4,54 +4,54 @@
 #Λʄ砾峅v³Ņfϴ;⇶귞Ђ菐ׂ􎠞㿩d<gŰu󁻋Ƙ;⢻􍅦˶ţW󠸂U
 
 # Bad token: Unexpected tag
-#apple
+#apple;
 
 # Bad token: Unrecognized prefix
-#%in
+#%in;
 
 # Bad token: Unrecognized keyword
-#@apple
+#@apple;
 
 # Bad token: Unrecognized keyword with bad characters
-#@%apple
+#@%apple;
 
 # Bad token: Lonely @
-#@
+#@;
 
 # Bad context expression: Missing semicolon
-#@in apple
+#@in apple @new thing
 
 # Bad context expression: Parentheses with nothing in them
-#@in () @or orange;
+#@in () @or orange @new thing;
 
 # Bad context expression: Parentheses with nothing in them (again)
-#@in !!((!(!!!((!((!((!)))))))));
+#@in !!((!(!!!((!((!((!))))))))) @new thing;
 
 # Bad context expression: Unclosed parentheses
-#@in fruit @and (apple @or orange;
+#@in fruit @and (apple @or orange @new thing;
 
 # Bad context expression: Unexpected parentheses
-#@in fruit @and apple @or orange);
+#@in fruit @and apple @or orange) @new thing;
 
 # Bad context expression: Unrecognized tag
-#@in fruit @and (%^& @or orange);
+#@in fruit @and (%^& @or orange) @new thing;
 
 # Bad context expression: Unrecognized operator (keyword)
-#@in fruit @and (apple @qwerty123 orange);
+#@in fruit @and (apple @qwerty123 orange) @new thing;
 
 # Bad context expression: Unrecognized operator (punctuation)
-#@in fruit @and (apple %^& orange);
+#@in fruit @and (apple %^& orange) @new thing;
 
 # Bad context expression: Consecutive binary operators
-#@in apple @and @or @orange;
+#@in apple @and @or orange @new thing;
+
+# Bad context expression: Unpreceded binary operator
+#@in @or orange @new thing;
 
 # Bad context expression: Unsuceeded binary operator
-#@in apple @and;
+#@in apple @or @new thing;
 
 # Bad context expression: Nothing
-#@in;
-
-# Bad context expression: Nothing and more
 #@in @new thing;
 
 # Bad operation: Unrecognized
@@ -104,6 +104,12 @@
 
 # Bad stack: Nothing
 #@new machine @has;
+
+# Unexpected opening bracket
+#@new machine {;
+
+# Unexpected closing bracket
+#@new machine };
 
 # Bad finale
 #@new machine @qwerty123;

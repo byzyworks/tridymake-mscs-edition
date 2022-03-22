@@ -14,9 +14,13 @@ class VMDL {
         tree = this.parser.parse(opts);
 
         //this.compositor.load(tree);
-        //tree = this.compositor.parse(tree);
+        //tree = this.compositor.parse();
 
         return tree;
+    }
+
+    clearASTree() {
+        this.parser.clear();
     }
 
     carryIsEmpty() {

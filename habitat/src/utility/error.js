@@ -1,4 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
+import { vmdl } from '../controllers/vmdl/VMDL.js';
 
 import { logger } from './logger.js';
 
@@ -10,6 +11,8 @@ export class SyntaxError extends Error {
         Object.setPrototypeOf(this, new.target.prototype);
 
         Error.captureStackTrace(this);
+
+        vmdl.clearASTree();
     }
 }
 

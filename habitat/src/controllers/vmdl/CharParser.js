@@ -1,20 +1,22 @@
 class CharParser {
-    pos   = 0;
-    line  = 1;
-    col   = 0;
-    input = '';
+    pos  = 0;
+    line = 1;
+    col  = 0;
 
-    constructor() { }
+    constructor() {
+        this.input = '';
+    }
     
     load(raw) {
         this.input += raw;
     }
 
     clear() {
-        this.pos   = 0;
-        this.line  = 1;
-        this.col   = 0;
         this.input = '';
+
+        this.pos  = 0;
+        this.line = 1;
+        this.col  = 0;
     }
 
     next() {

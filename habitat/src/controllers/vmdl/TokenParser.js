@@ -18,6 +18,9 @@ class TokenParser {
 
     clear() {
         this.parser.clear();
+
+        this.mode    = new Stack();
+        this.current = null;
     }
 
     next() {

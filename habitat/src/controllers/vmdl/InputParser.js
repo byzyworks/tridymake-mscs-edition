@@ -22,6 +22,10 @@ class InputParser {
 
     clear() {
         this.parser.clear();
+
+        this.carry      = [ ];
+        this.last_depth = 0;
+        this.last_ended = false;
     }
 
     carryIsEmpty() {
@@ -34,84 +38,105 @@ class InputParser {
         const tokens = [ ];
         const astree = new StateTree();
 
-        const parseTokensWithCarry = () => {
-            const pool = [ ];
+        
 
-            let token;
-
-            for (token of this.carry) {
-                pool.push(token);
-            }
-            
-            while (token = this.parser.next()) {
-                pool.push(token);
+        const parseTokens = () => {
+            const isToken = (token, type = null, value = null) => {
+                return (((token.type == type) || (type === null)) && ((token.val == value) || (value === null)));
             }
 
-            let idx;
+            const parseTokensWithCarry = () => {
+                const pool = [ ];
+                let idx;
 
-            let stmt_cutoff = null;
-            for (idx = this.carry.length; idx < pool.length; idx++) {
-                if (pool[idx].val == '{') {
-                    this.last_depth++;
-                } else if (pool[idx].val == '}') {
-                    this.last_depth--;
+                let token;
+
+                for (token of this.carry) {
+                    pool.push(token);
                 }
-
-                if (pool[idx].val == ';') {
-                    this.last_ended = true;
-                } else {
-                    this.last_ended = false;
-                }
-
-                if (this.last_ended && this.last_depth == 0) {
-                    stmt_cutoff = idx;
-                }
-            }
-
-            this.carry = [ ];
-
-            if (stmt_cutoff) {
-                for (idx = 0; idx <= stmt_cutoff; idx++) {
-                    tokens.push(pool[idx]);
-                }
-                for (idx = stmt_cutoff + 1; idx < pool.length; idx++) {
-                    this.carry.push(pool[idx]);
-                }
-            } else {
-                for (idx = 0; idx < pool.length; idx++) {
-                    this.carry.push(pool[idx]);
-                }
-            }
-        }
-
-        const parseTokensWithoutCarry = () => {
-            let carry_needed = false;
-
-            let token;
-            while (token = this.parser.next()) {
-                tokens.push(token);
                 
-                if (token.val == '{') {
-                    this.last_depth++;
-                } else if (token.val == '}') {
-                    this.last_depth--;
+                while (token = this.parser.next()) {
+                    pool.push(token);
                 }
 
-                if (token.val == ';') {
-                    this.last_ended = true;
-                } else {
-                    this.last_ended = false;
+                let stmt_cutoff = null;
+                for (idx = this.carry.length; idx < pool.length; idx++) {
+                    if (isToken(pool[idx], 'punc', '{')) {
+                        this.last_depth++;
+                    } else if (isToken(pool[idx], 'punc', '}')) {
+                        this.last_depth--;
+
+                        if (this.last_depth < 0) {
+                            throw new SyntaxError(`line ${pool[idx].pos.line}, col ${pool[idx].pos.col}: Unexpected token "}".`);
+                        }
+                    }
+
+                    if (isToken(pool[idx], 'punc', ';')) {
+                        this.last_ended = true;
+                    } else {
+                        this.last_ended = false;
+                    }
+
+                    if (this.last_ended && this.last_depth === 0) {
+                        stmt_cutoff = idx;
+                    }
                 }
 
-                if (this.last_ended && this.last_depth == 0) {
-                    carry_needed = false;
+                this.carry = [ ];
+
+                if (stmt_cutoff) {
+                    for (idx = 0; idx <= stmt_cutoff; idx++) {
+                        tokens.push(pool[idx]);
+                    }
+                    for (idx = stmt_cutoff + 1; idx < pool.length; idx++) {
+                        this.carry.push(pool[idx]);
+                    }
                 } else {
-                    carry_needed = true;
+                    for (idx = 0; idx < pool.length; idx++) {
+                        this.carry.push(pool[idx]);
+                    }
                 }
             }
-            
-            if (carry_needed) {
-                throw new SyntaxError(`The input given contains an incomplete VMDL statement (missing final ";" or "}").`);
+
+            const parseTokensWithoutCarry = () => {
+                let carry_needed = false;
+
+                let token;
+                while (token = this.parser.next()) {
+                    tokens.push(token);
+                    
+                    if (isToken(token, 'punc', '{')) {
+                        this.last_depth++;
+                    } else if (isToken(token, 'punc', '}')) {
+                        this.last_depth--;
+
+                        if (this.last_depth < 0) {
+                            throw new SyntaxError(`line ${pool[idx].pos.line}, col ${pool[idx].pos.col}: Unexpected token "}".`);
+                        }
+                    }
+
+                    if (isToken(token, 'punc', ';')) {
+                        this.last_ended = true;
+                    } else {
+                        this.last_ended = false;
+                    }
+
+                    if (this.last_ended && this.last_depth === 0) {
+                        carry_needed = false;
+                    } else {
+                        carry_needed = true;
+                    }
+                }
+                
+                if (carry_needed) {
+                    throw new SyntaxError(`The input given contains an incomplete VMDL statement (missing final ";" or "}").`);
+                }
+            }
+
+            if (opts.accept_carry) {
+                parseTokensWithCarry();
+            } else {
+                parseTokensWithoutCarry();
             }
         }
 
@@ -139,12 +164,12 @@ class InputParser {
             }
 
             const handleStatement = (token) => {
-                const isToken = (type, value) => {
+                const isToken = (type = null, value = null) => {
                     return (((tokens[it].type == type) || (type === null)) && ((tokens[it].val == value) || (value === null)));
                 }
 
                 const handleUnexpected = () => {
-                    token = currentToken();
+                    const token = currentToken();
                     switch (token.type) {
                         case 'key':
                             throw new SyntaxError(`line ${token.pos.line}, col ${token.pos.col}: Unexpected keyword "${token.val}".`);
@@ -158,7 +183,7 @@ class InputParser {
                         const readWhileContextExpressionTerminal = () => {
                             const isTaglikeContextToken = () => {
                                 return false ||
-                                    isToken('tag', null) ||
+                                    isToken('tag') ||
                                     isToken('key', 'any') ||
                                     isToken('punc', '*') ||
                                     isToken('key', 'all') ||
@@ -242,6 +267,14 @@ class InputParser {
                         }
                         
                         const handleBinaryOpContextToken = () => {
+                            const isPreviousTaglikeContextToken = () => {
+                                return (!isEmpty(context) && ((context[context.length - 1].type == 't') || (context[context.length - 1].val == ')')));
+                            }
+
+                            if (!isPreviousTaglikeContextToken()) {
+                                handleUnexpected();
+                            }
+
                             switch (currentToken().val) {
                                 case 'and':
                                 case '&':
@@ -382,9 +415,9 @@ class InputParser {
                 
                 const handleDefinition = () => {
                     const handleSysDefinition = () => {
-                        if (isToken('tag', null) || isToken('var', null)) {
+                        if (isToken('tag', null) || isToken('var')) {
                             const token = currentToken().val;
-                            if (isToken('var', null)) {
+                            if (isToken('var')) {
                                 token = '$' + token;
                             }
                     
@@ -406,15 +439,16 @@ class InputParser {
                         const readWhileTag = () => {                            
                             const tags = [ ];
                             while (true) {
-                                if (isToken('tag', null) || isToken('var', null)) {
+                                if (isToken('tag', null) || isToken('var')) {
                                     let new_tag = currentToken().val;
-                                    if (isToken('var', null)) {
+                                    if (isToken('var')) {
                                         new_tag = '$' + new_tag;
                                     }
 
                                     for (const current_tag of tags) {
                                         if (new_tag == current_tag) {
-                                            handleUnexpected();
+                                            const token = currentToken();
+                                            throw new SyntaxError(`line ${token.pos.line}, col ${token.pos.col}: Duplicate tag "${token.val}".`);
                                         }
                                     }
 
@@ -423,14 +457,6 @@ class InputParser {
                                     nextToken();
                                 } else {
                                     break;
-                                }
-                            }
-
-                            for (let i = 0; i < tags.length; i++) {
-                                for (let j = i + 1; j < tags.length; j++) {
-                                    if (tags[i] == tags[j]) {
-                                        handleUnexpected();
-                                    }
                                 }
                             }
                         
@@ -459,9 +485,9 @@ class InputParser {
                     const handleHeapDefinition = () => {
                         const readWhileHeapData = () => {
                             const data = [ ];
-                            while (isToken('part', null) || isToken('var', null)) {
+                            while (isToken('part', null) || isToken('var')) {
                                 token = currentToken().val;
-                                if (isToken('var', null)) {
+                                if (isToken('var')) {
                                     token = '$' + token;
                                 }
 
@@ -516,7 +542,7 @@ class InputParser {
                         }
                         astree.enterStack();
                         nextToken();
-                
+
                         while (!isToken('punc', '}')) {
                             handleStatement();
                         }
@@ -605,12 +631,11 @@ class InputParser {
             return astree.getRaw();
         }
 
-        if (opts.accept_carry) {
-            parseTokensWithCarry();
-        } else {
-            parseTokensWithoutCarry();
+        parseTokens();
+
+        if (isEmpty(this.carry)) {
+            this.parser.clear();
         }
-        this.parser.clear();
 
         return parseTree();
     }
