@@ -158,13 +158,13 @@ class InputParser {
                         const readWhileContextExpressionTerminal = () => {
                             const isTaglikeContextToken = () => {
                                 return false ||
-                                    isToken('tag', null, token) ||
-                                    isToken('key', 'any', token) ||
-                                    isToken('punc', '*', token) ||
-                                    isToken('key', 'all', token) ||
-                                    isToken('punc', '**', token) ||
-                                    isToken('key', 'leaf', token) ||
-                                    isToken('punc', '***', token)
+                                    isToken('tag', null) ||
+                                    isToken('key', 'any') ||
+                                    isToken('punc', '*') ||
+                                    isToken('key', 'all') ||
+                                    isToken('punc', '**') ||
+                                    isToken('key', 'leaf') ||
+                                    isToken('punc', '***')
                                 ;
                             }
     
@@ -227,16 +227,17 @@ class InputParser {
                         
                         const isBinaryOpContextToken = () => {
                             return false ||
-                                isToken('key', 'and', token) ||
-                                isToken('punc', '&', token) ||
-                                isToken('key', 'or', token) ||
-                                isToken('punc', '|', token) ||
-                                isToken('punc', ',', token) ||
-                                isToken('key', 'of', token) ||
-                                isToken('punc', '.', token) ||
-                                isToken('key', 'from', token) ||
-                                isToken('punc', ':', token) ||
-                                isToken('punc', '..', token)
+                                isToken('key', 'and') ||
+                                isToken('punc', '&') ||
+                                isToken('key', 'or') ||
+                                isToken('punc', '|') ||
+                                isToken('punc', ',') ||
+                                isToken('key', 'to') ||
+                                isToken('punc', '.') ||
+                                isToken('punc', '/') ||
+                                isToken('key', 'into') ||
+                                isToken('punc', ':') ||
+                                isToken('punc', '//')
                             ;
                         }
                         
@@ -251,13 +252,14 @@ class InputParser {
                                 case ',':
                                     context.push({ type: 'o', val: '|' });
                                     break;
-                                case 'of':
+                                case 'to':
                                 case '.':
+                                case '/':
                                     context.push({ type: 'o', val: '.' });
                                     break;
-                                case 'from':
+                                case 'into':
                                 case ':':
-                                case '..':
+                                case '//':
                                     context.push({ type: 'o', val: ':' });
                                     break;
                             }
@@ -326,13 +328,13 @@ class InputParser {
                         }
                         
                         let context = [ ];
-
+                        
                         handleContextSubExpression();
                         while (isBinaryOpContextToken()) {
                             handleBinaryOpContextToken();
                             handleContextSubExpression();
                         }
-                        
+
                         return context;
                     }
 
@@ -344,27 +346,34 @@ class InputParser {
                     let context = readWhileContextExpression();
                     context = toPostfix(context);
 
+                    if (isEmpty(context)) {
+                        handleUnexpected();
+                    }
+                        
                     astree.enterPos('context');
                     astree.setPosValue(context);
                     astree.leavePos();
                 }
                 
                 const handleOperation = () => {
-                    if (isToken('key', 'new')) {
+                    if (isToken('key', 'now')) {
                         astree.enterPos('operation');
-                        astree.setPosValue('create');
+                        astree.setPosValue('buildtime');
                         astree.leavePos();
                         astree.enterPos('definition');
-                    } else if (isToken('key', 'now')) {
+                    } else if (isToken('key', 'new')) {
                         astree.enterPos('operation');
-                        astree.setPosValue('update');
+                        astree.setPosValue('runtime');
                         astree.leavePos();
                         astree.enterPos('definition');
-                    } else if (isToken('key', 'no')) {
+                    } else if (isToken('key', 'done')) {
                         astree.enterPos('operation');
-                        astree.setPosValue('delete');
+                        astree.setPosValue('lock');
                         astree.leavePos();
-                        astree.enterPos('affect');
+                    } else if (isToken('key', 'get')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('print');
+                        astree.leavePos();
                     } else {
                         handleUnexpected();
                     }
@@ -373,15 +382,18 @@ class InputParser {
                 
                 const handleDefinition = () => {
                     const handleSysDefinition = () => {
-                        if (isToken('tag', null)) {
-                            const token = currentToken();
+                        if (isToken('tag', null) || isToken('var', null)) {
+                            const token = currentToken().val;
+                            if (isToken('var', null)) {
+                                token = '$' + token;
+                            }
                     
                             astree.enterPos('sys');
-                            astree.setPosValue(token.val);
+                            astree.setPosValue(token);
                             astree.leavePos();
                     
                             astree.enterPos('tags');
-                            astree.setPosValue([token.val]);
+                            astree.setPosValue([token]);
                             astree.leavePos();
                     
                             nextToken();
@@ -391,19 +403,13 @@ class InputParser {
                     }
                 
                     const handleTagsDefinition = () => {
-                        const readWhileTag = () => {
-                            const isTagVariable = () => {
-                                return false ||
-                                    isToken('key', 'uuid')
-                                ;
-                            }
-                            
+                        const readWhileTag = () => {                            
                             const tags = [ ];
                             while (true) {
-                                if (isToken('tag', null) || isTagVariable()) {
+                                if (isToken('tag', null) || isToken('var', null)) {
                                     let new_tag = currentToken().val;
-                                    if (isTagVariable()) {
-                                        new_tag = '@' + new_tag;
+                                    if (isToken('var', null)) {
+                                        new_tag = '$' + new_tag;
                                     }
 
                                     for (const current_tag of tags) {
@@ -452,24 +458,11 @@ class InputParser {
                 
                     const handleHeapDefinition = () => {
                         const readWhileHeapData = () => {
-                            const isHeapVariable = () => {
-                                return false ||
-                                    isToken('key', 'root') ||
-                                    isToken('key', 'farthest') ||
-                                    isToken('key', 'closest') ||
-                                    isToken('key', 'parent') ||
-                                    isToken('key', 'seqnum') ||
-                                    isToken('key', 'sysseqnum') ||
-                                    isToken('key', 'depth') ||
-                                    isToken('key', 'uuid')
-                                ;
-                            }
-                            
                             const data = [ ];
-                            while (isToken('part', null) || isHeapVariable()) {
+                            while (isToken('part', null) || isToken('var', null)) {
                                 token = currentToken().val;
-                                if (isHeapVariable()) {
-                                    token = '@' + token;
+                                if (isToken('var', null)) {
+                                    token = '$' + token;
                                 }
 
                                 data.push(token);
@@ -478,6 +471,12 @@ class InputParser {
                             }
                         
                             return data;
+                        }
+
+                        if (isToken('key', 'none')) {
+                            nextToken();
+
+                            return;
                         }
 
                         astree.enterPos('heap');
@@ -506,6 +505,12 @@ class InputParser {
                     }
                 
                     const handleStackDefinition = () => {
+                        if (isToken('key', 'none')) {
+                            nextToken();
+
+                            return;
+                        }
+
                         if (!isToken('punc', '{')) {
                             handleUnexpected();
                         }
@@ -518,7 +523,7 @@ class InputParser {
                         astree.leaveStack();
                         nextToken();
                     }
-                    
+
                     handleSysDefinition();
 
                     if (isToken('key', 'as')) {
@@ -538,26 +543,20 @@ class InputParser {
 
                         handleStackDefinition();
                     }
-                }
-                
-                const handleAffected = () => {
-                    const isAffectedVariable = () => {
-                        return false ||
-                            isToken('key', 'machine') ||
-                            isToken('key', 'tags') ||
-                            isToken('key', 'heap') ||
-                            isToken('key', 'stack')
-                        ;
-                    }
-                
-                    if (isAffectedVariable()) {
-                        astree.enterPos('affected');
-                        astree.setPosValue(currentToken().val);
+
+                    if (isToken('key', 'close')) {
+                        nextToken();
+
+                        astree.enterPos('final');
+                        astree.setPosValue('true');
                         astree.leavePos();
-                    } else {
-                        handleUnexpected();
+                    } else if (isToken('key', 'open')) {
+                        nextToken();
+
+                        astree.enterPos('final');
+                        astree.setPosValue('false');
+                        astree.leavePos();
                     }
-                    nextToken();
                 }
 
                 if (isToken('key', 'vmdl')) {
@@ -579,26 +578,13 @@ class InputParser {
                     nextToken();
 
                     handleContext();
-
-                    if (isToken('punc', ';')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('cswitch');
-                        astree.leavePos();
-                        
-                        astree.nextItem();
-                        nextToken();
-
-                        return;
-                    }
                 }
 
                 handleOperation();
+
                 switch (astree.getTopPos()) {
                     case 'definition':
                         handleDefinition();
-                        break;
-                    default:
-                        handleAffected();
                         break;
                 }
 

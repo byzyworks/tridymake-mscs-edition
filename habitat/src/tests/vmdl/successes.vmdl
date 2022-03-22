@@ -5,19 +5,20 @@
 
 # Creates a new network.
 @in habitat
-@new module;
+@new module
+@open;
 
 # Create a new VirtualBox controller inside this network.
-@in module @of habitat
+@in habitat/module
 @new vbox;
 
 # Create a new machine of this VirtualBox controller.
-@in vbox @of module @of habitat
+@in habitat/module/vbox
 @new machine
-@as dns-server ubuntu linux machine @uuid
+@as dns-server ubuntu linux machine $uuid
 @is @json {
     "template": "ubnt-temp-1",
-    "security": "@root"
+    "security": "$root"
 } @end
 @has {
     @new payload
@@ -33,9 +34,26 @@
 };
 
 # Give a default payload to all (already declared) Linux-based machines.
-@in linux machine @from habitat
+@in habitat @to linux machine
 @new payload
-@as default-linux-payload;
+@as default-linux-payload
+@close;
 
 # Huge context expression for the sake of it.
-@in (linux machine) @or (windows (machine @or container) @and @not freebsd @not ((openbsd))) @of vbox @from habitat;
+@in habitat @into !!!((1 @into 2 @to 3 @or 4 @and 5) @or (1 : 2 . 3 | 4 & 5)) @to vbox @to (linux machine) @or (windows (machine @or container) @and @not freebsd @not @not @not ((openbsd)))
+@get;
+
+# New machine with nothing.
+@in habitat/module/vbox
+@new machine
+@as @none
+@is @none
+@has @none;
+
+# Finalizing everything so it can no longer be modified/is hidden to the compositor.
+@in habitat/**
+@done;
+
+# Print everything.
+@in habitat
+@get;

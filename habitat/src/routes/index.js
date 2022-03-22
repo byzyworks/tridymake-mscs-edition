@@ -2,14 +2,18 @@ import express from 'express';
 
 import { vmdl } from '../controllers/vmdl/VMDL.js';
 
-const toVMDL = (op, sys, opts = { }) => {
+const toVMDL = (op, opts = { }) => {
     let cmd = '';
 
     if (opts.context) {
         cmd += `@in ${opts.context} `;
     }
 
-    cmd += `@${op} ${sys}`;
+    cmd += `@${op}`;
+
+    if (opts.define.sys) {
+        cmd += ` ${sys}`;
+    }
 
     if (opts.define.as) {
         cmd += ` @as ${opts.define.as}`;
@@ -30,84 +34,70 @@ const toVMDL = (op, sys, opts = { }) => {
 
 export const routes = express.Router();
 
-routes.get('/:context/:sys', (req, res, next) => {
-    const opts = {
-        context: req.params.context,
-        define:  req.query
-    };
-    const cmd = toVMDL('get', req.params.sys, opts);
+routes.get('/:context', (req, res) => {
+    const opts = { context: req.params.context };
+    const cmd = toVMDL('get', opts);
 
     const out = vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.get('/:sys', (req, res, next) => {
-    const opts = { define: req.query };
-    const cmd = toVMDL('get', req.params.sys, opts);
-
-    const out = vmdl.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
-
-routes.post('/:context/:sys', (req, res, next) => {
+routes.post('/:context/:sys', (req, res) => {
     const opts = {
         context: req.params.context,
-        define:  req.query
+        define: {
+            sys: req.params.sys,
+            tags: req.query.as,
+            heap: req.query.is,
+            stack: req.query.has
+        }
     };
-    const cmd = toVMDL('new', req.params.sys, opts);
+    const cmd = toVMDL('new', opts);
     
     const out = vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.post('/:sys', (req, res, next) => {
-    const opts = { define: req.query };
-    const cmd = toVMDL('new', req.params.sys, opts);
+routes.post('/:sys', (req, res) => {
+    const opts = { define: { sys: req.params.sys } };
+    const cmd = toVMDL('new', opts);
 
     const out = vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.put('/:context/:sys', (req, res, next) => {
+routes.put('/:context/:sys', (req, res) => {
     const opts = {
         context: req.params.context,
-        define:  req.query
+        define: {
+            sys: req.params.sys,
+            tags: req.query.as,
+            heap: req.query.is,
+            stack: req.query.has
+        }
     };
-    const cmd = toVMDL('now', req.params.sys, opts);
+    const cmd = toVMDL('now', opts);
 
     const out = vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.put('/:sys', (req, res, next) => {
-    const opts = { define: req.query };
-    const cmd = toVMDL('now', req.params.sys, opts);
+routes.put('/:sys', (req, res) => {
+    const opts = { define: { sys: req.params.sys } };
+    const cmd = toVMDL('now', opts);
 
     const out = vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.delete('/:context/:sys', (req, res, next) => {
-    const opts = {
-        context: req.params.context,
-        define:  req.query
-    };
-    const cmd = toVMDL('no', req.params.sys, opts);
-
-    const out = vmdl.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
-
-routes.delete('/:sys', (req, res, next) => {
-    const opts = { define: req.query };
-    const cmd = toVMDL('no', req.params.sys, opts);
+routes.delete('/:context', (req, res) => {
+    const opts = { context: req.params.context };
+    const cmd = toVMDL('done', opts);
 
     const out = vmdl.parse(cmd, { accept_carry: false });
 

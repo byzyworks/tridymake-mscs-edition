@@ -55,11 +55,14 @@ class TokenParser {
                 is_escaped = false;
             } else if (this.isEscape(ch)) {
                 is_escaped = true;
+            } else if (ch == '#') {
+                this.mode.push('com');
+                break;
             } else if (ch == '@') {
                 this.mode.push('key');
                 break;
-            } else if (ch == '#') {
-                this.mode.push('com');
+            } else if (ch == '$') {
+                this.mode.push('var');
                 break;
             } else {
                 str += ch;
@@ -100,6 +103,17 @@ class TokenParser {
             return keyword;
         }
 
+        if (ch == '$') {
+            this.mode.push('var');
+            this.parser.next();
+        }
+        if (this.mode.peek() == 'var') {
+            this.mode.pop();
+            const keyword = this.readVariable();
+
+            return keyword;
+        }
+
         if (this.mode.peek() == 'json') {
             return this.readJSON();
         }
@@ -135,7 +149,7 @@ class TokenParser {
 
         const part = this.readWhileEscaped().replace(/\s+/g, '');
 
-        return { type: "part", val: part, pos: pos };
+        return { type: 'part', val: part, pos: pos };
     }
 
     readKeyword() {
@@ -145,7 +159,7 @@ class TokenParser {
         const keyword = this.readWhilePred(this.isIdentifier).toLowerCase();
 
         if (isEmpty(keyword)) {
-            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid keyword after "@".`);
+            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "@".`);
         }
 
         if (keyword == 'json') {
@@ -158,7 +172,20 @@ class TokenParser {
             }
         }
 
-        return { type: "key", val: keyword, pos: pos };
+        return { type: 'key', val: keyword, pos: pos };
+    }
+
+    readVariable() {
+        const pos = this.getPos();
+        pos.col--;
+
+        const variable = this.readWhilePred(this.isIdentifier);
+
+        if (isEmpty(variable)) {
+            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "$".`);
+        }
+
+        return { type: 'var', val: variable, pos: pos };
     }
 
     readTag() {
@@ -166,19 +193,22 @@ class TokenParser {
 
         const tag = this.readWhilePred(this.isIdentifier);
 
-        return { type: "tag", val: tag, pos: pos };
+        return { type: 'tag', val: tag, pos: pos };
     }
 
     readPunc() {
-        return { type: "punc", val: this.parser.next(), pos: this.getPos() };
+        return { type: 'punc', val: this.parser.next(), pos: this.getPos() };
     }
 
     readMultiPunc() {
         const pos = this.getPos();
 
-        const punc = this.readWhilePred(this.isMultiPunc);
+        const curr = this.parser.peek();
+        const punc = this.readWhilePred((ch) => {
+            return ch == curr;
+        });
 
-        return { type: "punc", val: punc, pos: pos };
+        return { type: 'punc', val: punc, pos: pos };
     }
     
     isWhitespace(ch) {
@@ -198,11 +228,11 @@ class TokenParser {
     }
 
     isPunc(ch) {
-        return /[!&|,:()\[\]{};]/g.test(ch);
+        return /[!&|,.:(){};]/g.test(ch);
     }
 
     isMultiPunc(ch) {
-        return /[.*]/g.test(ch);
+        return /[/*]/g.test(ch);
     }
 
     getPos() {

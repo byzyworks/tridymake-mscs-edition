@@ -4,10 +4,10 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Example File (Development)",
+            "name": "Launch Good Example File (Development)",
             "program": "${workspaceFolder}/habitat/src/app.js",
             "cwd": "${workspaceFolder}/habitat",
-            "args": ["file", "src/assets/vmdl/example.vmdl", "--log-level", "debug"],
+            "args": ["file", "src/tests/vmdl/successes.vmdl", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -17,10 +17,33 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Example File (Production)",
+            "name": "Launch Good Example File (Production)",
             "program": "${workspaceFolder}/habitat/src/app.js",
             "cwd": "${workspaceFolder}/habitat",
-            "args": ["file", "src/assets/vmdl/example.vmdl"],
+            "args": ["file", "src/tests/vmdl/successes.vmdl"],
+            "outputCapture": "std",
+            "console": "externalTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Bad Example File (Development)",
+            "program": "${workspaceFolder}/habitat/src/app.js",
+            "cwd": "${workspaceFolder}/habitat",
+            "args": ["file", "src/tests/vmdl/failures.vmdl", "--log-level", "debug"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Bad Example File (Production)",
+            "program": "${workspaceFolder}/habitat/src/app.js",
+            "cwd": "${workspaceFolder}/habitat",
+            "args": ["file", "src/tests/vmdl/failures.vmdl"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
