@@ -40,7 +40,7 @@
 @close;
 
 # Huge context expression for the sake of it.
-@in habitat @into !!!((1 @into 2 @to 3 @or 4 @and 5) @or (1 : 2 . 3 | 4 & 5)) @to vbox @to (linux machine) @or (windows (machine @or container) @and @not freebsd @not @not @not ((openbsd)))
+@in habitat @into !!!((1 @into 2 @to 3 @or 4 @and 5) @and (1 : 2 . 3 | 4 & 5) @and (1 // 2 / 3 , 4 5)) @to vbox @to (linux machine) @or (windows (machine @or container) @and @not freebsd @not @not @not ((openbsd)))
 @get;
 
 # New machine with nothing.

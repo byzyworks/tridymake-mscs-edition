@@ -31,7 +31,7 @@ export const cli = async () => {
         let out;
         let retry = false;
         try {
-            out = vmdl.parse(answers.parsed, { accept_carry: true });
+            out = await vmdl.parse(answers.parsed, { accept_carry: true });
         } catch (err) {
             if (err instanceof SyntaxError) {
                 errorHandler.handle(err);
@@ -41,7 +41,7 @@ export const cli = async () => {
             }
         }
 
-        if (!retry && !isEmpty(out['stack'])) {
+        if (!retry && !isEmpty(out)) {
             console.log(JSON.stringify(out));
         }
     }

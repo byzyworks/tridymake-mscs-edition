@@ -36,9 +36,6 @@ class InputParser {
         opts.accept_carry = opts.accept_carry ?? false;
 
         const tokens = [ ];
-        const astree = new StateTree();
-
-        
 
         const parseTokens = () => {
             const isToken = (token, type = null, value = null) => {
@@ -141,6 +138,8 @@ class InputParser {
         }
 
         const parseTree = () => {
+            const astree = new StateTree();
+
             let it = 0;
 
             const currentToken = () => {
@@ -371,13 +370,13 @@ class InputParser {
                         return context;
                     }
 
-                    const toPostfix = (expression) => {
+                    const toTree = (expression) => {
                         this.infix_parser.load(expression);
                         return this.infix_parser.parse();
                     }
 
                     let context = readWhileContextExpression();
-                    context = toPostfix(context);
+                    context = toTree(context);
 
                     if (isEmpty(context)) {
                         handleUnexpected();
@@ -628,7 +627,7 @@ class InputParser {
             }
             astree.leaveStack({ root: true });
 
-            return astree.getRaw();
+            return astree;
         }
 
         parseTokens();

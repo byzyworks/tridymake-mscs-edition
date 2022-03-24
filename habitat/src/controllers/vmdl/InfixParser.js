@@ -10,41 +10,78 @@ class InfixParser {
     }
 
     parse() {
-        const prec = {
-            '!': 0,
-            '&': 1,
-            '|': 2,
-            '.': 3,
-            ':': 4
-        }
-
-        const ops = new Stack();
-        const out = new Queue();
-
-        for (let token of this.input) {
-            if (token.type == 't') {
-                out.enqueue(token);
-            } else if (token.val == '(') {
-                ops.push(token);
-            } else if (token.val == ')') {
-                while (!ops.isEmpty() && (ops.peek().val != '(')) {
-                    out.enqueue(ops.pop());
-                }
-                ops.pop();
-            } else {
-                // token is operator that isn't parantheses
-                while (!ops.isEmpty() && (prec[ops.peek().val] < prec[token.val])) {
-                    out.enqueue(ops.pop());
-                }
-                ops.push(token);
+        const toPostfix = () => {
+            const prec = {
+                '!': 0,
+                '&': 1,
+                '|': 2,
+                '.': 3,
+                ':': 4
             }
+    
+            const out = new Queue();
+            const ops = new Stack();
+    
+            for (const token of this.input) {
+                if (token.type == 't') {
+                    out.enqueue(token);
+                } else if (token.val == '(') {
+                    ops.push(token);
+                } else if (token.val == ')') {
+                    while (!ops.isEmpty() && (ops.peek().val != '(')) {
+                        out.enqueue(ops.pop());
+                    }
+                    ops.pop();
+                } else {
+                    // token is operator that isn't parantheses
+                    while (!ops.isEmpty() && (prec[ops.peek().val] < prec[token.val])) {
+                        out.enqueue(ops.pop());
+                    }
+                    ops.push(token);
+                }
+            }
+    
+            while (!ops.isEmpty()) {
+                out.enqueue(ops.pop());
+            }
+
+            return out;
+        }
+        
+        const toTree = (postfix) => {
+            const out = new Stack();
+
+            let current;
+            while (!postfix.isEmpty()) {
+                current = postfix.dequeue();
+                if (current.type == 't') {
+                    out.push(current.val);
+                } else {
+                    let a;
+                    let b;
+
+                    b = out.pop();
+                    if (out.isEmpty()) {
+                        a = b;
+                        b = null;
+                    } else {
+                        a = out.pop();
+                    }
+
+                    if (b) {
+                        out.push({ a: a, op: current.val, b: b });
+                    } else {
+                        out.push({ a: a, op: current.val });
+                    }
+                }
+            }
+
+            return out.pop();
         }
 
-        while (!ops.isEmpty()) {
-            out.enqueue(ops.pop());
-        }
+        return toTree(toPostfix());
 
-        return out.toArray();
+        //return out.toArray();
     }
 }
 

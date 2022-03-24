@@ -2,11 +2,17 @@ import { isEmpty } from '../../utility/common.js';
 
 export class StateTree {
     pos  = [ ];
-    tree = { };
+    tree = null;
     ptr  = null;
     changed_pos = true;
 
-    constructor() {
+    constructor(imported = null) {
+        if (imported) {
+            this.tree = imported;
+        } else {
+            this.tree = { };
+        }
+
         this.ptr = this.tree;
     }
 
@@ -130,13 +136,20 @@ export class StateTree {
         return this.pos.length === 0;
     }
 
-    enterStack() {
+    enterStack(opts = { }) {
+        opts.append_mode = opts.append_mode ?? true;
+
         if (this.getTopPos() != 'stack') {
             this.enterPos('stack');
         }
 
-        const done = this.getPosValue() ?? [ ];
-        this.enterPos(done.length);
+        if (opts.append_mode) {
+            const done = this.getPosValue() ?? [ ];
+            this.enterPos(done.length);
+        } else {
+            this.enterPos(0);
+        }
+        
     }
 
     leaveStack(opts = { }) {

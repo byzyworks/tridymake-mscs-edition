@@ -19,8 +19,9 @@ program
 program.command('inline')
     .description('Read VMDL commands as a string and exit.')
     .argument('<input>', 'VMDL commands to read.')
-    .action((input, options) => {
-        const out = vmdl.parse(input, { accept_carry: false });
+    .action(async (input, options) => {
+        await vmdl.load();
+        const out = await vmdl.parse(input, { accept_carry: false });
 
         console.log(JSON.stringify(out));
     })
@@ -42,7 +43,8 @@ program.command('file')
         }
 
         if (!skip) {
-            const out = vmdl.parse(input, { accept_carry: false });
+            await vmdl.load();
+            const out = await vmdl.parse(input, { accept_carry: false });
 
             console.log(JSON.stringify(out));
         }
@@ -52,6 +54,7 @@ program.command('file')
 program.command('console')
     .description('Start an interactive console session.')
     .action(async (options) => {
+        await vmdl.load();
         await cli();
     })
 ;
@@ -63,6 +66,7 @@ program.command('web')
     .option('-L, --localhost', 'Bind only on localhost; do not expose service to network.')
     .option('-p, --port <port>', 'The port number to bind to')
     .action(async (options) => {
+        await vmdl.load();
         await server();
     })
 ;

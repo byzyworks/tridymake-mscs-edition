@@ -34,16 +34,16 @@ const toVMDL = (op, opts = { }) => {
 
 export const routes = express.Router();
 
-routes.get('/:context', (req, res) => {
+routes.get('/:context', async (req, res) => {
     const opts = { context: req.params.context };
     const cmd = toVMDL('get', opts);
 
-    const out = vmdl.parse(cmd, { accept_carry: false });
+    const out = await vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.post('/:context/:sys', (req, res) => {
+routes.post('/:context/:sys', async (req, res) => {
     const opts = {
         context: req.params.context,
         define: {
@@ -55,21 +55,21 @@ routes.post('/:context/:sys', (req, res) => {
     };
     const cmd = toVMDL('new', opts);
     
-    const out = vmdl.parse(cmd, { accept_carry: false });
+    const out = await vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.post('/:sys', (req, res) => {
+routes.post('/:sys', async (req, res) => {
     const opts = { define: { sys: req.params.sys } };
     const cmd = toVMDL('new', opts);
 
-    const out = vmdl.parse(cmd, { accept_carry: false });
+    const out = await vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.put('/:context/:sys', (req, res) => {
+routes.put('/:context/:sys', async (req, res) => {
     const opts = {
         context: req.params.context,
         define: {
@@ -81,25 +81,25 @@ routes.put('/:context/:sys', (req, res) => {
     };
     const cmd = toVMDL('now', opts);
 
-    const out = vmdl.parse(cmd, { accept_carry: false });
+    const out = await vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.put('/:sys', (req, res) => {
+routes.put('/:sys', async (req, res) => {
     const opts = { define: { sys: req.params.sys } };
     const cmd = toVMDL('now', opts);
 
-    const out = vmdl.parse(cmd, { accept_carry: false });
+    const out = await vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
-routes.delete('/:context', (req, res) => {
+routes.delete('/:context', async (req, res) => {
     const opts = { context: req.params.context };
     const cmd = toVMDL('done', opts);
 
-    const out = vmdl.parse(cmd, { accept_carry: false });
+    const out = await vmdl.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
