@@ -49,6 +49,10 @@ class InfixParser {
         }
         
         const toTree = (postfix) => {
+            const isUnaryOp = (token) => {
+                return (token.val == '!');
+            }
+
             const out = new Stack();
 
             let current;
@@ -56,23 +60,15 @@ class InfixParser {
                 current = postfix.dequeue();
                 if (current.type == 't') {
                     out.push(current.val);
+                } else if (isUnaryOp(current)) {
+                    const a = out.pop();
+
+                    out.push({ a: a, op: current.val });
                 } else {
-                    let a;
-                    let b;
+                    const b = out.pop();
+                    const a = out.pop();
 
-                    b = out.pop();
-                    if (out.isEmpty()) {
-                        a = b;
-                        b = null;
-                    } else {
-                        a = out.pop();
-                    }
-
-                    if (b) {
-                        out.push({ a: a, op: current.val, b: b });
-                    } else {
-                        out.push({ a: a, op: current.val });
-                    }
+                    out.push({ a: a, op: current.val, b: b });
                 }
             }
 
