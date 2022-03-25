@@ -40,14 +40,16 @@ export const deepCopy = (source) => {
 }
 
 export const isEmpty = (obj) => {
-    if (isArray(obj)) {
-        return obj.length === 0;
-    } else if (isDictionary(obj)) {
-        return Object.keys(obj).length === 0;
-    } else if (typeof obj === 'string') {
-        return obj === '';
+    if (obj === undefined) {
+        return true;
     } else {
-        return obj === undefined;
+        if (isArray(obj)) {
+            return obj.length === 0;
+        } else if (isDictionary(obj)) {
+            return Object.keys(obj).length === 0;
+        } else if (typeof obj === 'string') {
+            return obj === '';
+        }
     }
 }
 

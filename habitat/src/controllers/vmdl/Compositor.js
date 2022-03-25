@@ -1,12 +1,19 @@
-import { StateTree } from './StateTree.js';
-import { deepCopy }  from '../../utility/common.js';
-import { Stack }     from '../../utility/Stack.js';
+import { StateTree }         from './StateTree.js';
+import { deepCopy, isEmpty } from '../../utility/common.js';
+import { Stack }             from '../../utility/Stack.js';
 
 class Compositor {
+    astree    = null;
+    machines  = null;
+    target    = new Stack();
+    context   = null;
+    match_all = false;
+    output    = [ ];
+
     constructor() { }
 
     isLoaded() {
-        return (this.machines !== undefined);
+        return (this.machines ? true : false);
     }
 
     loadInit(tree = null) {
@@ -15,331 +22,352 @@ class Compositor {
         } else {
             this.machines = new StateTree();
         }
+        this.target.push(this.machines);
     }
 
     loadCommands(tree) {
         this.astree = tree;
     }
 
-    parse() {
-        const parseStatement = () => {
-            const createMachine = () => {
-                const transactValue = (source, shared, target) => {
-                    source.enterPos(shared);
-                    target.enterPos(shared);
-                    target.setPosValue(source.getPosValue());
-                    target.leavePos();
-                    source.leavePos();
-                }
-    
-                const machine = new StateTree();
-    
-                this.astree.enterPos('definition');
-                if (!this.astree.isPosEmpty()) {
-                    this.astree.enterPos('stack');
-                    if (!this.astree.isPosEmpty()) {
-                        const nested = this.parse();
-    
-                        machine.enterPos('stack');
-                        machine.setPosValue(nested);
-                        machine.leavePos();
-                    }
-                    this.astree.leavePos();
-    
-                    transactValue(this.astree, 'heap', machine);
-                    transactValue(this.astree, 'tags', machine);
-                    transactValue(this.astree, 'sys', machine);
-                    transactValue(this.astree, 'final', machine);
-
-                    machine.enterPos('build');
-                    switch (command) {
-                        case 'now':
-                            machine.setPosValue(0);
-                            break;
-                        case 'new':
-                            machine.setPosValue(1);
-                            break;
-                    }
-                    machine.leavePos();
-                }
-                this.astree.leavePos();
-    
-                return machine.getRaw();
+    createMachine(command) {
+        const transactValue = (source, shared, target) => {
+            source.enterPos(shared);
+            target.enterPos(shared);
+            if (!source.isPosEmpty()) {
+                target.setPosValue(source.getPosValue());
             }
-
-            const createComposited = () => {
-                const traverseMachines = () => {
-                    const matchingContext = () => {
-                        const getContext = () => {
-                            let current = [ ];
-    
-                            const indices = this.machines.getFullPos();
-                            let   ptr     = this.machines.getRaw();
-                            for (let i = 0; i < indices.length; i += 2) {
-                                ptr = ptr[indices[i]][indices[i + 1]];
-                                if (ptr.tags) {
-                                    current.push(ptr.tags);
-                                } else {
-                                    current.push([ ]);
-                                }
-                            }
-    
-                            return current;
-                        }
-    
-                        const isSolved = (operand) => {
-                            return (typeof operand == 'boolean');
-                        }
-
-                        /*
-                        const solve = (operand) => {
-                            for (const tag of context[level]) {
-                                if (operand == tag) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
-
-                        const testNot = () => {
-                            let a = operands.pop();
-
-                            a = isSolved(a) ? a : solve(a);
-    
-                            operands.push(!a);
-                        }
-    
-                        const testAnd = () => {
-                            let b = operands.pop();
-                            let a = operands.pop();
-    
-                            a = isSolved(a) ? a : solve(a);
-                            b = isSolved(b) ? b : solve(b);
-    
-                            operands.push(a && b);
-                        }
-    
-                        const testOr = () => {
-                            let b = operands.pop();
-                            let a = operands.pop();
-    
-                            a = isSolved(a) ? a : solve(a);
-                            b = isSolved(b) ? b : solve(b);
-    
-                            operands.push(a || b);
-                        }
-    
-                        const testTo = () => {
-                            let b = operands.pop();
-                            let a = operands.pop();
-    
-                            b = isSolved(b) ? b : solve(b);
-                            if (level > 0) {
-                                level--;
-
-                                a = isSolved(a) ? a : solve(a);
-                            } else {
-                                a = false;
-                            }
-
-                            a = isSolved(a) ? a : solve(a);
-                            if (level > 0) {
-                                level--;
-
-                                b = isSolved(b) ? b : solve(b);
-                            } else {
-                                a = false;
-                            }
-    
-                            operands.push(a && b);
-                        }
-    
-                        const testInto = () => {
-                            let b = operands.pop();
-                            let a = operands.pop();
-    
-                            b = isSolved(b) ? b : solve(b);
-                            while (level > 0) {
-                                level--;
-    
-                                let temp = a;
-                                temp = isSolved(a) ? a : solve(a);
-                                if (temp) {
-                                    a = true;
-                                    break;
-                                }
-                            }
-
-                            if (!isSolved(a)) {
-                                a = false;
-                            }
-    
-                            operands.push(a && b);
-                        }
-
-                        const isRoot = () => {
-                            return (level === 0);
-                        }
-
-                        const testRoot = () => {
-                            let a = operands.pop();
-                            a = isSolved(a) ? a : solve(a);
-                            a = isRoot() ? a : false;
-                            operands.push(a);
-                        }
-    
-                        const pushLevel = () => {
-                            levels.push(level);
-                        }
-    
-                        const popLevel = () => {
-                            level = levels.pop();
-                        }
-                        
-                        const context = getContext();
-    
-                        const operands = new Stack();
-    
-                        const levels = new Stack();
-                        let   level  = 0;
-    
-                        if (expression) {
-                            for (const token of expression) {
-                                if (token.type == 't') {
-                                    operands.push(token.val);
-                                } else {
-                                    switch (token.val) {
-                                        case '!':
-                                            testNot();
-                                            break;
-                                        case '&':
-                                            testAnd();
-                                            break;
-                                        case '|':
-                                            testOr();
-                                            break;
-                                        case '.':
-                                            testTo();
-                                            break;
-                                        case ':':
-                                            testInto();
-                                            break;
-                                        case '(':
-                                            pushLevel();
-                                            break;
-                                        case ')':
-                                            popLevel();
-                                            break;
-                                    }
-                                }
-                            }
-                            testRoot();
-
-                            let final = operands.pop();
-                            final = isSolved(final) ? final : solve(final);
-
-                            return final;
-                        } else {
-                            return isRoot();
-                        }
-                        */
-                    }
-    
-                    const isFinal = () => {
-                        let final;
-    
-                        this.machines.enterPos('final');
-                        final = (!this.machines.isPosEmpty() && this.machines.getPosValue() === true)
-                        this.machines.leavePos();
-    
-                        return final;
-                    }
-    
-                    const composeMachine = () => {
-                        switch (command) {
-                            case 'buildtime':
-                            case 'runtime':
-                                this.machines.putPosValue(deepCopy(template));
-                            
-                                return null;
-                            case 'finalize':
-                                this.machines.enterPos('final');
-                                this.machines.setPosValue(true);
-                                this.machines.leavePos();
-    
-                                return null;
-                            case 'print':
-                                return deepCopy(this.machines.getPosValue());
-                        }
-                    }
-    
-                    const total_output = [ ];
-                    let   machine_output;
-                    let   stack_output;
-
-                    this.machines.enterPos(0);
-                    while (!this.machines.isPosEmpty()) {
-                        this.machines.enterPos('stack');
-                        if (!this.machines.isPosEmpty()) {
-                            stack_output = traverseMachines();
-
-                            for (const submach of stack_output) {
-                                total_output.push(submach);
-                            }
-                        }
-                        this.machines.leavePos();
-    
-                        if (!isFinal() && matchingContext()) {
-                            machine_output = composeMachine();
-
-                            total_output.push(machine_output);
-                        }
-    
-                        this.machines.nextItem();
-                    }
-                    this.machines.leavePos();
-
-                    return total_output;
-                }
-    
-                this.astree.enterPos('context');
-                const expression = this.astree.getPosValue();
-                this.astree.leavePos();
-    
-                this.machines.enterPos('stack');
-                const output = traverseMachines();
-                this.machines.leavePos();
-
-                return output;
-            }
-
-            this.astree.enterPos('operation');
-            const command = this.astree.getPosValue();
-            this.astree.leavePos();
-            
-            const template = createMachine();
-            
-            return createComposited();
+            target.leavePos();
+            source.leavePos();
         }
 
+        const machine = new StateTree();
+
+        this.astree.enterPos('definition');
+        if (!this.astree.isPosEmpty()) {
+            this.astree.enterPos('stack');
+            if (!this.astree.isPosEmpty()) {
+                this.astree.leavePos();
+
+                this.target.push(machine);
+                const stack = this.parse().stack;
+                this.target.pop();
+
+                if (!isEmpty(stack)) {
+                    machine.enterPos('stack');
+                    machine.setPosValue(stack);
+                    machine.leavePos();
+                }
+            } else {
+                this.astree.leavePos();
+            }
+
+            transactValue(this.astree, 'heap', machine);
+            transactValue(this.astree, 'tags', machine);
+            transactValue(this.astree, 'sys', machine);
+            transactValue(this.astree, 'final', machine);
+
+            machine.enterPos('build');
+            switch (command) {
+                case 'buildtime':
+                    machine.setPosValue(0);
+                    break;
+                case 'runtime':
+                    machine.setPosValue(1);
+                    break;
+            }
+            machine.leavePos();
+        }
+        this.astree.leavePos();
+
+        return machine.getRaw();
+    }
+
+    getContext() {
+        let current = [ ];
+
+        const target  = this.target.peek();
+        const indices = target.getFullPos();
+        let   ptr     = target.getRaw();
+        
+        for (let i = 0; i < indices.length; i += 2) {
+            ptr = ptr[indices[i]][indices[i + 1]];
+            if (ptr.tags) {
+                current.push(ptr.tags);
+            } else {
+                current.push([ ]);
+            }
+        }
+
+        return current;
+    }
+
+    isTag(obj) {
+        return (typeof obj == 'string');
+    }
+
+    matchingTag(test, lvl) {
+        if (this.match_all) {
+            return true;
+        }
+
+        switch (test) {
+            case '@any':
+                return true;
+            case '@all':
+                this.match_all = true;
+
+                return true;
+            case '@leaf':
+                const target = this.target.peek();
+
+                target.enterPos('stack');
+                const leaf = isEmpty(target.getPosValue());
+                target.leavePos();
+
+                return leaf;
+            default:
+                for (const tag of this.context[lvl]) {
+                    if (test == tag) {
+                        return true;
+                    }
+                }
+                return false;
+        }
+    }
+
+    testNot(a, lvl) {
+        a = this.matchingExpression(a, lvl);
+
+        return !a;
+    }
+
+    testAnd(a, b, lvl) {
+        a = this.matchingExpression(a, lvl);
+        b = this.matchingExpression(b, lvl);
+
+        return a && b;
+    }
+
+    testOr(a, b, lvl) {
+        a = this.matchingExpression(a, lvl);
+        b = this.matchingExpression(b, lvl);
+
+        return a || b;
+    }
+
+    testTo(a, b, lvl) {
+        a = this.matchingExpression(a, lvl);
+
+        let r = false;
+        lvl++;
+        if (lvl < this.context.length) {
+            if (this.isTag(b)) {
+                if (lvl === this.context.length - 1) {
+                    r = this.matchingTag(b, lvl);
+                }
+            } else {
+                r = this.matchingExpression(b, lvl);
+            }
+        }
+        b = r;
+
+        return a && b;
+    }
+
+    testInto(a, b, lvl) {
+        a = this.matchingExpression(a, lvl);
+
+        let r = false;
+        lvl++;
+        while ((r === false) && (lvl < this.context.length)) {
+            if (this.isTag(b)) {
+                if (lvl === this.context.length - 1) {
+                    r = this.matchingTag(b, lvl);
+                }
+            } else {
+                r = this.matchingExpression(b, lvl);
+            }
+            lvl++;
+        }
+        b = r;
+
+        return a && b;
+    }
+
+    matchingExpression(test, lvl) {
+        if (isEmpty(this.context)) {
+            return false;
+        } else if (this.isTag(test)) {
+            return this.matchingTag(test, lvl);
+        } else {
+            switch (test.op) {
+                case '!':
+                    return this.testNot(test.a, lvl);
+                case '&':
+                    return this.testAnd(test.a, test.b, lvl);
+                case '|':
+                    return this.testOr(test.a, test.b, lvl);
+                case '.':
+                    return this.testTo(test.a, test.b, lvl);
+                case ':':
+                    return this.testInto(test.a, test.b, lvl);
+            }
+        }
+    }
+
+    matchingContext(test) {
+        if (isEmpty(test)) {
+            return true;
+        } else {
+            this.context = this.getContext();
+
+            return this.matchingExpression(test, 0);
+        }
+    }
+
+    composeMachine(command, template = null) {
+        const target = this.target.peek();
+        switch (command) {
+            case 'buildtime':
+            case 'runtime':
+                target.enterPos('stack');
+                target.putPosValue(deepCopy(template));
+                target.leavePos();
+                break;
+            case 'clear':
+                target.setPosValue({ });
+                break;
+            case 'lock':
+                target.enterPos('final');
+                target.setPosValue(true);
+                target.leavePos();
+                break;
+        }
+
+        const result = deepCopy(target.getPosValue());
+        if (this.isReadOp(command)) {
+            this.output.push(result);
+            return null;
+        } else {
+            return result;
+        }
+    }
+
+    isFinal() {
+        const target = this.target.peek();
+
+        target.enterPos('final');
+        const test = target.getPosValue() ?? false;
+        target.leavePos();
+
+        return test;
+    }
+
+    traverseMachine(test, command, template = null) {
+        const total_output = [ ];
+        let   machine_output;
+        let   stack_output;
+
+        this.match_all = false;
+
+        let matched;
+        if (this.isFinal() && !this.isReadOp(command)) {
+            matched = false;
+        } else {
+            matched = this.matchingContext(test);
+        }
+
+        if (matched) {
+            machine_output = this.composeMachine(command, template);
+
+            if (machine_output) {
+                total_output.push(machine_output);
+            }
+        }
+        
+        const target = this.target.peek();
+        if (!matched || this.match_all) {
+            target.enterPos('stack');
+            if (!target.isPosEmpty()) {
+                target.enterPos(0);
+                while (!target.isPosEmpty()) {
+                    stack_output = this.traverseMachine(test, command, template);
+
+                    for (const submach of stack_output) {
+                        total_output.push(submach);
+                    }
+
+                    target.nextItem();
+                }
+                target.leavePos();
+            }
+            target.leavePos();
+        }
+
+        return total_output;
+    }
+
+    createComposited(command, template = null) {
+        this.astree.enterPos('context');
+        const test = this.astree.getPosValue();
+        this.astree.leavePos();
+
+        const output = this.traverseMachine(test, command, template);
+
+        return output;
+    }
+
+    isReadOp(command) {
+        switch (command) {
+            case 'print':
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    parseStatement() {
+        this.astree.enterPos('operation');
+        const command = this.astree.getPosValue();
+        this.astree.leavePos();
+        
+        let template;
+        if (this.isReadOp(command)) {
+            template = null;
+        } else {
+            template = this.createMachine(command);
+        }
+        
+        return this.createComposited(command, template);
+    }
+
+    parse() {
         const total_output = [ ];
         let   stmt_output;
 
         this.astree.enterPos('stack');
-        this.astree.enterPos(0);
-        while (!this.astree.isPosEmpty()) {
-            stmt_output = parseStatement();
-
-            for (const mach of stmt_output) {
-                total_output.push(mach);
+        if (!this.astree.isPosEmpty()) {
+            this.astree.enterPos(0);
+            while (!this.astree.isPosEmpty()) {
+                stmt_output = this.parseStatement();
+    
+                for (const mach of stmt_output) {
+                    total_output.push(mach);
+                }
+    
+                this.astree.nextItem();
             }
-
-            this.astree.nextItem();
+            this.astree.leavePos();
         }
-        this.astree.leavePos();
         this.astree.leavePos();
 
         return total_output;
+    }
+
+    compose() {
+        this.output = [ ];
+        this.parse();
+        return this.output;
     }
 }
 

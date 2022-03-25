@@ -46,24 +46,18 @@ export class StateTree {
         this.changed_pos = false;
     }
 
-    enterPos(pos, assert = null) {
+    enterPos(pos) {
         this.pos.push(pos);
-
-        if (assert) {
-            this.assertPos(opts.assert);
-        }
 
         this.changed_pos = true;
     }
 
     leavePos() {
-        const pos = this.getTopPos();
-
-        const left = this.pos.pop();
+        const pos = this.pos.pop();
 
         this.changed_pos = true;
 
-        return left;
+        return pos;
     }
 
     getFullPos() {
@@ -71,65 +65,67 @@ export class StateTree {
     }
 
     getTopPos() {
+        if (this.pos.length === 0) {
+            return null;
+        }
         return this.pos[this.pos.length - 1];
     }
 
     getPosValue() {
         this.updatePtrs();
 
-        return this.ptr[this.getTopPos()];
+        const pos = this.getTopPos();
+        if (pos === null) {
+            return this.tree;
+        } else {
+            return this.ptr[pos];
+        }
     }
 
     setPosValue(value) {
         this.updatePtrs();
 
         const pos = this.getTopPos();
-
-        this.ptr[pos] = value;
+        if (pos === null) {
+            this.tree = value;
+        } else {
+            this.ptr[pos] = value;
+        }
     }
 
     putPosValue(value) {
         this.updatePtrs();
 
         const pos = this.getTopPos();
-
-        if (!this.ptr[pos]) {
-            this.ptr[pos] = [ ];
-        } else if (!Array.isArray(this.ptr[pos])) {
-            const temp = this.ptr[pos];
-            this.ptr[pos] = [ ];
-            this.ptr[pos].push(temp);
+        if (pos === null) {
+            if (!this.tree) {
+                this.tree = [ ];
+            } else if (!Array.isArray(this.tree)) {
+                const temp = this.tree;
+                this.tree = [ ];
+                this.tree.push(temp);
+            }
+            this.tree.push(value);
+        } else {
+            if (!this.ptr[pos]) {
+                this.ptr[pos] = [ ];
+            } else if (!Array.isArray(this.ptr[pos])) {
+                const temp = this.ptr[pos];
+                this.ptr[pos] = [ ];
+                this.ptr[pos].push(temp);
+            }
+            this.ptr[pos].push(value);
         }
-        this.ptr[pos].push(value);
     }
 
     isPosEmpty() {
         this.updatePtrs();
 
-        return this.ptr[this.getTopPos()] === undefined;
-    }
-
-    assertPos(assert) {
-        const off = this.pos.length - assert.length;
-
-        let failed = false;
-        for (let i = 0; i < assert.length; i++) {
-            if (this.pos[off + i] != assert[i]) {
-                failed = true;
-                break;
-            }
+        const pos = this.getTopPos();
+        if (pos === null) {
+            return this.tree === undefined;
         }
-
-        let fail_list = [ ]
-        if (failed) {
-            for (let i = off; i < this.pos.length; i++) {
-                fail_list.push(this.pos[i]);
-            }
-        }
-
-        if (!isEmpty(fail_list)) {
-            throw new LogicError(`Unmatching AST position. Expected ${JSON.stringify(assert)}, but got ${JSON.stringify(fail_list)} instead.`);
-        }
+        return this.ptr[pos] === undefined;
     }
 
     isPosRoot() {

@@ -398,6 +398,10 @@ class InputParser {
                         astree.setPosValue('runtime');
                         astree.leavePos();
                         astree.enterPos('definition');
+                    } else if (isToken('key', 'no')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('clear');
+                        astree.leavePos();
                     } else if (isToken('key', 'done')) {
                         astree.enterPos('operation');
                         astree.setPosValue('lock');
@@ -573,13 +577,13 @@ class InputParser {
                         nextToken();
 
                         astree.enterPos('final');
-                        astree.setPosValue('true');
+                        astree.setPosValue(true);
                         astree.leavePos();
                     } else if (isToken('key', 'open')) {
                         nextToken();
 
                         astree.enterPos('final');
-                        astree.setPosValue('false');
+                        astree.setPosValue(false);
                         astree.leavePos();
                     }
                 }

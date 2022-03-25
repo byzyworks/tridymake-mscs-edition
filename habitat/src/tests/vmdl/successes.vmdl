@@ -34,7 +34,7 @@
 };
 
 # Give a default payload to all (already declared) Linux-based machines.
-@in habitat @to linux machine
+@in habitat @to module @into linux machine
 @new payload
 @as default-linux-payload
 @close;
@@ -51,7 +51,7 @@
 @has @none;
 
 # Finalizing everything so it can no longer be modified/is hidden to the compositor.
-@in habitat/**
+@in **
 @done;
 
 # Print everything.

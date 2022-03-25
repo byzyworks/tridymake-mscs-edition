@@ -11,13 +11,7 @@ class VMDL {
 
     async load() {
         if (!this.compositor.isLoaded()) {
-            // temporary; for testing purposes
-            let testfile = await fs.promises.readFile('src/tests/compositor/ApplesAndOranges.json');
-            testfile = JSON.parse(testfile);
-            this.compositor.loadInit(testfile);
-
-            // permanent
-            //this.compositor.loadInit();
+            this.compositor.loadInit();
         }
     }
 
@@ -27,11 +21,8 @@ class VMDL {
         this.parser.load(input);
         tree = this.parser.parse(opts);
 
-        // temporary also
-        tree = tree.getRaw();
-
-        //this.compositor.loadCommands(tree);
-        //tree = this.compositor.parse();
+        this.compositor.loadCommands(tree);
+        tree = this.compositor.compose();
 
         return tree;
     }

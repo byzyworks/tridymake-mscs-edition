@@ -1,6 +1,5 @@
 import { Stack } from '../../utility/Stack.js';
 import { Queue } from '../../utility/Queue.js';
-import { errorHandler } from '../../utility/error.js';
 
 class InfixParser {
     constructor() { }
@@ -50,7 +49,12 @@ class InfixParser {
         
         const toTree = (postfix) => {
             const isUnaryOp = (token) => {
-                return (token.val == '!');
+                switch (token.val) {
+                    case '!':
+                        return true;
+                    default:
+                        return false;
+                }
             }
 
             const out = new Stack();
