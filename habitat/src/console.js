@@ -42,7 +42,7 @@ export const cli = async () => {
         }
 
         if (!retry && !isEmpty(out)) {
-            console.log(JSON.stringify(out));
+            console.log(JSON.stringify(out).replace(/\\\\/g, '\\'));
         }
     }
 }

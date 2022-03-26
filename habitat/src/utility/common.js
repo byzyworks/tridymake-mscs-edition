@@ -15,28 +15,55 @@ export const isDictionary = (obj) => {
     return (isObject(obj) && !isArray(obj));
 }
 
+export const deepCopy = (source) => {
+    let copy;
+    if ((source !== undefined) && isObject(source)) {
+        if (isArray(source)) {
+            copy = [ ];
+        } else if (isDictionary(source)) {
+            copy = { };
+        }
+
+        for (const property in source) {
+            if (isObject(source[property])) {
+                copy[property] = deepCopy(source[property]);
+            } else {
+                copy[property] = source[property];
+            }
+        }
+    } else {
+        copy = source;
+    }
+    
+    return copy;
+}
+
 export const overlay = (target, source) => {
     for (const property in source) {
         if (isObject(source[property])) {
-            overlay(target[property], source[property]);
+            if (!target[property] || !isObject(target[property])) {
+                if (isArray(source[property])) {
+                    target[property] = [ ];
+                } else if (isDictionary(source[property])) {
+                    target[property] = { };
+                }
+            } else if (isArray(target[property]) && isArray(source[property])) {
+                for (const part of source[property]) {
+                    target[property].push(deepCopy(part));
+                }
+            } else if (isArray(target[property]) && isDictionary(source[property])) {
+                target[property].push(deepCopy(source[property]));
+            } else if (isDictionary(target[property]) && isArray(source[property])) {
+                const temp = deepCopy(source[property]);
+                temp.push(deepCopy(target[property]));
+                target[property] = temp;
+            } else {
+                overlay(target[property], source[property]);
+            }
         } else {
             target[property] = source[property];
         }
     }
-}
-
-export const deepCopy = (source) => {
-    const target = isArray(source) ? [ ] : { };
-
-    for (const property in source) {
-        if (isObject(source[property])) {
-            target[property] = deepCopy(source[property]);
-        } else {
-            target[property] = source[property];
-        }
-    }
-    
-    return target;
 }
 
 export const isEmpty = (obj) => {

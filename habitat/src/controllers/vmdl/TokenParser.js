@@ -64,9 +64,6 @@ class TokenParser {
             } else if (ch == '@') {
                 this.mode.push('key');
                 break;
-            } else if (ch == '$') {
-                this.mode.push('var');
-                break;
             } else {
                 str += ch;
             }

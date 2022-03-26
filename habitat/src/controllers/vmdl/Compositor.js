@@ -1,6 +1,6 @@
-import { StateTree }         from './StateTree.js';
-import { deepCopy, isEmpty } from '../../utility/common.js';
-import { Stack }             from '../../utility/Stack.js';
+import { StateTree }                  from './StateTree.js';
+import { deepCopy, isEmpty, overlay } from '../../utility/common.js';
+import { Stack }                      from '../../utility/Stack.js';
 
 class Compositor {
     astree    = null;
@@ -42,6 +42,12 @@ class Compositor {
 
         const machine = new StateTree();
 
+        this.astree.enterPos('imported');
+        if (!this.astree.isPosEmpty()) {
+            machine.setPosValue(this.astree.getPosValue());
+        }
+        this.astree.leavePos();
+
         this.astree.enterPos('definition');
         if (!this.astree.isPosEmpty()) {
             this.astree.enterPos('stack');
@@ -63,17 +69,20 @@ class Compositor {
 
             transactValue(this.astree, 'heap', machine);
             transactValue(this.astree, 'tags', machine);
+            transactValue(this.astree, 'priority', machine);
             transactValue(this.astree, 'sys', machine);
             transactValue(this.astree, 'final', machine);
 
-            machine.enterPos('build');
-            switch (command) {
-                case 'buildtime':
-                    machine.setPosValue(0);
-                    break;
-                case 'runtime':
-                    machine.setPosValue(1);
-                    break;
+            machine.enterPos('priority');
+            if (machine.isPosEmpty()) {
+                switch (command) {
+                    case 'buildtime':
+                        machine.setPosValue(1);
+                        break;
+                    case 'runtime':
+                        machine.setPosValue(-1);
+                        break;
+                }
             }
             machine.leavePos();
         }
@@ -228,19 +237,27 @@ class Compositor {
     composeMachine(command, template = null) {
         const target = this.target.peek();
         switch (command) {
+            case 'overwrite':
+                target.setPosValue(deepCopy(template));
+                break;
+            case 'overlay':
+                const overlayed = deepCopy(target.getPosValue());
+                overlay(overlayed, template);
+                target.setPosValue(overlayed);
+                break;
             case 'buildtime':
             case 'runtime':
                 target.enterPos('stack');
                 target.putPosValue(deepCopy(template));
                 target.leavePos();
                 break;
-            case 'clear':
-                target.setPosValue({ });
-                break;
             case 'lock':
                 target.enterPos('final');
                 target.setPosValue(true);
                 target.leavePos();
+                break;
+            case 'clear':
+                target.setPosValue({ });
                 break;
         }
 

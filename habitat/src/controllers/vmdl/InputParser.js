@@ -388,7 +388,17 @@ class InputParser {
                 }
                 
                 const handleOperation = () => {
-                    if (isToken('key', 'now')) {
+                    if (isToken('key', 'set')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('overwrite');
+                        astree.leavePos();
+                        astree.enterPos('imported');
+                    } else if (isToken('key', 'put')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('overlay');
+                        astree.leavePos();
+                        astree.enterPos('imported');
+                    } else if (isToken('key', 'now')) {
                         astree.enterPos('operation');
                         astree.setPosValue('buildtime');
                         astree.leavePos();
@@ -398,10 +408,6 @@ class InputParser {
                         astree.setPosValue('runtime');
                         astree.leavePos();
                         astree.enterPos('definition');
-                    } else if (isToken('key', 'no')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('clear');
-                        astree.leavePos();
                     } else if (isToken('key', 'done')) {
                         astree.enterPos('operation');
                         astree.setPosValue('lock');
@@ -409,6 +415,10 @@ class InputParser {
                     } else if (isToken('key', 'get')) {
                         astree.enterPos('operation');
                         astree.setPosValue('print');
+                        astree.leavePos();
+                    } else if (isToken('key', 'none')) {
+                        astree.enterPos('operation');
+                        astree.setPosValue('clear');
                         astree.leavePos();
                     } else {
                         handleUnexpected();
@@ -418,7 +428,7 @@ class InputParser {
                 
                 const handleDefinition = () => {
                     const handleSysDefinition = () => {
-                        if (isToken('tag', null) || isToken('var')) {
+                        if (isToken('tag') || isToken('var')) {
                             const token = currentToken().val;
                             if (isToken('var')) {
                                 token = '$' + token;
@@ -437,12 +447,27 @@ class InputParser {
                             handleUnexpected();
                         }
                     }
+
+                    const handlePriorityDefinition = () => {
+                        const token = currentToken();
+                        token.val = Number(token.val);
+
+                        if ((token.type == 'tag') && (!isNaN(token.val))) {
+                            astree.enterPos('priority');
+                            astree.setPosValue(currentToken().val);
+                            astree.leavePos();
+                            
+                            nextToken();
+                        } else {
+                            handleUnexpected();
+                        }
+                    }
                 
                     const handleTagsDefinition = () => {
                         const readWhileTag = () => {                            
                             const tags = [ ];
                             while (true) {
-                                if (isToken('tag', null) || isToken('var')) {
+                                if (isToken('tag') || isToken('var')) {
                                     let new_tag = currentToken().val;
                                     if (isToken('var')) {
                                         new_tag = '$' + new_tag;
@@ -484,18 +509,15 @@ class InputParser {
                 
                         astree.leavePos();
                     }
+
+                    
                 
                     const handleHeapDefinition = () => {
                         const readWhileHeapData = () => {
-                            const data = [ ];
-                            while (isToken('part', null) || isToken('var')) {
-                                token = currentToken().val;
-                                if (isToken('var')) {
-                                    token = '$' + token;
-                                }
-
-                                data.push(token);
-
+                            let data = '';
+                            while (isToken('part')) {
+                                data += currentToken().val;
+    
                                 nextToken();
                             }
                         
@@ -508,21 +530,29 @@ class InputParser {
                             return;
                         }
 
-                        astree.enterPos('heap');
-                
+                        let type;
                         if (isToken('key', 'json')) {
-                            astree.enterPos('type');
-                            astree.setPosValue('json');
-                            astree.leavePos();
+                            type = 'json';
                         } else {
                             handleUnexpected();
                         }
                         nextToken();
-                        
-                        const data = readWhileHeapData();
-                
-                        astree.enterPos('data');
-                        astree.setPosValue(data);
+
+                        const data = readWhileHeapData().replace(/\\/g, '\\\\');;
+
+                        let parsed;
+                        try {
+                            switch (type) {
+                                case 'json':
+                                    parsed = JSON.parse(data);
+                                    break;
+                            }
+                        } catch (err) {
+                            throw new SyntaxError(err.message);
+                        }
+
+                        astree.enterPos('heap');
+                        astree.setPosValue(parsed);
                         astree.leavePos();
                 
                         if (!isToken('key', 'end')) {
@@ -555,6 +585,12 @@ class InputParser {
 
                     handleSysDefinition();
 
+                    if (isToken('key', 'at')) {
+                        nextToken();
+
+                        handlePriorityDefinition();
+                    }
+
                     if (isToken('key', 'as')) {
                         nextToken();
 
@@ -571,20 +607,6 @@ class InputParser {
                         nextToken();
 
                         handleStackDefinition();
-                    }
-
-                    if (isToken('key', 'close')) {
-                        nextToken();
-
-                        astree.enterPos('final');
-                        astree.setPosValue(true);
-                        astree.leavePos();
-                    } else if (isToken('key', 'open')) {
-                        nextToken();
-
-                        astree.enterPos('final');
-                        astree.setPosValue(false);
-                        astree.leavePos();
                     }
                 }
 
@@ -609,13 +631,83 @@ class InputParser {
                     handleContext();
                 }
 
+                const handleImported = () => {
+                    const readWhileImportedData = () => {
+                        let data = '';
+                        while (isToken('part')) {
+                            data += currentToken().val;
+
+                            nextToken();
+                        }
+                    
+                        return data;
+                    }
+
+                    if (isToken('key', 'none')) {
+                        nextToken();
+
+                        return;
+                    }
+
+                    let type;
+                    if (isToken('key', 'json')) {
+                        type = 'json';
+                    } else {
+                        handleUnexpected();
+                    }
+                    nextToken();
+
+                    const data = readWhileImportedData().replace(/\\/g, '\\\\');
+
+                    let parsed;
+                    try {
+                        switch (type) {
+                            case 'json':
+                                parsed = JSON.parse(data);
+                                break;
+                        }
+                    } catch (err) {
+                        throw new SyntaxError(err.message);
+                    }
+
+                    astree.setPosValue(parsed);
+            
+                    if (!isToken('key', 'end')) {
+                        handleUnexpected();
+                    }
+                    nextToken();
+                }
+
+                const handleEpilogue = () => {
+                    astree.enterPos('definition');
+                    if (isToken('key', 'close')) {
+                        nextToken();
+
+                        astree.enterPos('final');
+                        astree.setPosValue(true);
+                        astree.leavePos();
+                    } else if (isToken('key', 'open')) {
+                        nextToken();
+
+                        astree.enterPos('final');
+                        astree.setPosValue(false);
+                        astree.leavePos();
+                    }
+                    astree.leavePos();
+                }
+
                 handleOperation();
 
                 switch (astree.getTopPos()) {
                     case 'definition':
                         handleDefinition();
                         break;
+                    case 'imported':
+                        handleImported();
+                        break;
                 }
+
+                handleEpilogue();
 
                 if (isToken('punc', ';')) {
                     astree.nextItem();
