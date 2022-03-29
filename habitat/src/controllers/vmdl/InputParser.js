@@ -185,10 +185,8 @@ class InputParser {
                                     isToken('tag') ||
                                     isToken('key', 'any') ||
                                     isToken('punc', '*') ||
-                                    isToken('key', 'all') ||
-                                    isToken('punc', '**') ||
                                     isToken('key', 'leaf') ||
-                                    isToken('punc', '***')
+                                    isToken('punc', '%')
                                 ;
                             }
     
@@ -204,12 +202,8 @@ class InputParser {
                                             case '*':
                                                 context.push({ type: 't', val: '@any' });
                                                 break;
-                                            case 'all':
-                                            case '**':
-                                                context.push({ type: 't', val: '@all' });
-                                                break;
                                             case 'leaf':
-                                            case '***':
+                                            case '%':
                                                 context.push({ type: 't', val: '@leaf' });
                                                 break;
                                         }
@@ -259,11 +253,9 @@ class InputParser {
                                 isToken('punc', '|') ||
                                 isToken('punc', ',') ||
                                 isToken('key', 'to') ||
-                                isToken('punc', '.') ||
                                 isToken('punc', '/') ||
-                                isToken('key', 'into') ||
-                                isToken('punc', ':') ||
-                                isToken('punc', '//')
+                                isToken('key', 'toward') ||
+                                isToken('punc', '>')
                             ;
                         }
                         
@@ -291,14 +283,12 @@ class InputParser {
                                     context.push({ type: 'o', val: '|' });
                                     break;
                                 case 'to':
-                                case '.':
                                 case '/':
-                                    context.push({ type: 'o', val: '.' });
+                                    context.push({ type: 'o', val: '/' });
                                     break;
-                                case 'into':
-                                case ':':
-                                case '//':
-                                    context.push({ type: 'o', val: ':' });
+                                case 'toward':
+                                case '>':
+                                    context.push({ type: 'o', val: '>' });
                                     break;
                             }
                             nextToken();
@@ -396,35 +386,21 @@ class InputParser {
                 const handleOperation = () => {
                     if (isToken('key', 'set')) {
                         astree.enterPos('operation');
-                        astree.setPosValue('overwrite');
+                        astree.setPosValue('edit');
                         astree.leavePos();
                         astree.enterPos('imported');
-                    } else if (isToken('key', 'put')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('overlay');
-                        astree.leavePos();
-                        astree.enterPos('imported');
-                    } else if (isToken('key', 'now')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('buildtime');
-                        astree.leavePos();
-                        astree.enterPos('definition');
                     } else if (isToken('key', 'new')) {
                         astree.enterPos('operation');
-                        astree.setPosValue('runtime');
+                        astree.setPosValue('module');
                         astree.leavePos();
                         astree.enterPos('definition');
-                    } else if (isToken('key', 'done')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('lock');
-                        astree.leavePos();
                     } else if (isToken('key', 'get')) {
                         astree.enterPos('operation');
                         astree.setPosValue('print');
                         astree.leavePos();
-                    } else if (isToken('key', 'none')) {
+                    } else if (isToken('key', 'del')) {
                         astree.enterPos('operation');
-                        astree.setPosValue('clear');
+                        astree.setPosValue('delete');
                         astree.leavePos();
                     } else {
                         handleUnexpected();
@@ -448,21 +424,6 @@ class InputParser {
                             astree.setPosValue([token]);
                             astree.leavePos();
                     
-                            nextToken();
-                        } else {
-                            handleUnexpected();
-                        }
-                    }
-
-                    const handlePriorityDefinition = () => {
-                        const token = currentToken();
-                        token.val = Number(token.val);
-
-                        if ((token.type == 'tag') && (!isNaN(token.val))) {
-                            astree.enterPos('priority');
-                            astree.setPosValue(currentToken().val);
-                            astree.leavePos();
-                            
                             nextToken();
                         } else {
                             handleUnexpected();
@@ -515,8 +476,6 @@ class InputParser {
                 
                         astree.leavePos();
                     }
-
-                    
                 
                     const handleHeapDefinition = () => {
                         const readWhileHeapData = () => {
@@ -590,12 +549,6 @@ class InputParser {
                     }
 
                     handleSysDefinition();
-
-                    if (isToken('key', 'at')) {
-                        nextToken();
-
-                        handlePriorityDefinition();
-                    }
 
                     if (isToken('key', 'as')) {
                         nextToken();
@@ -684,24 +637,6 @@ class InputParser {
                     nextToken();
                 }
 
-                const handleEpilogue = () => {
-                    astree.enterPos('definition');
-                    if (isToken('key', 'close')) {
-                        nextToken();
-
-                        astree.enterPos('final');
-                        astree.setPosValue(true);
-                        astree.leavePos();
-                    } else if (isToken('key', 'open')) {
-                        nextToken();
-
-                        astree.enterPos('final');
-                        astree.setPosValue(false);
-                        astree.leavePos();
-                    }
-                    astree.leavePos();
-                }
-
                 handleOperation();
 
                 switch (astree.getTopPos()) {
@@ -712,8 +647,6 @@ class InputParser {
                         handleImported();
                         break;
                 }
-
-                handleEpilogue();
 
                 if (isToken('punc', ';')) {
                     astree.nextItem();

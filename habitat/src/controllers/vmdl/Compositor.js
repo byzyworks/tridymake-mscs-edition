@@ -7,7 +7,6 @@ class Compositor {
     machines  = null;
     target    = new Stack();
     context   = null;
-    match_all = false;
     output    = [ ];
 
     constructor() { }
@@ -69,21 +68,8 @@ class Compositor {
 
             transactValue(this.astree, 'heap', machine);
             transactValue(this.astree, 'tags', machine);
-            transactValue(this.astree, 'priority', machine);
             transactValue(this.astree, 'sys', machine);
-            transactValue(this.astree, 'final', machine);
 
-            machine.enterPos('priority');
-            if (machine.isPosEmpty()) {
-                switch (command) {
-                    case 'buildtime':
-                        machine.setPosValue(1);
-                        break;
-                    case 'runtime':
-                        machine.setPosValue(-1);
-                        break;
-                }
-            }
             machine.leavePos();
         }
         this.astree.leavePos();
@@ -115,16 +101,8 @@ class Compositor {
     }
 
     matchingTag(test, lvl) {
-        if (this.match_all) {
-            return true;
-        }
-
         switch (test) {
             case '@any':
-                return true;
-            case '@all':
-                this.match_all = true;
-
                 return true;
             case '@leaf':
                 const target = this.target.peek();
@@ -190,7 +168,7 @@ class Compositor {
         return a && b;
     }
 
-    testInto(a, b, lvl) {
+    testToward(a, b, lvl) {
         a = this.matchingExpression(a, lvl);
 
         let r = false;
@@ -225,10 +203,10 @@ class Compositor {
                     return this.testXor(test.a, test.b, lvl);
                 case '|':
                     return this.testOr(test.a, test.b, lvl);
-                case '.':
+                case '/':
                     return this.testTo(test.a, test.b, lvl);
-                case ':':
-                    return this.testInto(test.a, test.b, lvl);
+                case '>':
+                    return this.testToward(test.a, test.b, lvl);
             }
         }
     }
@@ -246,26 +224,15 @@ class Compositor {
     composeMachine(command, template = null) {
         const target = this.target.peek();
         switch (command) {
-            case 'overwrite':
+            case 'edit':
                 target.setPosValue(deepCopy(template));
                 break;
-            case 'overlay':
-                const overlayed = deepCopy(target.getPosValue());
-                overlay(overlayed, template);
-                target.setPosValue(overlayed);
-                break;
-            case 'buildtime':
-            case 'runtime':
+            case 'module':
                 target.enterPos('stack');
                 target.putPosValue(deepCopy(template));
                 target.leavePos();
                 break;
-            case 'lock':
-                target.enterPos('final');
-                target.setPosValue(true);
-                target.leavePos();
-                break;
-            case 'clear':
+            case 'delete':
                 target.setPosValue({ });
                 break;
         }
@@ -279,29 +246,12 @@ class Compositor {
         }
     }
 
-    isFinal() {
-        const target = this.target.peek();
-
-        target.enterPos('final');
-        const test = target.getPosValue() ?? false;
-        target.leavePos();
-
-        return test;
-    }
-
     traverseMachine(test, command, template = null) {
         const total_output = [ ];
         let   machine_output;
         let   stack_output;
 
-        this.match_all = false;
-
-        let matched;
-        if (this.isFinal() && !this.isReadOp(command)) {
-            matched = false;
-        } else {
-            matched = this.matchingContext(test);
-        }
+        const matched = this.matchingContext(test);
 
         if (matched) {
             machine_output = this.composeMachine(command, template);
@@ -312,7 +262,7 @@ class Compositor {
         }
         
         const target = this.target.peek();
-        if (!matched || this.match_all) {
+        if (!matched) {
             target.enterPos('stack');
             if (!target.isPosEmpty()) {
                 target.enterPos(0);

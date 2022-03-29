@@ -126,9 +126,11 @@ class TokenParser {
             return this.readPunc();
         }
 
+        /*
         if (this.isMultiPunc(ch)) {
             return this.readMultiPunc();
         }
+        */
 
         const pos = this.getPos();
         const anomaly = this.readWhilePred(this.isNonWhitespace);
@@ -200,6 +202,7 @@ class TokenParser {
         return { type: 'punc', val: this.parser.next(), pos: this.getPos() };
     }
 
+    /*
     readMultiPunc() {
         const pos = this.getPos();
 
@@ -210,6 +213,7 @@ class TokenParser {
 
         return { type: 'punc', val: punc, pos: pos };
     }
+    */
     
     isWhitespace(ch) {
         return /\s/g.test(ch);
@@ -228,12 +232,14 @@ class TokenParser {
     }
 
     isPunc(ch) {
-        return /[!&^|,.:(){};]/g.test(ch);
+        return /[!&^|,/>*%(){};]/g.test(ch);
     }
 
+    /*
     isMultiPunc(ch) {
-        return /[/*]/g.test(ch);
+        return /[]/g.test(ch);
     }
+    */
 
     getPos() {
         return { line: this.parser.getLine(), col: this.parser.getCol() };
