@@ -157,6 +157,13 @@ class Compositor {
         return a && b;
     }
 
+    testXor(a, b, lvl) {
+        a = this.matchingExpression(a, lvl);
+        b = this.matchingExpression(b, lvl);
+
+        return (!a && b) || (a && !b);
+    }
+
     testOr(a, b, lvl) {
         a = this.matchingExpression(a, lvl);
         b = this.matchingExpression(b, lvl);
@@ -214,6 +221,8 @@ class Compositor {
                     return this.testNot(test.a, lvl);
                 case '&':
                     return this.testAnd(test.a, test.b, lvl);
+                case '^':
+                    return this.testXor(test.a, test.b, lvl);
                 case '|':
                     return this.testOr(test.a, test.b, lvl);
                 case '.':

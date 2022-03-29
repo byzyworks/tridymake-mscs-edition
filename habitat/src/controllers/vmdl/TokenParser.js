@@ -228,7 +228,7 @@ class TokenParser {
     }
 
     isPunc(ch) {
-        return /[!&|,.:(){};]/g.test(ch);
+        return /[!&^|,.:(){};]/g.test(ch);
     }
 
     isMultiPunc(ch) {

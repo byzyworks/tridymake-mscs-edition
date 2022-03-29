@@ -253,6 +253,8 @@ class InputParser {
                             return false ||
                                 isToken('key', 'and') ||
                                 isToken('punc', '&') ||
+                                isToken('key', 'xor') ||
+                                isToken('punc', '^') ||
                                 isToken('key', 'or') ||
                                 isToken('punc', '|') ||
                                 isToken('punc', ',') ||
@@ -278,6 +280,10 @@ class InputParser {
                                 case 'and':
                                 case '&':
                                     context.push({ type: 'o', val: '&' });
+                                    break;
+                                case 'xor':
+                                case '^':
+                                    context.push({ type: 'o', val: '^' });
                                     break;
                                 case 'or':
                                 case '|':

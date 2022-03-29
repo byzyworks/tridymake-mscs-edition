@@ -13,9 +13,10 @@ class InfixParser {
             const prec = {
                 '!': 0,
                 '&': 1,
-                '|': 2,
-                '.': 3,
-                ':': 4
+                '^': 2,
+                '|': 3,
+                '.': 4,
+                ':': 5
             }
     
             const out = new Queue();
