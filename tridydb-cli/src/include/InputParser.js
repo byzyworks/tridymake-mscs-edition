@@ -1,8 +1,9 @@
-import { parser as tokenParser }  from './TokenParser.js';
-import { parser as infixParser }  from './InfixParser.js';
-import { StateTree }              from './StateTree.js';
-import { isEmpty }                from '../../utility/common.js';
-import { SyntaxError }            from '../../utility/error.js';
+import { parser as infixParser } from './InfixParser.js';
+import { StateTree }             from './StateTree.js';
+import { parser as tokenParser } from './TokenParser.js';
+
+import { isEmpty }     from '../utility/common.js';
+import { SyntaxError } from '../utility/error.js';
 
 export let interactive_exit = false;
 
@@ -254,8 +255,9 @@ class InputParser {
                                 isToken('punc', ',') ||
                                 isToken('key', 'to') ||
                                 isToken('punc', '/') ||
+                                isToken('punc', '>') ||
                                 isToken('key', 'toward') ||
-                                isToken('punc', '>')
+                                isToken('punc', '>>')
                             ;
                         }
                         
@@ -284,11 +286,12 @@ class InputParser {
                                     break;
                                 case 'to':
                                 case '/':
-                                    context.push({ type: 'o', val: '/' });
-                                    break;
-                                case 'toward':
                                 case '>':
                                     context.push({ type: 'o', val: '>' });
+                                    break;
+                                case 'toward':
+                                case '>>':
+                                    context.push({ type: 'o', val: '>>' });
                                     break;
                             }
                             nextToken();
@@ -569,7 +572,7 @@ class InputParser {
                     }
                 }
 
-                if (isToken('key', 'vmdl')) {
+                if (isToken('key', 'tridy')) {
                     nextToken();
                 }
                 

@@ -1,9 +1,7 @@
-import fs from 'fs';
-
-import { parser as inputParser } from './InputParser.js';
 import { compositor }            from './Compositor.js';
+import { parser as inputParser } from './InputParser.js';
 
-class VMDL {
+class Interpreter {
     constructor() {
         this.parser     = inputParser;
         this.compositor = compositor;
@@ -36,4 +34,4 @@ class VMDL {
     }
 }
 
-export const vmdl = new VMDL();
+export const interpreter = new Interpreter();

@@ -1,5 +1,3 @@
-import { isEmpty } from '../../utility/common.js';
-
 export class StateTree {
     pos  = [ ];
     tree = null;

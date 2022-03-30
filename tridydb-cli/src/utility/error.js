@@ -1,5 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
-import { vmdl } from '../controllers/vmdl/VMDL.js';
+
+import { interpreter } from '../include/Interpreter.js';
 
 import { logger } from './logger.js';
 
@@ -12,7 +13,7 @@ export class SyntaxError extends Error {
 
         Error.captureStackTrace(this);
 
-        vmdl.clearASTree();
+        interpreter.clearASTree();
     }
 }
 

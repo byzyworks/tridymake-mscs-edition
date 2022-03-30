@@ -1,8 +1,8 @@
 import express from 'express';
 
-import { vmdl } from '../controllers/vmdl/VMDL.js';
+import { interpreter } from '../include/interpreter.js';
 
-const toVMDL = (op, opts = { }) => {
+const toTridy = (op, opts = { }) => {
     let cmd = '';
 
     if (opts.context) {
@@ -36,9 +36,9 @@ export const routes = express.Router();
 
 routes.get('/:context', async (req, res) => {
     const opts = { context: req.params.context };
-    const cmd = toVMDL('get', opts);
+    const cmd = toTridy('get', opts);
 
-    const out = await vmdl.parse(cmd, { accept_carry: false });
+    const out = await interpreter.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
@@ -53,18 +53,18 @@ routes.post('/:context/:sys', async (req, res) => {
             stack: req.query.has
         }
     };
-    const cmd = toVMDL('new', opts);
+    const cmd = toTridy('new', opts);
     
-    const out = await vmdl.parse(cmd, { accept_carry: false });
+    const out = await interpreter.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
 routes.post('/:sys', async (req, res) => {
     const opts = { define: { sys: req.params.sys } };
-    const cmd = toVMDL('new', opts);
+    const cmd = toTridy('new', opts);
 
-    const out = await vmdl.parse(cmd, { accept_carry: false });
+    const out = await interpreter.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
@@ -79,27 +79,27 @@ routes.put('/:context/:sys', async (req, res) => {
             stack: req.query.has
         }
     };
-    const cmd = toVMDL('now', opts);
+    const cmd = toTridy('set', opts);
 
-    const out = await vmdl.parse(cmd, { accept_carry: false });
+    const out = await interpreter.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
 routes.put('/:sys', async (req, res) => {
     const opts = { define: { sys: req.params.sys } };
-    const cmd = toVMDL('now', opts);
+    const cmd = toTridy('set', opts);
 
-    const out = await vmdl.parse(cmd, { accept_carry: false });
+    const out = await interpreter.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });
 
 routes.delete('/:context', async (req, res) => {
     const opts = { context: req.params.context };
-    const cmd = toVMDL('done', opts);
+    const cmd = toTridy('del', opts);
 
-    const out = await vmdl.parse(cmd, { accept_carry: false });
+    const out = await interpreter.parse(cmd, { accept_carry: false });
 
     res.json(out);
 });

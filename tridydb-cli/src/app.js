@@ -4,7 +4,7 @@ import fs from 'fs';
 
 import { program } from 'commander';
 
-import { vmdl }               from './controllers/vmdl/VMDL.js';
+import { interpreter }        from './include/Interpreter.js';
 import { errorHandler }       from './utility/error.js';
 import { transports, logger } from './utility/logger.js';
 import { cli }                from './console.js';
@@ -20,8 +20,8 @@ program.command('inline')
     .description('Read VMDL commands as a string and exit.')
     .argument('<input>', 'VMDL commands to read.')
     .action(async (input, options) => {
-        await vmdl.load();
-        const out = await vmdl.parse(input, { accept_carry: false });
+        await interpreter.load();
+        const out = await interpreter.parse(input, { accept_carry: false });
 
         console.log(JSON.stringify(out));
     })
@@ -43,8 +43,8 @@ program.command('file')
         }
 
         if (!skip) {
-            await vmdl.load();
-            const out = await vmdl.parse(input, { accept_carry: false });
+            await interpreter.load();
+            const out = await interpreter.parse(input, { accept_carry: false });
 
             console.log(JSON.stringify(out));
         }
@@ -54,7 +54,7 @@ program.command('file')
 program.command('console')
     .description('Start an interactive console session.')
     .action(async (options) => {
-        await vmdl.load();
+        await interpreter.load();
         await cli();
     })
 ;
@@ -66,7 +66,7 @@ program.command('web')
     .option('-L, --localhost', 'Bind only on localhost; do not expose service to network.')
     .option('-p, --port <port>', 'The port number to bind to')
     .action(async (options) => {
-        await vmdl.load();
+        await interpreter.load();
         await server();
     })
 ;

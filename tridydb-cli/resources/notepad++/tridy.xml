@@ -1,5 +1,5 @@
 <NotepadPlus>
-    <UserLang name="VMDL" ext="vmdl" udlVersion="2.1">
+    <UserLang name="Tridy" ext="tri" udlVersion="2.1">
         <Settings>
             <Global caseIgnored="yes" allowFoldOfComments="no" foldCompact="no" forcePureLC="0" decimalSeparator="0" />
             <Prefix Keywords1="no" Keywords2="no" Keywords3="yes" Keywords4="no" Keywords5="no" Keywords6="no" Keywords7="no" Keywords8="no" />
@@ -13,7 +13,7 @@
             <Keywords name="Numbers, suffix1"></Keywords>
             <Keywords name="Numbers, suffix2"></Keywords>
             <Keywords name="Numbers, range"></Keywords>
-            <Keywords name="Operators1">@not @and @or @to @into ! &amp; | , . / : // ( ) { } ;</Keywords>
+            <Keywords name="Operators1">! @not &amp; @and ^ @xor | , @or / > @to >> @toward &lt; @parent &lt;&lt; @ascend ( ) { } ;</Keywords>
             <Keywords name="Operators2"></Keywords>
             <Keywords name="Folders in code1, open"></Keywords>
             <Keywords name="Folders in code1, middle"></Keywords>
@@ -24,8 +24,8 @@
             <Keywords name="Folders in comment, open"></Keywords>
             <Keywords name="Folders in comment, middle"></Keywords>
             <Keywords name="Folders in comment, close"></Keywords>
-            <Keywords name="Keywords1">@vmdl @exit @in @get @now @new @done @as @is @has @open @close</Keywords>
-            <Keywords name="Keywords2">* @any ** @all *** @leaf @none</Keywords>
+            <Keywords name="Keywords1">@tridy @exit @in @get @set @new @del @as @is @has</Keywords>
+            <Keywords name="Keywords2">* @any % @leaf ? @random @none</Keywords>
             <Keywords name="Keywords3">$</Keywords>
             <Keywords name="Keywords4"></Keywords>
             <Keywords name="Keywords5"></Keywords>

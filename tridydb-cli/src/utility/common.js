@@ -1,5 +1,5 @@
 export const app = {
-    name:    'Wingspan Habitat',
+    name:    'TridyDB CLI',
     version: '1.0.0'
 }
 

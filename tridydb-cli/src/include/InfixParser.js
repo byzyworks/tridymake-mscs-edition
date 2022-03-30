@@ -1,5 +1,5 @@
-import { Stack } from '../../utility/Stack.js';
-import { Queue } from '../../utility/Queue.js';
+import { Stack } from '../utility/Stack.js';
+import { Queue } from '../utility/Queue.js';
 
 class InfixParser {
     constructor() { }
@@ -15,8 +15,8 @@ class InfixParser {
                 '&': 1,
                 '^': 2,
                 '|': 3,
-                '/': 4,
-                '>': 5
+                '>': 4,
+                '>>': 5
             }
     
             const out = new Queue();

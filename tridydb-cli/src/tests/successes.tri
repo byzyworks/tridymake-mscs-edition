@@ -1,19 +1,19 @@
-@vmdl;
+@tridy;
 
-# Creates a new Habitat instance.
-@new habitat;
+# Creates a new top-level module instance.
+@new app;
 
 # Creates a new network.
-@in habitat
+@in app
 @new module
 @open;
 
 # Create a new VirtualBox controller inside this network.
-@in habitat/module
+@in app/module
 @new vbox;
 
 # Create a new machine of this VirtualBox controller.
-@in habitat/module/vbox
+@in app/module/vbox
 @new machine
 @as dns-server ubuntu linux machine $uuid
 @is @json {
@@ -34,17 +34,17 @@
 };
 
 # Give a default payload to all (already declared) Linux-based machines.
-@in habitat @to module @into linux machine
+@in app @to module @into linux machine
 @new payload
 @as default-linux-payload
 @close;
 
 # Huge context expression for the sake of it.
-@in habitat @into !!!((1 @into 2 @to 3 @or 4 @and 5) @and (1 : 2 . 3 | 4 & 5) @and (1 // 2 / 3 , 4 5)) @to vbox @to (linux machine) @or (windows (machine @or container) @and @not freebsd @not @not @not ((openbsd)))
+@in app @into !!!((1 @into 2 @to 3 @or 4 @and 5) @and (1 : 2 . 3 | 4 & 5) @and (1 // 2 / 3 , 4 5)) @to vbox @to (linux machine) @or (windows (machine @or container) @and @not freebsd @not @not @not ((openbsd)))
 @get;
 
 # New machine with nothing.
-@in habitat/module/vbox
+@in app/module/vbox
 @new machine
 @as @none
 @is @none
@@ -55,5 +55,5 @@
 @done;
 
 # Print everything.
-@in habitat
+@in app
 @get;

@@ -1,6 +1,7 @@
-import { StateTree }                  from './StateTree.js';
-import { deepCopy, isEmpty, overlay } from '../../utility/common.js';
-import { Stack }                      from '../../utility/Stack.js';
+import { StateTree } from './StateTree.js';
+
+import { deepCopy, isEmpty } from '../utility/common.js';
+import { Stack }             from '../utility/Stack.js';
 
 class Compositor {
     astree    = null;
@@ -203,9 +204,9 @@ class Compositor {
                     return this.testXor(test.a, test.b, lvl);
                 case '|':
                     return this.testOr(test.a, test.b, lvl);
-                case '/':
-                    return this.testTo(test.a, test.b, lvl);
                 case '>':
+                    return this.testTo(test.a, test.b, lvl);
+                case '>>':
                     return this.testToward(test.a, test.b, lvl);
             }
         }

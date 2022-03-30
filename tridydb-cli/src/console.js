@@ -1,20 +1,20 @@
 import inquirer from 'inquirer';
 import chalk    from 'chalk';
 
-import { interactive_exit }          from './controllers/vmdl/InputParser.js';
-import { vmdl }                      from './controllers/vmdl/VMDL.js';
+import { interactive_exit }          from './include/InputParser.js';
+import { interpreter }               from './include/Interpreter.js';
 import { SyntaxError, errorHandler } from './utility/error.js';
 import { isEmpty }                   from './utility/common.js';
 
-let answers;
-
 export const cli = async () => {
+    let answers;
+
     while (!interactive_exit) {
-        if (vmdl.carryIsEmpty()) {
+        if (interpreter.carryIsEmpty()) {
             answers = await inquirer.prompt([
                 {
                     name: 'parsed',
-                    message: chalk.yellow('VMDL>'),
+                    message: chalk.yellow('@TridyDB>'),
                     type: 'input'
                 }
             ]);
@@ -22,7 +22,7 @@ export const cli = async () => {
             answers = await inquirer.prompt([
                 {
                     name: 'parsed',
-                    message: chalk.yellow('.....'),
+                    message: chalk.yellow('.........'),
                     type: 'input'
                 }
             ]);
@@ -31,7 +31,7 @@ export const cli = async () => {
         let out;
         let retry = false;
         try {
-            out = await vmdl.parse(answers.parsed, { accept_carry: true });
+            out = await interpreter.parse(answers.parsed, { accept_carry: true });
         } catch (err) {
             if (err instanceof SyntaxError) {
                 errorHandler.handle(err);
