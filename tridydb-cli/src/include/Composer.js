@@ -3,29 +3,17 @@ import { StateTree } from './StateTree.js';
 import { deepCopy, isEmpty } from '../utility/common.js';
 import { Stack }             from '../utility/Stack.js';
 
-class Compositor {
-    astree    = null;
-    machines  = null;
-    target    = new Stack();
-    context   = null;
-    output    = [ ];
+class Composer {
+    astree  = null;
+    target  = new Stack();
+    context = null;
+    output  = [ ];
 
-    constructor() { }
-
-    isLoaded() {
-        return (this.machines ? true : false);
+    constructor() {
+        this.target.push(new StateTree());
     }
 
-    loadInit(tree = null) {
-        if (tree) {
-            this.machines = new StateTree(tree);
-        } else {
-            this.machines = new StateTree();
-        }
-        this.target.push(this.machines);
-    }
-
-    loadCommands(tree) {
+    load(tree) {
         this.astree = tree;
     }
 
@@ -348,4 +336,4 @@ class Compositor {
     }
 }
 
-export const compositor = new Compositor();
+export const composer = new Composer();

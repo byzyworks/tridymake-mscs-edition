@@ -1,16 +1,10 @@
-import { compositor }            from './Compositor.js';
+import { composer }              from './Composer.js';
 import { parser as inputParser } from './InputParser.js';
 
 class Interpreter {
     constructor() {
-        this.parser     = inputParser;
-        this.compositor = compositor;
-    }
-
-    async load() {
-        if (!this.compositor.isLoaded()) {
-            this.compositor.loadInit();
-        }
+        this.parser   = inputParser;
+        this.composer = composer;
     }
 
     async parse(input, opts) {
@@ -19,8 +13,8 @@ class Interpreter {
         this.parser.load(input);
         tree = this.parser.parse(opts);
 
-        this.compositor.loadCommands(tree);
-        tree = this.compositor.compose();
+        this.composer.load(tree);
+        tree = this.composer.compose();
 
         return tree;
     }

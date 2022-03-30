@@ -19,17 +19,22 @@ program
 program.command('inline')
     .description('Read VMDL commands as a string and exit.')
     .argument('<input>', 'VMDL commands to read.')
+    .option('-p, --pretty', 'Pretty-print output data.')
     .action(async (input, options) => {
-        await interpreter.load();
         const out = await interpreter.parse(input, { accept_carry: false });
 
-        console.log(JSON.stringify(out));
+        if (options.pretty) {
+            console.log(JSON.stringify(out, null, 4));
+        } else {
+            console.log(JSON.stringify(out));
+        }
     })
 ;
 
 program.command('file')
     .description('Read VMDL commands from a file and exit.')
     .argument('<path>', 'Path of VMDL script to read.')
+    .option('-p, --pretty', 'Pretty-print output data.')
     .action(async (path, options) => {
         let skip = false;
 
@@ -43,19 +48,22 @@ program.command('file')
         }
 
         if (!skip) {
-            await interpreter.load();
             const out = await interpreter.parse(input, { accept_carry: false });
 
-            console.log(JSON.stringify(out));
+            if (options.pretty) {
+                console.log(JSON.stringify(out, null, 4));
+            } else {
+                console.log(JSON.stringify(out));
+            }
         }
     })
 ;
 
 program.command('console')
     .description('Start an interactive console session.')
+    .option('-p, --pretty', 'Pretty-print output data.')
     .action(async (options) => {
-        await interpreter.load();
-        await cli();
+        await cli({ pretty: options.pretty });
     })
 ;
     
@@ -66,7 +74,6 @@ program.command('web')
     .option('-L, --localhost', 'Bind only on localhost; do not expose service to network.')
     .option('-p, --port <port>', 'The port number to bind to')
     .action(async (options) => {
-        await interpreter.load();
         await server();
     })
 ;

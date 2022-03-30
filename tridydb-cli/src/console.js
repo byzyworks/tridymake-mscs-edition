@@ -6,7 +6,9 @@ import { interpreter }               from './include/Interpreter.js';
 import { SyntaxError, errorHandler } from './utility/error.js';
 import { isEmpty }                   from './utility/common.js';
 
-export const cli = async () => {
+export const cli = async (opts = { }) => {
+    opts.pretty = opts.pretty ?? false;
+
     let answers;
 
     while (!interactive_exit) {
@@ -42,7 +44,11 @@ export const cli = async () => {
         }
 
         if (!retry && !isEmpty(out)) {
-            console.log(JSON.stringify(out).replace(/\\\\/g, '\\'));
+            if (opts.pretty) {
+                console.log(JSON.stringify(out, null, 4).replace(/\\\\/g, '\\'));
+            } else {
+                console.log(JSON.stringify(out).replace(/\\\\/g, '\\'));
+            }
         }
     }
 }

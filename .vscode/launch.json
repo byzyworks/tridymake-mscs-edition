@@ -7,7 +7,7 @@
             "name": "Launch Good Example File (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/vmdl/successes.vmdl", "--log-level", "debug"],
+            "args": ["file", "src/tests/successes.tri", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -20,7 +20,7 @@
             "name": "Launch Good Example File (Production)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/vmdl/successes.vmdl"],
+            "args": ["file", "src/tests/successes.tri"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
@@ -30,7 +30,7 @@
             "name": "Launch Bad Example File (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/vmdl/failures.vmdl", "--log-level", "debug"],
+            "args": ["file", "src/tests/failures.tri", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -43,7 +43,7 @@
             "name": "Launch Bad Example File (Production)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/vmdl/failures.vmdl"],
+            "args": ["file", "src/tests/failures.tri"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
@@ -53,7 +53,7 @@
             "name": "Launch Interactive CLI (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["console", "--log-level", "debug"],
+            "args": ["console", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
