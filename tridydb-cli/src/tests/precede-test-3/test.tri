@@ -1,0 +1,13 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b;
+
+@in a/b @new @none @as c;
+
+@in a/b @new @none @as d;
+
+@in a > ((b > c) | (b > d)) @new @none @as precedence-test;
+
+@get;

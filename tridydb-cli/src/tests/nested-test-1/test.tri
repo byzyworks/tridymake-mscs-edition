@@ -1,0 +1,14 @@
+@tridy;
+
+@new @none @has {
+    @new @none @as a @has {
+        @new @none @as b;
+        @new @none @as c;
+    };
+    @new @none @as d @has {
+        @new @none @as e;
+        @new @none @as f;
+    };
+};
+
+@get;

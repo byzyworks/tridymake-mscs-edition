@@ -4,10 +4,10 @@ import { deepCopy, isEmpty } from '../utility/common.js';
 import { Stack }             from '../utility/Stack.js';
 
 class Composer {
-    astree  = null;
-    target  = new Stack();
-    context = null;
-    output  = [ ];
+    astree    = null;
+    target    = new Stack();
+    context   = null;
+    output    = [ ];
 
     constructor() {
         this.target.push(new StateTree());
@@ -101,10 +101,14 @@ class Composer {
                 target.leavePos();
 
                 return leaf;
+            case '@random':
+                return (Math.random() >= 0.5) ? true : false;
             default:
-                for (const tag of this.context[lvl]) {
-                    if (test == tag) {
-                        return true;
+                if (!isEmpty(this.context[lvl])) {
+                    for (const tag of this.context[lvl]) {
+                        if (test == tag) {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -242,14 +246,6 @@ class Composer {
 
         const matched = this.matchingContext(test);
 
-        if (matched) {
-            machine_output = this.composeMachine(command, template);
-
-            if (machine_output) {
-                total_output.push(machine_output);
-            }
-        }
-        
         const target = this.target.peek();
         if (!matched) {
             target.enterPos('stack');
@@ -267,6 +263,14 @@ class Composer {
                 target.leavePos();
             }
             target.leavePos();
+        }
+
+        if (matched) {
+            machine_output = this.composeMachine(command, template);
+
+            if (machine_output) {
+                total_output.push(machine_output);
+            }
         }
 
         return total_output;

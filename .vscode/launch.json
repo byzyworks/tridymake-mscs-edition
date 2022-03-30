@@ -4,52 +4,6 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Good Example File (Development)",
-            "program": "${workspaceFolder}/tridydb-cli/src/app.js",
-            "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/successes.tri", "--log-level", "debug", "--pretty"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Good Example File (Production)",
-            "program": "${workspaceFolder}/tridydb-cli/src/app.js",
-            "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/successes.tri"],
-            "outputCapture": "std",
-            "console": "externalTerminal"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Bad Example File (Development)",
-            "program": "${workspaceFolder}/tridydb-cli/src/app.js",
-            "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/failures.tri", "--log-level", "debug", "--pretty"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Bad Example File (Production)",
-            "program": "${workspaceFolder}/tridydb-cli/src/app.js",
-            "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["file", "src/tests/failures.tri"],
-            "outputCapture": "std",
-            "console": "externalTerminal"
-        },
-        {
-            "type": "node",
-            "request": "launch",
             "name": "Launch Interactive CLI (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",

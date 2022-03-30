@@ -1,0 +1,17 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b;
+
+@in (a @to b) & (a / b) & (a > b) @new @none @as c;
+
+@in (a @toward c) & (a >> c) @new @none @as b;
+
+@in b @new @none @as nonexistent;
+
+@in c @to b @new @none @as nonexistent;
+
+@in a @toward b @new @none @as appears-once;
+
+@get;

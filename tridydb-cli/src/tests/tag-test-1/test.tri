@@ -1,0 +1,19 @@
+@tridy;
+
+@new @none;
+
+@new @none @as @none;
+
+@new tag-test;
+
+@new tag-test @as @none;
+
+@new @none @as tag-test;
+
+@new tag-test @as a;
+
+@new tag-test @as b;
+
+@new tag-test @as a b c;
+
+@get;

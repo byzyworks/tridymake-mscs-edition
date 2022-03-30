@@ -1,0 +1,23 @@
+@tridy;
+
+@new @none;
+
+@new @none @as a;
+
+@new @none @as b;
+
+@new @none @as a b;
+
+@in (a @and b) & (a b) & (a & b) @new and-test;
+
+@in (a @xor b) & (a ^ b) @new xor-test;
+
+@in (a @or b) & (a, b) & (a | b) @new or-test;
+
+@in !(a @and b) @new nand-test;
+
+@in !(a @xor b) @new xnor-test;
+
+@in !(a @or b) @new nor-test;
+
+@get;

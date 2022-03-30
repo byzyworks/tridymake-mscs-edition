@@ -158,6 +158,17 @@ export class StateTree {
         }
     }
 
+    prevItem() {
+        while (this.pos[this.pos.length - 2] != 'stack') {
+            this.leavePos();
+        }
+
+        if (!this.isPosEmpty()) {
+            const idx = this.leavePos();
+            this.enterPos(idx - 1);
+        }
+    }
+
     nextItem() {
         while (this.pos[this.pos.length - 2] != 'stack') {
             this.leavePos();

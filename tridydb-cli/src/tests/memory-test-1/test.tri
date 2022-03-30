@@ -1,0 +1,16 @@
+@tridy;
+
+@new @none @is @json {
+    "a": "true",
+    "b": "true",
+    "c": {
+        "d": "0",
+        "e": "one"
+    },
+    "f": [
+        "g",
+        "h"
+    ]
+} @end;
+
+@get;

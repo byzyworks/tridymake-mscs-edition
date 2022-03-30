@@ -1,0 +1,13 @@
+@tridy;
+
+@new @none @as a;
+
+@new @none @as b;
+
+@in a (a (a) (a a)) a @new parenth-a-test-1;
+
+@in !!!b (!b (!!!!!b) (!b !!!b)) !b @new parenth-a-test-2;
+
+@in !!a (a (!!!!a) (a !!a)) a @new parenth-a-test-3-final;
+
+@get;

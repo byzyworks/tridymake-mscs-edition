@@ -187,7 +187,9 @@ class InputParser {
                                     isToken('key', 'any') ||
                                     isToken('punc', '*') ||
                                     isToken('key', 'leaf') ||
-                                    isToken('punc', '%')
+                                    isToken('punc', '%') ||
+                                    isToken('key', 'random') ||
+                                    isToken('punc', '?')
                                 ;
                             }
     
@@ -206,6 +208,10 @@ class InputParser {
                                             case 'leaf':
                                             case '%':
                                                 context.push({ type: 't', val: '@leaf' });
+                                                break;
+                                            case 'random':
+                                            case '?':
+                                                context.push({ type: 't', val: '@random' });
                                                 break;
                                         }
                                         break;
@@ -359,7 +365,7 @@ class InputParser {
                         }
                         
                         let context = [ ];
-                        
+
                         handleContextSubExpression();
                         while (isBinaryOpContextToken()) {
                             handleBinaryOpContextToken();
@@ -413,7 +419,9 @@ class InputParser {
                 
                 const handleDefinition = () => {
                     const handleSysDefinition = () => {
-                        if (isToken('tag') || isToken('var')) {
+                        if (isToken('key', 'none')) {
+                            nextToken();
+                        } else if (isToken('tag') || isToken('var')) {
                             const token = currentToken().val;
                             if (isToken('var')) {
                                 token = '$' + token;
@@ -461,12 +469,12 @@ class InputParser {
                             return tags;
                         }
 
-                        astree.enterPos('tags');
-                
                         if (isToken('key', 'none')) {
                             nextToken();
-                
-                            astree.setPosValue([ ]);
+
+                            astree.enterPos('tags');
+                            astree.setPosValue(undefined);
+                            astree.leavePos();
                         } else {
                             const tags = readWhileTag();
                 
@@ -474,10 +482,10 @@ class InputParser {
                                 handleUnexpected();
                             }
                     
+                            astree.enterPos('tags');
                             astree.setPosValue(tags);
+                            astree.leavePos();
                         }
-                
-                        astree.leavePos();
                     }
                 
                     const handleHeapDefinition = () => {
@@ -494,61 +502,55 @@ class InputParser {
 
                         if (isToken('key', 'none')) {
                             nextToken();
-
-                            return;
-                        }
-
-                        let type;
-                        if (isToken('key', 'json')) {
-                            type = 'json';
                         } else {
-                            handleUnexpected();
-                        }
-                        nextToken();
-
-                        const data = readWhileHeapData().replace(/\\/g, '\\\\');;
-
-                        let parsed;
-                        try {
-                            switch (type) {
-                                case 'json':
-                                    parsed = JSON.parse(data);
-                                    break;
+                            let type;
+                            if (isToken('key', 'json')) {
+                                type = 'json';
+                            } else {
+                                handleUnexpected();
                             }
-                        } catch (err) {
-                            throw new SyntaxError(err.message);
+                            nextToken();
+    
+                            const data = readWhileHeapData().replace(/\\/g, '\\\\');;
+    
+                            let parsed;
+                            try {
+                                switch (type) {
+                                    case 'json':
+                                        parsed = JSON.parse(data);
+                                        break;
+                                }
+                            } catch (err) {
+                                throw new SyntaxError(err.message);
+                            }
+    
+                            astree.enterPos('heap');
+                            astree.setPosValue(parsed);
+                            astree.leavePos();
+                    
+                            if (!isToken('key', 'end')) {
+                                handleUnexpected();
+                            }
+                            nextToken();
                         }
-
-                        astree.enterPos('heap');
-                        astree.setPosValue(parsed);
-                        astree.leavePos();
-                
-                        if (!isToken('key', 'end')) {
-                            handleUnexpected();
-                        }
-                        nextToken();
-                
-                        astree.leavePos();
                     }
                 
                     const handleStackDefinition = () => {
                         if (isToken('key', 'none')) {
                             nextToken();
-
-                            return;
+                        } else {
+                            if (!isToken('punc', '{')) {
+                                handleUnexpected();
+                            }
+                            astree.enterStack();
+                            nextToken();
+    
+                            while (!isToken('punc', '}')) {
+                                handleStatement();
+                            }
+                            astree.leaveStack();
+                            nextToken();
                         }
-
-                        if (!isToken('punc', '{')) {
-                            handleUnexpected();
-                        }
-                        astree.enterStack();
-                        nextToken();
-
-                        while (!isToken('punc', '}')) {
-                            handleStatement();
-                        }
-                        astree.leaveStack();
-                        nextToken();
                     }
 
                     handleSysDefinition();
