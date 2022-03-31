@@ -118,6 +118,56 @@ export class StateTree {
         }
     }
 
+    copyPosValue(target) {
+        if (!this.isPosEmpty()) {
+            target.setPosValue(this.getPosValue());
+        }
+    }
+
+    enterGetAndLeave(pos) {
+        for (const part of pos) {
+            this.enterPos(part);
+        }
+        const result = this.getPosValue();
+        for (let i = 0; i < pos.length; i++) {
+            this.leavePos();
+        }
+
+        return result;
+    }
+
+    enterSetAndLeave(pos, value) {
+        for (const part of pos) {
+            this.enterPos(part);
+        }
+        this.setPosValue(value);
+        for (let i = 0; i < pos.length; i++) {
+            this.leavePos();
+        }
+    }
+
+    enterPutAndLeave(pos, value) {
+        for (const part of pos) {
+            this.enterPos(part);
+        }
+        this.putPosValue(value);
+        for (let i = 0; i < pos.length; i++) {
+            this.leavePos();
+        }
+    }
+
+    enterCopyAndLeave(target, pos) {
+        for (const part of pos) {
+            this.enterPos(part);
+            target.enterPos(part);
+        }
+        this.copyPosValue(target);
+        for (let i = 0; i < pos.length; i++) {
+            this.leavePos();
+            target.leavePos();
+        }
+    }
+
     isPosEmpty() {
         this.updatePtrs();
 

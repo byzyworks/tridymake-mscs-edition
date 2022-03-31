@@ -374,35 +374,89 @@ class InputParser {
                     if (isEmpty(context)) {
                         handleUnexpected();
                     }
+                    
+                    astree.enterSetAndLeave(['context'], context);
+                }
+
+                const isRawInputToken = () => {
+                    switch (currentToken().val) {
+                        case 'json':
+                            return true;
+                        default:
+                            return false;
+                    }
+                }
+
+                const readWhileRaw = () => {
+                    let data = '';
+                    while (isToken('part')) {
+                        data += currentToken().val;
+
+                        nextToken();
+                    }
+                
+                    return data;
+                }
+
+                const readWhileRawAndParse = () => {
+                    let type;
+                    let data;
+                    if (isToken('key', 'json')) {
+                        type = 'json';
+                        nextToken();
                         
-                    astree.enterPos('context');
-                    astree.setPosValue(context);
-                    astree.leavePos();
+                        data = readWhileRaw().replace(/\\/g, '\\\\');
+                    } else {
+                        handleUnexpected();
+                    }
+                    
+                    let parsed;
+                    try {
+                        switch (type) {
+                            case 'json':
+                                parsed = JSON.parse(data);
+                                break;
+                        }
+                    } catch (err) {
+                        throw new SyntaxError(err.message);
+                    }
+            
+                    if (!isToken('key', 'end')) {
+                        handleUnexpected();
+                    }
+                    nextToken();
+            
+                    return parsed;
                 }
                 
                 const handleOperation = () => {
                     if (isToken('key', 'set')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('edit');
-                        astree.leavePos();
-                        astree.enterPos('imported');
+                        astree.enterSetAndLeave(['operation'], 'edit');
+                        nextToken();
+
+                        if (isRawInputToken()) {
+                            astree.enterPos('imported');
+                        } else {
+                            astree.enterPos('definition');
+                        }
                     } else if (isToken('key', 'new')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('module');
-                        astree.leavePos();
-                        astree.enterPos('definition');
+                        astree.enterSetAndLeave(['operation'], 'module');
+                        nextToken();
+
+                        if (isRawInputToken()) {
+                            astree.enterPos('imported');
+                        } else {
+                            astree.enterPos('definition');
+                        }
                     } else if (isToken('key', 'get')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('print');
-                        astree.leavePos();
+                        astree.enterSetAndLeave(['operation'], 'print');
+                        nextToken();
                     } else if (isToken('key', 'del')) {
-                        astree.enterPos('operation');
-                        astree.setPosValue('delete');
-                        astree.leavePos();
+                        astree.enterSetAndLeave(['operation'], 'delete');
+                        nextToken();
                     } else {
                         handleUnexpected();
                     }
-                    nextToken();
                 }
                 
                 const handleDefinition = () => {
@@ -414,14 +468,9 @@ class InputParser {
                             if (isToken('var')) {
                                 token = '$' + token;
                             }
-                    
-                            astree.enterPos(alias.handle);
-                            astree.setPosValue(token);
-                            astree.leavePos();
-                    
-                            astree.enterPos(alias.tags);
-                            astree.setPosValue([token]);
-                            astree.leavePos();
+                            
+                            astree.enterSetAndLeave([alias.handle], token);
+                            astree.enterSetAndLeave([alias.tags], [token]);
                     
                             nextToken();
                         } else {
@@ -460,9 +509,7 @@ class InputParser {
                         if (isToken('key', 'none')) {
                             nextToken();
 
-                            astree.enterPos(alias.tags);
-                            astree.setPosValue(undefined);
-                            astree.leavePos();
+                            astree.enterSetAndLeave([alias.tags], undefined);
                         } else {
                             const tags = readWhileTag();
                 
@@ -470,60 +517,19 @@ class InputParser {
                                 handleUnexpected();
                             }
                     
-                            astree.enterPos(alias.tags);
-                            astree.setPosValue(tags);
-                            astree.leavePos();
+                            astree.enterSetAndLeave([alias.tags], tags);
                         }
                     }
                 
                     const handleStateDefinition = () => {
-                        const readWhileStateData = () => {
-                            let data = '';
-                            while (isToken('part')) {
-                                data += currentToken().val;
-    
-                                nextToken();
-                            }
-                        
-                            return data;
-                        }
-
                         if (isToken('key', 'none')) {
                             nextToken();
                         } else {
-                            let type;
-                            if (isToken('key', 'json')) {
-                                type = 'json';
-                            } else {
-                                handleUnexpected();
-                            }
-                            nextToken();
-    
-                            const data = readWhileStateData().replace(/\\/g, '\\\\');;
-    
-                            let parsed;
-                            try {
-                                switch (type) {
-                                    case 'json':
-                                        parsed = JSON.parse(data);
-                                        break;
-                                }
-                            } catch (err) {
-                                throw new SyntaxError(err.message);
-                            }
-    
-                            astree.enterPos(alias.state);
-                            astree.setPosValue(parsed);
-                            astree.leavePos();
-                    
-                            if (!isToken('key', 'end')) {
-                                handleUnexpected();
-                            }
-                            nextToken();
+                            astree.enterSetAndLeave([alias.state], readWhileRawAndParse());
                         }
                     }
                 
-                    const handleStackDefinition = () => {
+                    const handleNestedDefinition = () => {
                         if (isToken('key', 'none')) {
                             nextToken();
                         } else {
@@ -558,8 +564,15 @@ class InputParser {
                     if (isToken('key', 'has')) {
                         nextToken();
 
-                        handleStackDefinition();
+                        handleNestedDefinition();
                     }
+
+                    astree.leavePos();
+                }
+
+                const handleImported = () => {
+                    astree.setPosValue(readWhileRawAndParse());
+                    astree.leavePos();
                 }
 
                 if (isToken('key', 'tridy')) {
@@ -583,61 +596,14 @@ class InputParser {
                     handleContext();
                 }
 
-                const handleImported = () => {
-                    const readWhileImportedData = () => {
-                        let data = '';
-                        while (isToken('part')) {
-                            data += currentToken().val;
-
-                            nextToken();
-                        }
-                    
-                        return data;
-                    }
-
-                    if (isToken('key', 'none')) {
-                        nextToken();
-
-                        return;
-                    }
-
-                    let type;
-                    if (isToken('key', 'json')) {
-                        type = 'json';
-                    } else {
-                        handleUnexpected();
-                    }
-                    nextToken();
-
-                    const data = readWhileImportedData().replace(/\\/g, '\\\\');
-
-                    let parsed;
-                    try {
-                        switch (type) {
-                            case 'json':
-                                parsed = JSON.parse(data);
-                                break;
-                        }
-                    } catch (err) {
-                        throw new SyntaxError(err.message);
-                    }
-
-                    astree.setPosValue(parsed);
-            
-                    if (!isToken('key', 'end')) {
-                        handleUnexpected();
-                    }
-                    nextToken();
-                }
-
                 handleOperation();
 
                 switch (astree.getTopPos()) {
-                    case 'definition':
-                        handleDefinition();
-                        break;
                     case 'imported':
                         handleImported();
+                        break;
+                    case 'definition':
+                        handleDefinition();
                         break;
                 }
 

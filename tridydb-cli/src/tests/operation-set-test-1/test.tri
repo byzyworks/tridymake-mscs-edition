@@ -1,0 +1,19 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b;
+
+@in a @new @none @as b;
+
+@in a @new @none @as b;
+
+@in a @new @none @as c;
+
+@in a @new @none @as c;
+
+@in a @new @none @as c;
+
+@in a/c @set @none @as d @is @json { } @end @has { @new @none @as e; };
+
+@get;

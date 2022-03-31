@@ -4,10 +4,10 @@ import { alias, deepCopy, isEmpty } from '../utility/common.js';
 import { Stack }                    from '../utility/Stack.js';
 
 class Composer {
-    astree    = null;
-    target    = new Stack();
-    context   = null;
-    output    = [ ];
+    astree  = null;
+    target  = new Stack();
+    context = null;
+    output  = [ ];
 
     constructor() {
         this.target.push(new StateTree());
@@ -17,22 +17,12 @@ class Composer {
         this.astree = tree;
     }
 
-    createMachine(command) {
-        const transactValue = (source, shared, target) => {
-            source.enterPos(shared);
-            target.enterPos(shared);
-            if (!source.isPosEmpty()) {
-                target.setPosValue(source.getPosValue());
-            }
-            target.leavePos();
-            source.leavePos();
-        }
-
-        const machine = new StateTree();
+    createModule(command) {
+        const module = new StateTree();
 
         this.astree.enterPos('imported');
         if (!this.astree.isPosEmpty()) {
-            machine.setPosValue(this.astree.getPosValue());
+            module.setPosValue(this.astree.getPosValue());
         }
         this.astree.leavePos();
 
@@ -42,28 +32,22 @@ class Composer {
             if (!this.astree.isPosEmpty()) {
                 this.astree.leavePos();
 
-                this.target.push(machine);
-                const stack = this.parse().stack;
+                this.target.push(module);
+                this.parse();
                 this.target.pop();
-
-                if (!isEmpty(stack)) {
-                    machine.enterPos(alias.nested);
-                    machine.setPosValue(stack);
-                    machine.leavePos();
-                }
             } else {
                 this.astree.leavePos();
             }
 
-            transactValue(this.astree, alias.state, machine);
-            transactValue(this.astree, alias.tags, machine);
-            transactValue(this.astree, alias.handle, machine);
+            this.astree.enterCopyAndLeave(module, [alias.state]);
+            this.astree.enterCopyAndLeave(module, [alias.tags]);
+            this.astree.enterCopyAndLeave(module, [alias.handle]);
 
-            machine.leavePos();
+            module.leavePos();
         }
         this.astree.leavePos();
 
-        return machine.getRaw();
+        return module.getRaw();
     }
 
     getContext() {
@@ -204,36 +188,36 @@ class Composer {
         }
     }
 
-    composeMachine(command, template = null) {
+    composeModule(command, template = null) {
         const target = this.target.peek();
         switch (command) {
             case 'edit':
                 target.setPosValue(deepCopy(template));
                 break;
             case 'module':
-                target.enterPos(alias.nested);
-                target.putPosValue(deepCopy(template));
-                target.leavePos();
+                target.enterPutAndLeave([alias.nested], deepCopy(template));
+                break;
+            case 'print':
+                this.output.push(deepCopy(target.getPosValue()));
                 break;
             case 'delete':
-                target.setPosValue({ });
+                const spliced = target.getTopPos();
+                if (spliced === null) {
+                    target.setPosValue({ });
+                } else if (spliced === 0) {
+                    target.leavePos();
+                    target.setPosValue([ ]);
+                    target.enterPos(0);
+                } else {
+                    target.leavePos();
+                    target.getPosValue().splice(spliced, 1);
+                    target.enterPos(spliced - 1);
+                }
                 break;
-        }
-
-        const result = deepCopy(target.getPosValue());
-        if (this.isReadOp(command)) {
-            this.output.push(result);
-            return null;
-        } else {
-            return result;
         }
     }
 
-    traverseMachine(test, command, template = null) {
-        const total_output = [ ];
-        let   machine_output;
-        let   stack_output;
-
+    traverseModule(test, command, template = null) {
         const matched = this.matchingContext(test);
 
         const target = this.target.peek();
@@ -242,12 +226,7 @@ class Composer {
             if (!target.isPosEmpty()) {
                 target.enterPos(0);
                 while (!target.isPosEmpty()) {
-                    stack_output = this.traverseMachine(test, command, template);
-
-                    for (const submach of stack_output) {
-                        total_output.push(submach);
-                    }
-
+                    this.traverseModule(test, command, template);
                     target.nextItem();
                 }
                 target.leavePos();
@@ -256,24 +235,8 @@ class Composer {
         }
 
         if (matched) {
-            machine_output = this.composeMachine(command, template);
-
-            if (machine_output) {
-                total_output.push(machine_output);
-            }
+            this.composeModule(command, template);
         }
-
-        return total_output;
-    }
-
-    createComposited(command, template = null) {
-        this.astree.enterPos('context');
-        const test = this.astree.getPosValue();
-        this.astree.leavePos();
-
-        const output = this.traverseMachine(test, command, template);
-
-        return output;
     }
 
     isReadOp(command) {
@@ -286,41 +249,29 @@ class Composer {
     }
 
     parseStatement() {
-        this.astree.enterPos('operation');
-        const command = this.astree.getPosValue();
-        this.astree.leavePos();
-        
+        const test    = this.astree.enterGetAndLeave(['context']);
+        const command = this.astree.enterGetAndLeave(['operation']);
         let template;
         if (this.isReadOp(command)) {
             template = null;
         } else {
-            template = this.createMachine(command);
+            template = this.createModule(command);
         }
-        
-        return this.createComposited(command, template);
+
+        this.traverseModule(test, command, template);
     }
 
     parse() {
-        const total_output = [ ];
-        let   stmt_output;
-
         this.astree.enterPos(alias.nested);
         if (!this.astree.isPosEmpty()) {
             this.astree.enterPos(0);
             while (!this.astree.isPosEmpty()) {
-                stmt_output = this.parseStatement();
-    
-                for (const mach of stmt_output) {
-                    total_output.push(mach);
-                }
-    
+                this.parseStatement();
                 this.astree.nextItem();
             }
             this.astree.leavePos();
         }
         this.astree.leavePos();
-
-        return total_output;
     }
 
     compose() {
