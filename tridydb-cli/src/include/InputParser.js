@@ -2,8 +2,8 @@ import { parser as infixParser } from './InfixParser.js';
 import { StateTree }             from './StateTree.js';
 import { parser as tokenParser } from './TokenParser.js';
 
-import { isEmpty }     from '../utility/common.js';
-import { SyntaxError } from '../utility/error.js';
+import { alias, isEmpty } from '../utility/common.js';
+import { SyntaxError }    from '../utility/error.js';
 
 export let interactive_exit = false;
 
@@ -185,11 +185,7 @@ class InputParser {
                                 return false ||
                                     isToken('tag') ||
                                     isToken('key', 'any') ||
-                                    isToken('punc', '*') ||
-                                    isToken('key', 'leaf') ||
-                                    isToken('punc', '%') ||
-                                    isToken('key', 'random') ||
-                                    isToken('punc', '?')
+                                    isToken('punc', '*')
                                 ;
                             }
     
@@ -204,14 +200,6 @@ class InputParser {
                                             case 'any':
                                             case '*':
                                                 context.push({ type: 't', val: '@any' });
-                                                break;
-                                            case 'leaf':
-                                            case '%':
-                                                context.push({ type: 't', val: '@leaf' });
-                                                break;
-                                            case 'random':
-                                            case '?':
-                                                context.push({ type: 't', val: '@random' });
                                                 break;
                                         }
                                         break;
@@ -418,7 +406,7 @@ class InputParser {
                 }
                 
                 const handleDefinition = () => {
-                    const handleSysDefinition = () => {
+                    const handleHandleDefinition = () => {
                         if (isToken('key', 'none')) {
                             nextToken();
                         } else if (isToken('tag') || isToken('var')) {
@@ -427,11 +415,11 @@ class InputParser {
                                 token = '$' + token;
                             }
                     
-                            astree.enterPos('sys');
+                            astree.enterPos(alias.handle);
                             astree.setPosValue(token);
                             astree.leavePos();
                     
-                            astree.enterPos('tags');
+                            astree.enterPos(alias.tags);
                             astree.setPosValue([token]);
                             astree.leavePos();
                     
@@ -472,7 +460,7 @@ class InputParser {
                         if (isToken('key', 'none')) {
                             nextToken();
 
-                            astree.enterPos('tags');
+                            astree.enterPos(alias.tags);
                             astree.setPosValue(undefined);
                             astree.leavePos();
                         } else {
@@ -482,14 +470,14 @@ class InputParser {
                                 handleUnexpected();
                             }
                     
-                            astree.enterPos('tags');
+                            astree.enterPos(alias.tags);
                             astree.setPosValue(tags);
                             astree.leavePos();
                         }
                     }
                 
-                    const handleHeapDefinition = () => {
-                        const readWhileHeapData = () => {
+                    const handleStateDefinition = () => {
+                        const readWhileStateData = () => {
                             let data = '';
                             while (isToken('part')) {
                                 data += currentToken().val;
@@ -511,7 +499,7 @@ class InputParser {
                             }
                             nextToken();
     
-                            const data = readWhileHeapData().replace(/\\/g, '\\\\');;
+                            const data = readWhileStateData().replace(/\\/g, '\\\\');;
     
                             let parsed;
                             try {
@@ -524,7 +512,7 @@ class InputParser {
                                 throw new SyntaxError(err.message);
                             }
     
-                            astree.enterPos('heap');
+                            astree.enterPos(alias.state);
                             astree.setPosValue(parsed);
                             astree.leavePos();
                     
@@ -542,18 +530,18 @@ class InputParser {
                             if (!isToken('punc', '{')) {
                                 handleUnexpected();
                             }
-                            astree.enterStack();
+                            astree.enterNested();
                             nextToken();
     
                             while (!isToken('punc', '}')) {
                                 handleStatement();
                             }
-                            astree.leaveStack();
+                            astree.leaveNested();
                             nextToken();
                         }
                     }
 
-                    handleSysDefinition();
+                    handleHandleDefinition();
 
                     if (isToken('key', 'as')) {
                         nextToken();
@@ -564,7 +552,7 @@ class InputParser {
                     if (isToken('key', 'is')) {
                         nextToken();
 
-                        handleHeapDefinition();
+                        handleStateDefinition();
                     }
 
                     if (isToken('key', 'has')) {
@@ -661,11 +649,11 @@ class InputParser {
                 }
             }
 
-            astree.enterStack();
+            astree.enterNested();
             while (hasTokensLeft()) {
                 handleStatement();
             }
-            astree.leaveStack({ root: true });
+            astree.leaveNested();
 
             return astree;
         }

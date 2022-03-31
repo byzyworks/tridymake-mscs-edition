@@ -3,7 +3,7 @@ import chalk    from 'chalk';
 
 import { interactive_exit }          from './include/InputParser.js';
 import { interpreter }               from './include/Interpreter.js';
-import { SyntaxError, errorHandler } from './utility/error.js';
+import { SyntaxError, error_handler } from './utility/error.js';
 import { isEmpty }                   from './utility/common.js';
 
 export const cli = async (opts = { }) => {
@@ -36,7 +36,7 @@ export const cli = async (opts = { }) => {
             out = await interpreter.parse(answers.parsed, { accept_carry: true });
         } catch (err) {
             if (err instanceof SyntaxError) {
-                errorHandler.handle(err);
+                error_handler.handle(err);
                 retry = true;
             } else {
                 throw err;

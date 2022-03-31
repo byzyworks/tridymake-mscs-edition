@@ -1,7 +1,7 @@
 import { StateTree } from './StateTree.js';
 
-import { deepCopy, isEmpty } from '../utility/common.js';
-import { Stack }             from '../utility/Stack.js';
+import { alias, deepCopy, isEmpty } from '../utility/common.js';
+import { Stack }                    from '../utility/Stack.js';
 
 class Composer {
     astree    = null;
@@ -38,7 +38,7 @@ class Composer {
 
         this.astree.enterPos('definition');
         if (!this.astree.isPosEmpty()) {
-            this.astree.enterPos('stack');
+            this.astree.enterPos(alias.nested);
             if (!this.astree.isPosEmpty()) {
                 this.astree.leavePos();
 
@@ -47,7 +47,7 @@ class Composer {
                 this.target.pop();
 
                 if (!isEmpty(stack)) {
-                    machine.enterPos('stack');
+                    machine.enterPos(alias.nested);
                     machine.setPosValue(stack);
                     machine.leavePos();
                 }
@@ -55,9 +55,9 @@ class Composer {
                 this.astree.leavePos();
             }
 
-            transactValue(this.astree, 'heap', machine);
-            transactValue(this.astree, 'tags', machine);
-            transactValue(this.astree, 'sys', machine);
+            transactValue(this.astree, alias.state, machine);
+            transactValue(this.astree, alias.tags, machine);
+            transactValue(this.astree, alias.handle, machine);
 
             machine.leavePos();
         }
@@ -75,8 +75,8 @@ class Composer {
         
         for (let i = 0; i < indices.length; i += 2) {
             ptr = ptr[indices[i]][indices[i + 1]];
-            if (ptr.tags) {
-                current.push(ptr.tags);
+            if (ptr[alias.tags]) {
+                current.push(ptr[alias.tags]);
             } else {
                 current.push([ ]);
             }
@@ -93,16 +93,6 @@ class Composer {
         switch (test) {
             case '@any':
                 return true;
-            case '@leaf':
-                const target = this.target.peek();
-
-                target.enterPos('stack');
-                const leaf = isEmpty(target.getPosValue());
-                target.leavePos();
-
-                return leaf;
-            case '@random':
-                return (Math.random() >= 0.5) ? true : false;
             default:
                 if (!isEmpty(this.context[lvl])) {
                     for (const tag of this.context[lvl]) {
@@ -221,7 +211,7 @@ class Composer {
                 target.setPosValue(deepCopy(template));
                 break;
             case 'module':
-                target.enterPos('stack');
+                target.enterPos(alias.nested);
                 target.putPosValue(deepCopy(template));
                 target.leavePos();
                 break;
@@ -248,7 +238,7 @@ class Composer {
 
         const target = this.target.peek();
         if (!matched) {
-            target.enterPos('stack');
+            target.enterPos(alias.nested);
             if (!target.isPosEmpty()) {
                 target.enterPos(0);
                 while (!target.isPosEmpty()) {
@@ -314,7 +304,7 @@ class Composer {
         const total_output = [ ];
         let   stmt_output;
 
-        this.astree.enterPos('stack');
+        this.astree.enterPos(alias.nested);
         if (!this.astree.isPosEmpty()) {
             this.astree.enterPos(0);
             while (!this.astree.isPosEmpty()) {

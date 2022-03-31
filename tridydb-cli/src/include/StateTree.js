@@ -1,3 +1,5 @@
+import { alias } from '../utility/common.js';
+
 export class StateTree {
     pos  = [ ];
     tree = null;
@@ -130,11 +132,11 @@ export class StateTree {
         return this.pos.length === 0;
     }
 
-    enterStack(opts = { }) {
+    enterNested(opts = { }) {
         opts.append_mode = opts.append_mode ?? true;
 
-        if (this.getTopPos() != 'stack') {
-            this.enterPos('stack');
+        if (this.getTopPos() != alias.nested) {
+            this.enterPos(alias.nested);
         }
 
         if (opts.append_mode) {
@@ -143,34 +145,14 @@ export class StateTree {
         } else {
             this.enterPos(0);
         }
-        
     }
 
-    leaveStack(opts = { }) {
-        opts.root = opts.root ?? false;
-
-        while (this.leavePos() != 'stack');
-
-        if (!opts.root) {
-            if (this.isPosRoot()) {
-                throw new LogicError(`Attempted to descend from the root stack, which isn't allowed.`);
-            }
-        }
-    }
-
-    prevItem() {
-        while (this.pos[this.pos.length - 2] != 'stack') {
-            this.leavePos();
-        }
-
-        if (!this.isPosEmpty()) {
-            const idx = this.leavePos();
-            this.enterPos(idx - 1);
-        }
+    leaveNested() {
+        while (this.leavePos() != alias.nested);
     }
 
     nextItem() {
-        while (this.pos[this.pos.length - 2] != 'stack') {
+        while (this.pos[this.pos.length - 2] != alias.nested) {
             this.leavePos();
         }
 

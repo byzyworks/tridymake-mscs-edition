@@ -1,7 +1,9 @@
-export const app = {
-    name:    'TridyDB CLI',
-    version: '1.0.0'
-}
+export const APP = Object.freeze({
+    NAME:    'TridyDB CLI',
+    VERSION: '1.0.0'
+});
+
+export const alias = { };
 
 export const isObject = (obj) => {
     return ((typeof obj === 'object') && (obj !== null));

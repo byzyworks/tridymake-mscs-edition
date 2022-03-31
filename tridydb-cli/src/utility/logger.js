@@ -10,7 +10,7 @@ export const format = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
     winston.format.colorize({ all: true }),
     winston.format.printf(
-        (info) => `[${info.timestamp}] [${common.app.name}] [${info.level}] ${info.message}`
+        (info) => `[${info.timestamp}] [${common.APP.NAME}] [${info.level}] ${info.message}`
     )
 );
 

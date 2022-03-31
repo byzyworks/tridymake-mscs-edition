@@ -95,4 +95,4 @@ class ErrorHandler {
     }
 }
 
-export const errorHandler = new ErrorHandler();
+export const error_handler = new ErrorHandler();

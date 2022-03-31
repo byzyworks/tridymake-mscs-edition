@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { routes }             from './routes/index.js';
-import { errorHandler }       from './utility/error.js';
+import { error_handler }       from './utility/error.js';
 import { logger, httpLogger } from './utility/logger.js';
 
 export const server = async (opts = { }) => {
@@ -20,14 +20,14 @@ export const server = async (opts = { }) => {
         if (process.exitCode === 0) {
             next();
         } else {
-            errorHandler.errorResponse(req, res);
+            error_handler.errorResponse(req, res);
         }
     });
     app.use(httpLogger);
     app.use(routes);
     app.use((err, req, res, next) => {
-        errorHandler.handle(err);
-        errorHandler.errorResponse(req, res);
+        error_handler.handle(err);
+        error_handler.errorResponse(req, res);
     });
 
     if (opts.ipv6Only !== true) {
