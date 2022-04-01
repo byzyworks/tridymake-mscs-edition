@@ -25,7 +25,9 @@ export class Token {
             this.is('o', '^') ||
             this.is('o', '|') ||
             this.is('o', '>') ||
-            this.is('o', '>>')
+            this.is('o', '>>') ||
+            this.is('o', '<') ||
+            this.is('o', '<<')
         ;
     }
 
@@ -81,6 +83,14 @@ export class Token {
                 case '>>':
                     this.to('o', '>>');
                     break;
+                case 'parent':
+                case '<':
+                    this.to('o', '<');
+                    break;
+                case 'ascend':
+                case '<<':
+                    this.to('o', '<<');
+                    break;
                 case '(':
                     this.to('o', '(');
                     break;
@@ -89,6 +99,26 @@ export class Token {
                     break;
             }
         }
+    }
+
+    isReadOpToken() {
+        return false ||
+            this.is('key', 'get')
+        ;
+    }
+
+    isDefiningOpToken() {
+        return false ||
+            this.is('key', 'set') ||
+            this.is('key', 'new')
+        ;
+    }
+
+    isAffectingOpToken() {
+        return false ||
+            this.is('key', 'get') ||
+            this.is('key', 'del')
+        ;
     }
 
     isRawInputToken() {

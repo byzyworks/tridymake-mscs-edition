@@ -212,6 +212,19 @@ export class StateTree {
         }
     }
 
+    traverse(callback) {
+        this.enterPos(alias.nested);
+        if (!this.isPosEmpty()) {
+            this.enterPos(0);
+            while (!this.isPosEmpty()) {
+                callback();
+                this.nextItem();
+            }
+            this.leavePos();
+        }
+        this.leavePos();
+    }
+
     getRaw() {
         return this.tree;
     }

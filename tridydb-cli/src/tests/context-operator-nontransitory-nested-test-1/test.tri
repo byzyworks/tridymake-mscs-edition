@@ -1,0 +1,15 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b;
+
+@in a/b @new @none @as c;
+
+@new @none @as a ignored;
+
+@in (a @parent b) & (a < b) @new @none @as d;
+
+@in (a @ascend c) & (a << c) @new @none @as e;
+
+@get;

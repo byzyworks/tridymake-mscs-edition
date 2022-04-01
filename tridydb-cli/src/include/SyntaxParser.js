@@ -363,19 +363,13 @@ class SyntaxParser {
             this.tokens.next();
         }
 
-        if (this.tokens.peek().is('punc', ';')) {
-            this.tokens.next();
-
-            return;
-        }
-
-        if (this.tokens.peek().is('key', 'get') || this.tokens.peek().is('key', 'del')) {
+        if (this.tokens.peek().isAffectingOpToken()) {
             this.handleOperation();
 
             if (!this.tokens.peek().is('punc', ';')) {
                 this.handleContext();
             }
-        } else {
+        } else if (this.tokens.peek().isDefiningOpToken() || this.tokens.peek().is('key', 'in')) {
             if (this.tokens.peek().is('key', 'in')) {
                 this.tokens.next();
 

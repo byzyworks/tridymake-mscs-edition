@@ -53,10 +53,10 @@ class Composer {
         
         for (let i = 0; i < indices.length; i += 2) {
             ptr = ptr[indices[i]][indices[i + 1]];
-            if (ptr[alias.tags]) {
-                current.push(ptr[alias.tags]);
-            } else {
+            if (isEmpty(ptr[alias.tags])) {
                 current.push([ ]);
+            } else {
+                current.push(ptr[alias.tags]);
             }
         }
 
@@ -64,16 +64,16 @@ class Composer {
     }
 
     isTag(obj) {
-        return (typeof obj == 'string');
+        return (typeof obj === 'string');
     }
 
-    matchingTag(test, lvl) {
+    matchingTag(test, tested, lvl) {
         switch (test) {
             case '@any':
                 return true;
             default:
-                if (!isEmpty(this.context[lvl])) {
-                    for (const tag of this.context[lvl]) {
+                if (!isEmpty(tested[lvl])) {
+                    for (const tag of tested[lvl]) {
                         if (test == tag) {
                             return true;
                         }
@@ -83,45 +83,45 @@ class Composer {
         }
     }
 
-    testNot(a, lvl) {
-        a = this.matchingExpression(a, lvl);
+    testNot(a, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
 
         return !a;
     }
 
-    testAnd(a, b, lvl) {
-        a = this.matchingExpression(a, lvl);
-        b = this.matchingExpression(b, lvl);
+    testAnd(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
+        b = this.matchingExpression(b, tested, lvl);
 
         return a && b;
     }
 
-    testXor(a, b, lvl) {
-        a = this.matchingExpression(a, lvl);
-        b = this.matchingExpression(b, lvl);
+    testXor(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
+        b = this.matchingExpression(b, tested, lvl);
 
         return (!a && b) || (a && !b);
     }
 
-    testOr(a, b, lvl) {
-        a = this.matchingExpression(a, lvl);
-        b = this.matchingExpression(b, lvl);
+    testOr(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
+        b = this.matchingExpression(b, tested, lvl);
 
         return a || b;
     }
 
-    testTo(a, b, lvl) {
-        a = this.matchingExpression(a, lvl);
+    testTo(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
 
         let r = false;
         lvl++;
-        if (lvl < this.context.length) {
+        if (lvl < tested.length) {
             if (this.isTag(b)) {
-                if (lvl === this.context.length - 1) {
-                    r = this.matchingTag(b, lvl);
+                if (lvl === tested.length - 1) {
+                    r = this.matchingTag(b, tested, lvl);
                 }
             } else {
-                r = this.matchingExpression(b, lvl);
+                r = this.matchingExpression(b, tested, lvl);
             }
         }
         b = r;
@@ -129,18 +129,18 @@ class Composer {
         return a && b;
     }
 
-    testToward(a, b, lvl) {
-        a = this.matchingExpression(a, lvl);
+    testToward(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
 
         let r = false;
         lvl++;
-        while ((r === false) && (lvl < this.context.length)) {
+        while ((r === false) && (lvl < tested.length)) {
             if (this.isTag(b)) {
-                if (lvl === this.context.length - 1) {
-                    r = this.matchingTag(b, lvl);
+                if (lvl === tested.length - 1) {
+                    r = this.matchingTag(b, tested, lvl);
                 }
             } else {
-                r = this.matchingExpression(b, lvl);
+                r = this.matchingExpression(b, tested, lvl);
             }
             lvl++;
         }
@@ -149,36 +149,92 @@ class Composer {
         return a && b;
     }
 
-    matchingExpression(test, lvl) {
-        if (isEmpty(this.context)) {
+    testParent(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
+
+        lvl++;
+
+        let r = false;
+
+        const target = this.target.peek();
+        target.enterPos(alias.nested);
+        if (!target.isPosEmpty()) {
+            target.enterPos(0);
+            while (!target.isPosEmpty()) {
+                r = this.matchingExpression(b, this.getContext(), lvl);
+                if (r === true) {
+                    break;
+                }
+
+                target.nextItem();
+            }
+            target.leavePos();
+        }
+        target.leavePos();
+
+        b = r;
+
+        return a && b;
+    }
+
+    testAscend(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl);
+
+        lvl++;
+
+        let r = false;
+
+        const target = this.target.peek();
+        target.enterPos(alias.nested);
+        if (!target.isPosEmpty()) {
+            target.enterPos(0);
+            while (!target.isPosEmpty()) {
+                tested = this.getContext();
+                r = this.matchingExpression(b, tested, lvl);
+                if (r === false) {
+                    r = this.testAscend(a, b, tested, lvl);
+                }
+                if (r === true) {
+                    break;
+                }
+
+                target.nextItem();
+            }
+            target.leavePos();
+        }
+        target.leavePos();
+
+        b = r;
+
+        return a && b;
+    }
+
+    matchingExpression(test, tested, lvl) {
+        if (isEmpty(tested)) {
             return false;
+        } else if (typeof test === 'boolean') {
+            return test;
         } else if (this.isTag(test)) {
-            return this.matchingTag(test, lvl);
+            return this.matchingTag(test, tested, lvl);
         } else {
             switch (test.op) {
                 case '!':
-                    return this.testNot(test.a, lvl);
+                    return this.testNot(test.a, tested, lvl);
                 case '&':
-                    return this.testAnd(test.a, test.b, lvl);
+                    return this.testAnd(test.a, test.b, tested, lvl);
                 case '^':
-                    return this.testXor(test.a, test.b, lvl);
+                    return this.testXor(test.a, test.b, tested, lvl);
                 case '|':
-                    return this.testOr(test.a, test.b, lvl);
+                    return this.testOr(test.a, test.b, tested, lvl);
                 case '>':
-                    return this.testTo(test.a, test.b, lvl);
+                    return this.testTo(test.a, test.b, tested, lvl);
                 case '>>':
-                    return this.testToward(test.a, test.b, lvl);
+                    return this.testToward(test.a, test.b, tested, lvl);
+                case '<':
+                    return this.testParent(test.a, test.b, tested, lvl);
+                case '<<':
+                    return this.testAscend(test.a, test.b, tested, lvl);
             }
-        }
-    }
-
-    matchingContext(test) {
-        if (isEmpty(test)) {
-            return true;
-        } else {
-            this.context = this.getContext();
-
-            return this.matchingExpression(test, 0);
         }
     }
 
@@ -212,10 +268,15 @@ class Composer {
     }
 
     traverseModule(test, command, template = null) {
-        const matched = this.matchingContext(test);
+        let matched;
+        if (isEmpty(test)) {
+            matched = true;
+        } else {
+            matched = this.matchingExpression(test, this.getContext(), 0);
+        }
 
-        const target = this.target.peek();
         if (!matched) {
+            const target = this.target.peek();
             target.enterPos(alias.nested);
             if (!target.isPosEmpty()) {
                 target.enterPos(0);
