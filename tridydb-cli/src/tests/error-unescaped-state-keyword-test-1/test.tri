@@ -1,0 +1,3 @@
+@tridy;
+
+@new machine @is @json { "say": "@qwerty123" } @end;

@@ -4,17 +4,11 @@ import { alias, deepCopy, isEmpty } from '../utility/common.js';
 import { Stack }                    from '../utility/Stack.js';
 
 class Composer {
-    astree  = null;
-    target  = new Stack();
-    context = null;
-    output  = [ ];
-
     constructor() {
+        this.target = new Stack();
         this.target.push(new StateTree());
-    }
 
-    load(tree) {
-        this.astree = tree;
+        this.nested_deleted = false;
     }
 
     createModule(command) {
@@ -206,8 +200,8 @@ class Composer {
                     target.setPosValue({ });
                 } else if (spliced === 0) {
                     target.leavePos();
-                    target.setPosValue([ ]);
-                    target.enterPos(0);
+                    target.setPosValue(undefined);
+                    this.nested_deleted = true;
                 } else {
                     target.leavePos();
                     target.getPosValue().splice(spliced, 1);
@@ -227,9 +221,15 @@ class Composer {
                 target.enterPos(0);
                 while (!target.isPosEmpty()) {
                     this.traverseModule(test, command, template);
-                    target.nextItem();
+                    if (this.nested_deleted) {
+                        break;
+                    } else {
+                        target.nextItem();
+                    }
                 }
-                target.leavePos();
+                if (!this.nested_deleted) {
+                    target.leavePos();
+                }
             }
             target.leavePos();
         }
@@ -267,14 +267,21 @@ class Composer {
             this.astree.enterPos(0);
             while (!this.astree.isPosEmpty()) {
                 this.parseStatement();
-                this.astree.nextItem();
+                if (this.nested_deleted) {
+                    break;
+                } else {
+                    this.astree.nextItem();
+                }
             }
-            this.astree.leavePos();
+            if (!this.nested_deleted) {
+                this.astree.leavePos();
+            }
         }
         this.astree.leavePos();
     }
 
-    compose() {
+    compose(input, opts = { }) {
+        this.astree = input;
         this.output = [ ];
         this.parse();
         return this.output;

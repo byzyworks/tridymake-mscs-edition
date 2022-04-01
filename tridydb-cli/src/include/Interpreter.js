@@ -1,30 +1,30 @@
-import { composer }              from './Composer.js';
-import { parser as inputParser } from './InputParser.js';
+import { composer }            from './Composer.js';
+import { parser }              from './SyntaxParser.js';
+import { parser as tokenizer } from './StatementParser.js';
 
 class Interpreter {
     constructor() {
-        this.parser   = inputParser;
-        this.composer = composer;
+        this.tokenizer = tokenizer;
+        this.parser    = parser;
+        this.composer  = composer;
     }
 
     async parse(input, opts) {
-        let tree;
+        const output = [ ];
 
-        this.parser.load(input);
-        tree = this.parser.parse(opts);
+        this.tokenizer.load(input);
 
-        this.composer.load(tree);
-        tree = this.composer.compose();
+        let piped;
+        while (piped = this.tokenizer.next(opts)) {
+            piped = this.parser.parse(piped, opts);
+            piped = this.composer.compose(piped, opts);
 
-        return tree;
-    }
+            for (const part of piped) {
+                output.push(part);
+            }
+        }
 
-    clearASTree() {
-        this.parser.clear();
-    }
-
-    carryIsEmpty() {
-        return this.parser.carryIsEmpty();
+        return output;
     }
 }
 

@@ -5,6 +5,12 @@ export const APP = Object.freeze({
 
 export const alias = { };
 
+export const pushAll = (target, source) => {
+    for (const part of source) {
+        target.push(part);
+    }
+}
+
 export const isObject = (obj) => {
     return ((typeof obj === 'object') && (obj !== null));
 }

@@ -1,10 +1,11 @@
 import inquirer from 'inquirer';
 import chalk    from 'chalk';
 
-import { interactive_exit }          from './include/InputParser.js';
-import { interpreter }               from './include/Interpreter.js';
+import { interactive_exit }           from './include/SyntaxParser.js';
+import { interpreter }                from './include/Interpreter.js';
+import { parser as tokenizer }        from './include/StatementParser.js';
 import { SyntaxError, error_handler } from './utility/error.js';
-import { isEmpty }                   from './utility/common.js';
+import { isEmpty }                    from './utility/common.js';
 
 export const cli = async (opts = { }) => {
     opts.pretty = opts.pretty ?? false;
@@ -12,7 +13,7 @@ export const cli = async (opts = { }) => {
     let answers;
 
     while (!interactive_exit) {
-        if (interpreter.carryIsEmpty()) {
+        if (tokenizer.isCarryEmpty() || tokenizer.isStatementComplete()) {
             answers = await inquirer.prompt([
                 {
                     name: 'parsed',

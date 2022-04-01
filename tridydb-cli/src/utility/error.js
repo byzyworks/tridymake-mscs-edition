@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
 
-import { interpreter } from '../include/Interpreter.js';
+import { parser as tokenizer } from '../include/StatementParser.js';
 
 import { logger } from './logger.js';
 
@@ -13,7 +13,7 @@ export class SyntaxError extends Error {
 
         Error.captureStackTrace(this);
 
-        interpreter.clearASTree();
+        tokenizer.clear();
     }
 }
 

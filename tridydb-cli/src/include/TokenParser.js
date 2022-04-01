@@ -1,15 +1,16 @@
 import { parser as charParser } from './CharParser.js';
+import { Token }                from './Token.js';
 
 import { isEmpty }     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
 
 class TokenParser {
-    mode    = new Stack();
-    current = null;
-
     constructor() {
         this.parser = charParser;
+
+        this.mode    = new Stack();
+        this.current = null;
     }
 
     load(input) {
@@ -149,7 +150,7 @@ class TokenParser {
 
         const part = this.readWhileEscaped().replace(/\s+/g, '');
 
-        return { type: 'part', val: part, pos: pos };
+        return new Token('part', part, pos);
     }
 
     readKeyword() {
@@ -172,7 +173,7 @@ class TokenParser {
             }
         }
 
-        return { type: 'key', val: keyword, pos: pos };
+        return new Token('key', keyword, pos);
     }
 
     readVariable() {
@@ -185,7 +186,7 @@ class TokenParser {
             throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "$".`);
         }
 
-        return { type: 'var', val: variable, pos: pos };
+        return new Token('var', variable, pos);
     }
 
     readTag() {
@@ -193,11 +194,11 @@ class TokenParser {
 
         const tag = this.readWhilePred(this.isIdentifier);
 
-        return { type: 'tag', val: tag, pos: pos };
+        return new Token('tag', tag, pos);
     }
 
     readPunc() {
-        return { type: 'punc', val: this.parser.next(), pos: this.getPos() };
+        return new Token('punc', this.parser.next(), this.getPos());
     }
 
     readMultiPunc() {
@@ -208,7 +209,7 @@ class TokenParser {
             return ch == curr;
         });
 
-        return { type: 'punc', val: punc, pos: pos };
+        return new Token('punc', punc, pos);
     }
     
     isWhitespace(ch) {
