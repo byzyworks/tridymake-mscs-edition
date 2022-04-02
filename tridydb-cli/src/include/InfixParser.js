@@ -13,7 +13,8 @@ class InfixParser {
             '<': 4,
             '<<': 5,
             '>': 6,
-            '>>': 7
+            '>>': 7,
+            '>>>': 8
         }
 
         const out = new Queue();

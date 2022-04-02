@@ -1,19 +1,21 @@
 @tridy;
 
-@new @none @as a;
+@new @none @as a appears-once;
 
-@in a @new @none @as b;
+@in a @new @none @as b appears-once;
 
 @new @none @as a ignored;
 
-@in (a @to b) & (a / b) & (a > b) @new @none @as c;
+@in (a @to b) & (a / b) & (a > b) @new @none @as c appears-once;
 
-@in (a @toward c) & (a >> c) @new @none @as b;
+@in (a @toward c) & (a >> c) @new @none @as b appears-once;
 
 @in b @new @none @as nonexistent;
 
 @in c @to b @new @none @as nonexistent;
 
 @in a @toward b @new @none @as appears-once;
+
+@in (a @toall b) & (a >>> b) @new @none @as appears-twice;
 
 @get;

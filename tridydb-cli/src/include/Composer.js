@@ -70,7 +70,7 @@ class Composer {
     isEnd(test) {
         if (this.isTag(test)) {
             return true;
-        } else if ((test.op === '>') || (test.op === '>>')) {
+        } else if ((test.op === '>') || (test.op === '>>') || (test.op === '>>>')) {
             return false;
         } else {
             return this.isEnd(test.a) && (!test.b || this.isEnd(test.b));
@@ -81,6 +81,8 @@ class Composer {
         switch (test) {
             case '*':
                 return true;
+            case '%':
+                return isEmpty(this.target.peek().enterGetAndLeave([alias.nested]));
             case '?':
                 return (Math.random() >= 0.5);
             default:
@@ -129,7 +131,28 @@ class Composer {
         return a && b;
     }
 
-    testToward(a, b, tested, lvl) {
+    testTowardGreedy(a, b, tested, lvl) {
+        a = this.matchingExpression(a, tested, lvl, { ignore_end_check: true });
+
+        let r = false;
+
+        lvl++;
+        while ((r === false) && (lvl < tested.length)) {
+            r = this.matchingExpression(b, tested, lvl, { ignore_end_check: true });
+            lvl++;
+        }
+
+        lvl--;
+        if (r === true) {
+            r = this.matchingExpression(b, tested, lvl);
+        }
+
+        b = r;
+
+        return a && b;
+    }
+
+    testTowardAll(a, b, tested, lvl) {
         a = this.matchingExpression(a, tested, lvl, { ignore_end_check: true });
 
         let r = false;
@@ -208,15 +231,15 @@ class Composer {
 
         let r = false;
         if (isEmpty(test)) {
-            r = true;
+            r = isEmpty(tested);
         } else if (isEmpty(tested)) {
             r = false;
         } else if (typeof test === 'boolean') {
             r = test;
         } else if (this.isTag(test)) {
             r = this.matchingTag(test, tested, lvl);
-            if (r && !opts.ignore_end_check && this.isEnd(test)) {
-                r &= (lvl === (tested.length - 1));
+            if (r && !opts.ignore_end_check) {
+                r = r && (lvl === (tested.length - 1));
             }
         } else {
             switch (test.op) {
@@ -236,7 +259,10 @@ class Composer {
                     r = this.testTo(test.a, test.b, tested, lvl);
                     break;
                 case '>>':
-                    r = this.testToward(test.a, test.b, tested, lvl);
+                    r = this.testTowardGreedy(test.a, test.b, tested, lvl);
+                    break;
+                case '>>>':
+                    r = this.testTowardAll(test.a, test.b, tested, lvl);
                     break;
                 case '<':
                     r = this.testParent(test.a, test.b, tested, lvl);
@@ -246,7 +272,7 @@ class Composer {
                     break;
             }
             if (r && !opts.ignore_end_check && this.isEnd(test)) {
-                r &= (lvl === (tested.length - 1));
+                r = r && (lvl === (tested.length - 1));
             }
         }
 
@@ -283,32 +309,27 @@ class Composer {
     }
 
     traverseModule(test, command, template = null) {
-        let matched;
-        if (isEmpty(test)) {
-            matched = true;
-        } else {
-            matched = this.matchingExpression(test, this.getContext(), 0);
-        }
+        const matched = this.matchingExpression(test, this.getContext(), 0);
 
-        if (!matched) {
-            const target = this.target.peek();
-            target.enterPos(alias.nested);
-            if (!target.isPosEmpty()) {
-                target.enterPos(0);
-                while (!target.isPosEmpty()) {
-                    this.traverseModule(test, command, template);
-                    if (this.nested_deleted) {
-                        break;
-                    } else {
-                        target.nextItem();
-                    }
-                }
-                if (!this.nested_deleted) {
-                    target.leavePos();
+        const target = this.target.peek();
+        target.enterPos(alias.nested);
+        if (!target.isPosEmpty()) {
+            target.enterPos(0);
+            while (!target.isPosEmpty()) {
+                this.traverseModule(test, command, template);
+                if (this.nested_deleted) {
+                    break;
+                } else {
+                    target.nextItem();
                 }
             }
-            target.leavePos();
+            if (this.nested_deleted) {
+                this.nested_deleted = false;
+            } else {
+                target.leavePos();
+            }
         }
+        target.leavePos();
 
         if (matched) {
             this.composeModule(command, template);

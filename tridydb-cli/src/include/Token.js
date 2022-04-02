@@ -19,15 +19,34 @@ export class Token {
         ;
     }
 
-    isBinaryOpContextToken() {
+    isBasicBinaryOpContextToken() {
         return false ||
             this.is('o', '&') ||
             this.is('o', '^') ||
-            this.is('o', '|') ||
+            this.is('o', '|')
+        ;
+    }
+
+    isTransitoryNestedOpContextToken() {
+        return false ||
             this.is('o', '>') ||
             this.is('o', '>>') ||
+            this.is('o', '>>>')
+        ;
+    }
+
+    isNonTransitoryNestedOpContextToken() {
+        return false ||
             this.is('o', '<') ||
             this.is('o', '<<')
+        ;
+    }
+
+    isBinaryOpContextToken() {
+        return false ||
+            this.isBasicBinaryOpContextToken() ||
+            this.isTransitoryNestedOpContextToken() ||
+            this.isNonTransitoryNestedOpContextToken()
         ;
     }
 
@@ -48,6 +67,10 @@ export class Token {
                 case 'any':
                 case '*':
                     this.to('t', '*');
+                    break;
+                case 'leaf':
+                case '%':
+                    this.to('t', '%');
                     break;
                 case 'random':
                 case '?':
@@ -78,6 +101,10 @@ export class Token {
                 case 'toward':
                 case '>>':
                     this.to('o', '>>');
+                    break;
+                case 'toall':
+                case '>>>':
+                    this.to('o', '>>>');
                     break;
                 case 'parent':
                 case '<':
