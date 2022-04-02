@@ -1,12 +1,12 @@
 export class Token {
-    constructor(type, val, pos) {
-        this.type = type;
-        this.val  = val;
-        this.pos  = pos;
-        this.orig = {
-            type: type,
-            val:  val
-        };
+    constructor(type, val, debug = { }) {
+        this.type  = type;
+        this.val   = val;
+        this.debug = debug;
+        if (!debug.type) {
+            this.debug.type = this.type;
+            this.debug.val  = this.val;
+        }
     }
 
     is(type = null, value = null) {
@@ -16,6 +16,21 @@ export class Token {
     isUnaryOpContextToken() {
         return false ||
             this.is('o', '!')
+        ;
+    }
+
+    isExpressionStarterContextToken() {
+        return false ||
+            this.is('t') ||
+            this.isUnaryOpContextToken() ||
+            this.is('o', '(')
+        ;
+    }
+
+    isExpressionEnderContextToken() {
+        return false ||
+            this.is('t') ||
+            this.is('o', ')')
         ;
     }
 
@@ -50,77 +65,62 @@ export class Token {
         ;
     }
 
-    to(type = null, val = null) {
-        if (type != null) {
-            this.type = type;
-        }
-        if (val != null) {
-            this.val = val;
-        }
+    to(type, val) {
+        return new Token(type, val, this.debug);
     }
 
     toContextToken() {
         if (this.type == 'tag') {
-            this.to('t', this.val);
+            return this.to('t', this.val);
         } else if ((this.type == 'key') || (this.type == 'punc')) {
             switch (this.val) {
                 case 'any':
                 case '*':
-                    this.to('t', '*');
-                    break;
+                    return this.to('t', '*');
                 case 'leaf':
                 case '%':
-                    this.to('t', '%');
-                    break;
+                    return this.to('t', '%');
                 case 'random':
                 case '?':
-                    this.to('t', '?');
-                    break;
+                    return this.to('t', '?');
                 case 'not':
                 case '!':
-                    this.to('o', '!');
-                    break;
+                    return this.to('o', '!');
                 case 'and':
                 case '&':
-                    this.to('o', '&');
-                    break;
+                    return this.to('o', '&');
                 case 'xor':
                 case '^':
-                    this.to('o', '^');
-                    break;
+                    return this.to('o', '^');
                 case 'or':
                 case '|':
                 case ',':
-                    this.to('o', '|');
-                    break;
+                    return this.to('o', '|');
                 case 'to':
                 case '/':
                 case '>':
-                    this.to('o', '>');
-                    break;
+                    return this.to('o', '>');
                 case 'toward':
                 case '>>':
-                    this.to('o', '>>');
-                    break;
+                    return this.to('o', '>>');
                 case 'toall':
                 case '>>>':
-                    this.to('o', '>>>');
-                    break;
+                    return this.to('o', '>>>');
                 case 'parent':
                 case '<':
-                    this.to('o', '<');
-                    break;
+                    return this.to('o', '<');
                 case 'ascend':
                 case '<<':
-                    this.to('o', '<<');
-                    break;
+                    return this.to('o', '<<');
                 case '(':
-                    this.to('o', '(');
-                    break;
+                    return this.to('o', '(');
                 case ')':
-                    this.to('o', ')');
-                    break;
+                    return this.to('o', ')');
+                default:
+                    return this.to(this.type, this.val);
             }
+        } else {
+            return this.to(this.type, this.val);
         }
     }
 

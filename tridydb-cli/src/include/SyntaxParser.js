@@ -14,58 +14,52 @@ class SyntaxParser {
 
     handleUnexpected() {
         const token = this.tokens.peek();
-        switch (token.orig.type) {
+        switch (token.debug.type) {
             case 'key':
-                throw new SyntaxError(`line ${token.pos.line}, col ${token.pos.col}: Unexpected keyword "${token.orig.val}".`);
+                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected keyword "${token.debug.val}".`);
             default:
-                throw new SyntaxError(`line ${token.pos.line}, col ${token.pos.col}: Unexpected token "${token.orig.val}".`);
+                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected token "${token.debug.val}".`);
         }
     }
 
-    readWhileContextExpressionTerminal() {
-        let context = [ ];
+    getContextImplicitBinaryOp () {
+        return new Token('o', '&');
+    }
 
-        let current = this.tokens.peek();
-        current.toContextToken();
+    handleWhileContextTerminal(context) {
+        let current = this.tokens.peek().toContextToken();
+
         if (current.is('t')) {
             context.push(current);
 
-            this.tokens.next();
-            current = this.tokens.peek();
-            current.toContextToken();
-            while (current.is('t')) {
-                context.push(new Token('o', '&'));
-                context.push(current);
-
-                this.tokens.next();
-                current = this.tokens.peek();
-                current.toContextToken();
-            }
+            current = this.tokens.next().toContextToken();
         }
 
-        return context;
+        while (current.is('t')) {
+            context.push(this.getContextImplicitBinaryOp());
+            context.push(current);
+
+            current = this.tokens.next().toContextToken();
+        }
     }
 
-    handleWhileUnaryOpContextTokens(context) {
-        let current = this.tokens.peek();
-        current.toContextToken();
+    handleWhileContextUnaryOp(context) {
+        let current = this.tokens.peek().toContextToken();
+
         while (current.isUnaryOpContextToken()) {
             context.push(current);
 
-            this.tokens.next();
-            current = this.tokens.peek();
-            current.toContextToken();
+            current = this.tokens.next().toContextToken();
         }
     }
-    
-    handleBinaryOpContextToken(context) {
-        const isPreviousTaglikeContextToken = () => {
-            return (!isEmpty(context) && ((context[context.length - 1].is('t')) || (context[context.length - 1].is('o', ')'))));
-        }
 
-        if (isPreviousTaglikeContextToken()) {
-            const current = this.tokens.peek();
-            current.toContextToken();
+    isPreviousContextExpression(context) {
+        return (!isEmpty(context) && context[context.length - 1].isExpressionEnderContextToken());
+    }
+    
+    handleContextBinaryOp(context) {
+        if (this.isPreviousContextExpression(context)) {
+            const current = this.tokens.peek().toContextToken();
             context.push(current);
             this.tokens.next();
         } else {
@@ -73,15 +67,45 @@ class SyntaxParser {
         }
     }
 
-    handleContextSubExpression(context) {
-        let is_enclosed = false;
+    handleContextExpressionInner(context) {
+        let current;
+        let runs = 0;
 
+        while (true) {
+            current = this.tokens.peek().toContextToken();
+            if (current.isExpressionStarterContextToken()) {
+                if (this.isPreviousContextExpression(context)) {
+                    context.push(this.getContextImplicitBinaryOp());
+                }
+
+                if (current.is('t')) {
+                    this.handleWhileContextTerminal(context);
+                } else if (current.isUnaryOpContextToken() || current.is('o', '(')) {
+                    this.handleContextExpressionOuter(context);
+                }
+            } else if (current.isBinaryOpContextToken()) {
+                this.handleContextBinaryOp(context);
+                this.handleContextExpressionOuter(context);
+            } else {
+                break;
+            }
+
+            runs++;
+        }
+
+        if (runs === 0) {
+            this.handleUnexpected();
+        }
+    }
+
+    handleContextExpressionOuter(context) {
         let current;
 
-        this.handleWhileUnaryOpContextTokens(context);
+        this.handleWhileContextUnaryOp(context);
 
-        current = this.tokens.peek();
-        current.toContextToken();
+        let is_enclosed = false;
+
+        current = this.tokens.peek().toContextToken();
         if (current.is('o', '(')) {
             context.push(current);
             this.tokens.next();
@@ -89,46 +113,10 @@ class SyntaxParser {
             is_enclosed = true;
         }
         
-        this.handleWhileUnaryOpContextTokens(context);
-
-        let sub;
-        let runs = 0;
-        while (true) {
-            sub = this.readWhileContextExpressionTerminal();
-            if (isEmpty(sub)) {
-                current = this.tokens.peek();
-                current.toContextToken();
-                if (current.isUnaryOpContextToken() || current.is('o', '(')) {
-                    if (runs > 0) {
-                        context.push(new Token('o', '&'));
-                    }
-
-                    sub = this.readWhileContextExpression();
-                } else if (current.isBinaryOpContextToken()) {
-                    this.handleBinaryOpContextToken(context);
-                    
-                    sub = this.readWhileContextExpression();
-                }
-            }
-            
-            for (const token of sub) {
-                context.push(token);
-            }
-
-            if (isEmpty(sub)) {
-                break;
-            } else {
-                runs++;
-            }
-        }
-
-        if (runs === 0) {
-            this.handleUnexpected();
-        }
+        this.handleContextExpressionInner(context);
 
         if (is_enclosed) {
-            current = this.tokens.peek();
-            current.toContextToken();
+            current = this.tokens.peek().toContextToken();
             if (current.is('o', ')')) {
                 context.push(current);
                 this.tokens.next();
@@ -140,17 +128,20 @@ class SyntaxParser {
 
     readWhileContextExpression() {
         let context = [ ];
+        let current;
 
-        this.handleContextSubExpression(context);
+        this.handleContextExpressionOuter(context);
 
-        let current = this.tokens.peek();
-        current.toContextToken();
-        while (current.isBinaryOpContextToken()) {
-            this.handleBinaryOpContextToken(context);
-            this.handleContextSubExpression(context);
-
-            current = this.tokens.peek();
-            current.toContextToken();
+        while (true) {
+            current = this.tokens.peek().toContextToken();
+            if (current.isExpressionStarterContextToken()) {
+                this.handleContextExpressionOuter(context);
+            } else if (current.isBinaryOpContextToken()) {
+                this.handleContextBinaryOp(context);
+                this.handleContextExpressionOuter(context);
+            } else {
+                break;
+            }
         }
 
         return context;
