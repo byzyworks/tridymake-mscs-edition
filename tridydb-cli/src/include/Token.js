@@ -49,13 +49,9 @@ export class Token {
                 case '*':
                     this.to('t', '*');
                     break;
-                case 'root':
-                case '~':
-                    this.to('t', '~');
-                    break;
-                case 'end':
-                case '%':
-                    this.to('t', '%');
+                case 'random':
+                case '?':
+                    this.to('t', '?');
                     break;
                 case 'not':
                 case '!':

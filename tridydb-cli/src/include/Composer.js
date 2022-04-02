@@ -67,10 +67,22 @@ class Composer {
         return (typeof obj === 'string');
     }
 
+    isEnd(test) {
+        if (this.isTag(test)) {
+            return true;
+        } else if ((test.op === '>') || (test.op === '>>')) {
+            return false;
+        } else {
+            return this.isEnd(test.a) && (!test.b || this.isEnd(test.b));
+        }
+    }
+
     matchingTag(test, tested, lvl) {
         switch (test) {
-            case '@any':
+            case '*':
                 return true;
+            case '?':
+                return (Math.random() >= 0.5);
             default:
                 if (!isEmpty(tested[lvl])) {
                     for (const tag of tested[lvl]) {
@@ -111,37 +123,19 @@ class Composer {
     }
 
     testTo(a, b, tested, lvl) {
-        a = this.matchingExpression(a, tested, lvl);
-
-        let r = false;
-        lvl++;
-        if (lvl < tested.length) {
-            if (this.isTag(b)) {
-                if (lvl === tested.length - 1) {
-                    r = this.matchingTag(b, tested, lvl);
-                }
-            } else {
-                r = this.matchingExpression(b, tested, lvl);
-            }
-        }
-        b = r;
+        a = this.matchingExpression(a, tested, lvl, { ignore_end_check: true });
+        b = this.matchingExpression(b, tested, lvl + 1);
 
         return a && b;
     }
 
     testToward(a, b, tested, lvl) {
-        a = this.matchingExpression(a, tested, lvl);
+        a = this.matchingExpression(a, tested, lvl, { ignore_end_check: true });
 
         let r = false;
         lvl++;
         while ((r === false) && (lvl < tested.length)) {
-            if (this.isTag(b)) {
-                if (lvl === tested.length - 1) {
-                    r = this.matchingTag(b, tested, lvl);
-                }
-            } else {
-                r = this.matchingExpression(b, tested, lvl);
-            }
+            r = this.matchingExpression(b, tested, lvl);
             lvl++;
         }
         b = r;
@@ -209,33 +203,54 @@ class Composer {
         return a && b;
     }
 
-    matchingExpression(test, tested, lvl) {
-        if (isEmpty(tested)) {
-            return false;
+    matchingExpression(test, tested, lvl, opts = { }) {
+        opts.ignore_end_check = opts.ignore_end_check ?? false;
+
+        let r = false;
+        if (isEmpty(test)) {
+            r = true;
+        } else if (isEmpty(tested)) {
+            r = false;
         } else if (typeof test === 'boolean') {
-            return test;
+            r = test;
         } else if (this.isTag(test)) {
-            return this.matchingTag(test, tested, lvl);
+            r = this.matchingTag(test, tested, lvl);
+            if (r && !opts.ignore_end_check && this.isEnd(test)) {
+                r &= (lvl === (tested.length - 1));
+            }
         } else {
             switch (test.op) {
                 case '!':
-                    return this.testNot(test.a, tested, lvl);
+                    r = this.testNot(test.a, tested, lvl);
+                    break;
                 case '&':
-                    return this.testAnd(test.a, test.b, tested, lvl);
+                    r = this.testAnd(test.a, test.b, tested, lvl);
+                    break;
                 case '^':
-                    return this.testXor(test.a, test.b, tested, lvl);
+                    r = this.testXor(test.a, test.b, tested, lvl);
+                    break;
                 case '|':
-                    return this.testOr(test.a, test.b, tested, lvl);
+                    r = this.testOr(test.a, test.b, tested, lvl);
+                    break;
                 case '>':
-                    return this.testTo(test.a, test.b, tested, lvl);
+                    r = this.testTo(test.a, test.b, tested, lvl);
+                    break;
                 case '>>':
-                    return this.testToward(test.a, test.b, tested, lvl);
+                    r = this.testToward(test.a, test.b, tested, lvl);
+                    break;
                 case '<':
-                    return this.testParent(test.a, test.b, tested, lvl);
+                    r = this.testParent(test.a, test.b, tested, lvl);
+                    break;
                 case '<<':
-                    return this.testAscend(test.a, test.b, tested, lvl);
+                    r = this.testAscend(test.a, test.b, tested, lvl);
+                    break;
+            }
+            if (r && !opts.ignore_end_check && this.isEnd(test)) {
+                r &= (lvl === (tested.length - 1));
             }
         }
+
+        return r;
     }
 
     composeModule(command, template = null) {
