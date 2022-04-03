@@ -57,7 +57,7 @@ class StatementParser {
                 this.last_depth--;
 
                 if (this.last_depth < 0) {
-                    throw new SyntaxError(`line ${pool[idx].pos.line}, col ${pool[idx].pos.col}: Unexpected token "}".`);
+                    throw new SyntaxError(`line ${pool[idx].debug.line}, col ${pool[idx].debug.col}: Unexpected token "}".`);
                 }
             }
 

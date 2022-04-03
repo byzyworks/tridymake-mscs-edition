@@ -233,11 +233,8 @@ class SyntaxParser {
     handleHandleDefinition() {
         if (this.tokens.peek().is('key', 'none')) {
             this.tokens.next();
-        } else if (this.tokens.peek().is('tag') || this.tokens.peek().is('var')) {
+        } else if (this.tokens.peek().is('tag')) {
             const token = this.tokens.peek().val;
-            if (this.tokens.peek().is('var')) {
-                token = '$' + token;
-            }
             
             this.astree.enterSetAndLeave([alias.handle], token);
             this.astree.enterSetAndLeave([alias.tags], [token]);
@@ -251,11 +248,8 @@ class SyntaxParser {
     readWhileTag() {                            
         const tags = [ ];
         while (true) {
-            if (this.tokens.peek().is('tag') || this.tokens.peek().is('var')) {
+            if (this.tokens.peek().is('tag')) {
                 let new_tag = this.tokens.peek().val;
-                if (this.tokens.peek().is('var')) {
-                    new_tag = '$' + new_tag;
-                }
 
                 for (const current_tag of tags) {
                     if (new_tag == current_tag) {

@@ -59,10 +59,10 @@ class TokenParser {
                 is_escaped = false;
             } else if (this.isEscape(ch)) {
                 is_escaped = true;
-            } else if (ch == '#') {
+            } else if (ch === '#') {
                 this.mode.push('com');
                 break;
-            } else if (ch == '@') {
+            } else if (ch === '@') {
                 this.mode.push('key');
                 break;
             } else {
@@ -82,44 +82,33 @@ class TokenParser {
 
         const ch = this.parser.peek();
 
-        if (ch == '#') {
+        if (ch === '#') {
             this.mode.push('com');
             this.parser.next();
         }
-        if (this.mode.peek() == 'com') {
+        if (this.mode.peek() === 'com') {
             this.mode.pop();
             this.readComment();
 
             return this.readNext();
         }
 
-        if (ch == '@') {
+        if (ch === '@') {
             this.mode.push('key');
             this.parser.next();
         }
-        if (this.mode.peek() == 'key') {
+        if (this.mode.peek() === 'key') {
             this.mode.pop();
             const keyword = this.readKeyword();
 
             return keyword;
         }
 
-        if (ch == '$') {
-            this.mode.push('var');
-            this.parser.next();
-        }
-        if (this.mode.peek() == 'var') {
-            this.mode.pop();
-            const keyword = this.readVariable();
-
-            return keyword;
-        }
-
-        if (this.mode.peek() == 'json') {
+        if (this.mode.peek() === 'json') {
             return this.readJSON();
         }
 
-        if (this.isIdentifier(ch)) {
+        if (this.isIdentifier(ch) || this.isVariableStart(ch)) {
             return this.readTag();
         }
 
@@ -163,12 +152,12 @@ class TokenParser {
             throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "@".`);
         }
 
-        if (keyword == 'json') {
+        if (keyword === 'json') {
             if (this.mode.peek() != 'json') {
                 this.mode.push('json');
             }
-        } else if (keyword == 'end') {
-            if (this.mode.peek() == 'json') {
+        } else if (keyword === 'end') {
+            if (this.mode.peek() === 'json') {
                 this.mode.pop();
             }
         }
@@ -176,23 +165,55 @@ class TokenParser {
         return new Token('key', keyword, pos);
     }
 
-    readVariable() {
-        const pos = this.getPos();
-        pos.col--;
+    readTagRecursive(pos) {
+        let tag = '';
 
-        const variable = this.readWhilePred(this.isIdentifier);
+        let enclosure_cnt = 0;
 
-        if (isEmpty(variable)) {
-            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "$".`);
+        tag += this.readWhilePred((ch) => {
+            return ch === '$';
+        });
+
+        if (!isEmpty(tag)) {
+            while (!this.parser.isEOF() && (this.parser.peek() === '{')) {
+                tag += this.parser.next();
+    
+                enclosure_cnt++;
+            }
         }
 
-        return new Token('var', variable, pos);
+        let ch;
+        while (true) {
+            ch = this.parser.peek();
+            if (this.isVariableStart(ch)) {
+                tag += this.readTagRecursive();
+            } else if (this.isIdentifier(ch)) {
+                tag += this.readWhilePred(this.isIdentifier);
+            } else {
+                break;
+            }
+        }
+
+        while ((enclosure_cnt > 0) && !this.parser.isEOF() && (this.parser.peek() === '}')) {
+            tag += this.parser.next();
+
+            enclosure_cnt--;
+        }
+
+        if (enclosure_cnt !== 0) {
+            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Missing closing bracket in variable "${tag}".`);
+        }
+
+        return tag;
     }
 
     readTag() {
         const pos = this.getPos();
 
-        const tag = this.readWhilePred(this.isIdentifier);
+        let tag = '';
+        do {
+            tag += this.readTagRecursive(pos);
+        } while (this.isTag(this.parser.peek()));
 
         return new Token('tag', tag, pos);
     }
@@ -206,7 +227,7 @@ class TokenParser {
 
         const curr = this.parser.peek();
         const punc = this.readWhilePred((ch) => {
-            return ch == curr;
+            return ch === curr;
         });
 
         return new Token('punc', punc, pos);
@@ -234,6 +255,14 @@ class TokenParser {
 
     isMultiPunc(ch) {
         return /[<>]/g.test(ch);
+    }
+
+    isVariableStart(ch) {
+        return /[$]/g.test(ch);
+    }
+
+    isTag(ch) {
+        return this.isIdentifier(ch) || this.isVariableStart(ch);
     }
 
     getPos() {
