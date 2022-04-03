@@ -21,7 +21,7 @@ class CharParser {
 
     next() {
         const ch = this.input.charAt(this.pos++);
-        if (ch == "\n") {
+        if (ch === "\n") {
             this.line++;
             this.col = 0;
         } else {
@@ -36,7 +36,7 @@ class CharParser {
     }
 
     isEOF() {
-        return this.peek() == '';
+        return this.peek() === '';
     }
 
     getLine() {

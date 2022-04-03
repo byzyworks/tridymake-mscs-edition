@@ -1,0 +1,15 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b first;
+
+@in a/b @new @none @as b middle;
+
+@in a/b/b @new @none @as b last;
+
+@in a/b/b/b @new @none @as a;
+
+@in a>>>b&!(b<<b) @new @none @as c tolast;
+
+@get;
