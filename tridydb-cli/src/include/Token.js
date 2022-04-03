@@ -146,7 +146,8 @@ export class Token {
 
     isRawInputToken() {
         return false ||
-            this.is('key', 'json')
+            this.is('key', 'json') ||
+            this.is('key', 'yaml')
         ;
     }
 }

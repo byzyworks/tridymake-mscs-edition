@@ -1,0 +1,28 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b;
+
+@in a @new @none @as b;
+
+@in a @new @none @as b;
+
+@in a @new @none @as c;
+
+@in a @new @none @as c;
+
+@in a @new @none @as c;
+
+@in a/c @set @yaml
+---
+tags:
+  - d
+free: { }
+tree:
+-
+    tags:
+      - e
+@end;
+
+@get;

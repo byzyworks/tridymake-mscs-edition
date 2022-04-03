@@ -74,7 +74,9 @@ class TokenParser {
     }
 
     readNext() {
-        this.readWhilePred(this.isWhitespace);
+        if (this.mode.peek() !== 'yaml') {
+            this.readWhilePred(this.isWhitespace);
+        }
 
         if (this.parser.isEOF()) {
             return null;
@@ -104,8 +106,11 @@ class TokenParser {
             return keyword;
         }
 
-        if (this.mode.peek() === 'json') {
+        const mode = this.mode.peek();
+        if (mode === 'json') {
             return this.readJSON();
+        } else if (mode === 'yaml') {
+            return this.readYAML();
         }
 
         if (this.isIdentifier(ch) || this.isVariableStart(ch)) {
@@ -142,6 +147,14 @@ class TokenParser {
         return new Token('part', part, pos);
     }
 
+    readYAML() {
+        const pos = this.getPos();
+
+        const part = this.readWhileEscaped().replace(/\s+$/gm, '');
+
+        return new Token('part', part, pos);
+    }
+
     readKeyword() {
         const pos = this.getPos();
         pos.col--;
@@ -152,14 +165,24 @@ class TokenParser {
             throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "@".`);
         }
 
-        if (keyword === 'json') {
-            if (this.mode.peek() != 'json') {
-                this.mode.push('json');
-            }
-        } else if (keyword === 'end') {
-            if (this.mode.peek() === 'json') {
-                this.mode.pop();
-            }
+        switch (keyword) {
+            case 'json':
+                if (this.mode.peek() != 'json') {
+                    this.mode.push('json');
+                }
+                break;
+            case 'yaml':
+                if (this.mode.peek() != 'yaml') {
+                    this.mode.push('yaml');
+                }
+                break;
+            case 'end':
+                switch (this.mode.peek()) {
+                    case 'json':
+                    case 'yaml':
+                        this.mode.pop();
+                        break;
+                }
         }
 
         return new Token('key', keyword, pos);

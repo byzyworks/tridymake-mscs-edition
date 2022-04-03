@@ -1,3 +1,6 @@
+import * as yaml        from 'js-yaml';
+import { v4 as uuidv4 } from 'uuid';
+
 import { parser as infixParser } from './InfixParser.js';
 import { StateTree }             from './StateTree.js';
 import { Token }                 from './Token.js';
@@ -8,9 +11,7 @@ import { SyntaxError }    from '../utility/error.js';
 export let interactive_exit = false;
 
 class SyntaxParser {
-    constructor() {
-        this.infix_parser = infixParser;
-    }
+    constructor() { }
 
     handleUnexpected() {
         const token = this.tokens.peek();
@@ -153,14 +154,19 @@ class SyntaxParser {
             this.handleUnexpected();
         }
 
-        context = this.infix_parser.parse(context);
+        context = infixParser.parse(context);
     
         this.astree.enterSetAndLeave(['context'], context);
     }
 
-    readWhileRaw() {
+    readWhileRaw(opts = { }) {
+        opts.multiline = opts.multiline ?? false;
+
         let data = '';
         while (this.tokens.peek().is('part')) {
+            if (opts.multiline) {
+                data += "\n";
+            }
             data += this.tokens.peek().val;
 
             this.tokens.next();
@@ -172,11 +178,18 @@ class SyntaxParser {
     readWhileRawAndParse() {
         let type;
         let data;
-        if (this.tokens.peek().is('key', 'json')) {
+
+        const current = this.tokens.peek();
+        if (current.is('key', 'json')) {
             type = 'json';
             this.tokens.next();
             
-            data = this.readWhileRaw().replace(/\\/g, '\\\\');
+            data = this.readWhileRaw({ multiline: false }).replace(/\\/g, '\\\\');
+        } else if (current.is('key', 'yaml')) {
+            type = 'yaml';
+            this.tokens.next();
+            
+            data = this.readWhileRaw({ multiline: true }).replace(/^\s*/, '');
         } else {
             this.handleUnexpected();
         }
@@ -186,6 +199,9 @@ class SyntaxParser {
             switch (type) {
                 case 'json':
                     parsed = JSON.parse(data);
+                    break;
+                case 'yaml':
+                    parsed = yaml.load(data);
                     break;
             }
         } catch (err) {
@@ -247,8 +263,10 @@ class SyntaxParser {
 
     readWhileTag() {                            
         const tags = [ ];
+
+        let current = this.tokens.peek();
         while (true) {
-            if (this.tokens.peek().is('tag')) {
+            if (current.is('tag')) {
                 let new_tag = this.tokens.peek().val;
 
                 for (const current_tag of tags) {
@@ -260,9 +278,15 @@ class SyntaxParser {
                 tags.push(new_tag);
                 
                 this.tokens.next();
+            } else if (current.is('key', 'uuid')) {
+                tags.push(uuidv4());
+
+                this.tokens.next();
             } else {
                 break;
             }
+
+            current = this.tokens.peek();
         }
     
         return tags;
