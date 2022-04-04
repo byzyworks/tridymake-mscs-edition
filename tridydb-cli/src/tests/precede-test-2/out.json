@@ -1,0 +1,151 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "f"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "skipped"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "e"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "d"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "d",
+                                            "c"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "d",
+                                            "c",
+                                            "b"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "d",
+                                            "c",
+                                            "b",
+                                            "a"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "c"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "c",
+                                            "b"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "c",
+                                            "b",
+                                            "a"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "b"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "b",
+                                            "a",
+                                            "ignored"
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "a"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

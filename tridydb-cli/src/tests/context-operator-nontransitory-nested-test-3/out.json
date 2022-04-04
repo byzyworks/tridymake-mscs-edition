@@ -1,0 +1,72 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "d"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "non-transitory-test"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "non-transitory-test"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "ignored"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "ignored2"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "d"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "ignored3"
+                ]
+            }
+        ]
+    }
+]

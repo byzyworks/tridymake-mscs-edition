@@ -1,0 +1,56 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "not-b-test"
+                        ],
+                        "type": "not-b-test"
+                    },
+                    {
+                        "tags": [
+                            "not-b-test"
+                        ],
+                        "type": "not-b-test"
+                    },
+                    {
+                        "tags": [
+                            "not-b-test"
+                        ],
+                        "type": "not-b-test"
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "b"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "not-a-test"
+                        ],
+                        "type": "not-a-test"
+                    },
+                    {
+                        "tags": [
+                            "not-a-test"
+                        ],
+                        "type": "not-a-test"
+                    },
+                    {
+                        "tags": [
+                            "not-a-test"
+                        ],
+                        "type": "not-a-test"
+                    }
+                ]
+            }
+        ]
+    }
+]

@@ -1,12 +1,16 @@
 @tridy;
 
-@new @none @as a;
+@new @none @as a gets-d-and-e;
 
 @in a @new @none @as b;
 
 @in a/b @new @none @as c;
 
-@new @none @as a ignored;
+@new @none @as a gets-only-d;
+
+@in a gets-only-d @new @none @as b;
+
+@new @none @as a gets-neither-d-or-e;
 
 @in (a @parent b) & (a < b) @new @none @as d;
 

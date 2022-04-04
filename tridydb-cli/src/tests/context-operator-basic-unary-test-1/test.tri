@@ -12,8 +12,8 @@
 
 @in @not b @new not-b-test;
 
-@in @not ! b @new not-a-test;
+@in @not @not b @new not-a-test;
 
-@in @not ! @not b @new not-b-test;
+@in @not @not @not b @new not-b-test;
 
 @get;

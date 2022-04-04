@@ -1,0 +1,60 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a",
+                    "gets-d-and-e"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "d"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "e"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "gets-only-d"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "d"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "gets-neither-d-or-e"
+                ]
+            }
+        ]
+    }
+]

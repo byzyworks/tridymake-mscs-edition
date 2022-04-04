@@ -1,0 +1,104 @@
+[
+    {
+        "tree": [
+            {
+                "tree": [
+                    {
+                        "tags": [
+                            "nand-test"
+                        ],
+                        "type": "nand-test"
+                    },
+                    {
+                        "tags": [
+                            "xnor-test"
+                        ],
+                        "type": "xnor-test"
+                    },
+                    {
+                        "tags": [
+                            "nor-test"
+                        ],
+                        "type": "nor-test"
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "xor-test"
+                        ],
+                        "type": "xor-test"
+                    },
+                    {
+                        "tags": [
+                            "or-test"
+                        ],
+                        "type": "or-test"
+                    },
+                    {
+                        "tags": [
+                            "nand-test"
+                        ],
+                        "type": "nand-test"
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "b"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "xor-test"
+                        ],
+                        "type": "xor-test"
+                    },
+                    {
+                        "tags": [
+                            "or-test"
+                        ],
+                        "type": "or-test"
+                    },
+                    {
+                        "tags": [
+                            "nand-test"
+                        ],
+                        "type": "nand-test"
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "b"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "and-test"
+                        ],
+                        "type": "and-test"
+                    },
+                    {
+                        "tags": [
+                            "or-test"
+                        ],
+                        "type": "or-test"
+                    },
+                    {
+                        "tags": [
+                            "xnor-test"
+                        ],
+                        "type": "xnor-test"
+                    }
+                ]
+            }
+        ]
+    }
+]

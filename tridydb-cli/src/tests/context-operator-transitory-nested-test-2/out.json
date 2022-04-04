@@ -1,0 +1,94 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b",
+                            "skipped"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "c"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "d",
+                                                    "skipped"
+                                                ],
+                                                "tree": [
+                                                    {
+                                                        "tags": [
+                                                            "e"
+                                                        ],
+                                                        "tree": [
+                                                            {
+                                                                "tags": [
+                                                                    "f"
+                                                                ],
+                                                                "tree": [
+                                                                    {
+                                                                        "tags": [
+                                                                            "transitory-test"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "tags": [
+                                                                    "g",
+                                                                    "ignored"
+                                                                ],
+                                                                "tree": [
+                                                                    {
+                                                                        "tags": [
+                                                                            "f",
+                                                                            "ignored"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "tags": [
+                                                                    "e",
+                                                                    "ignored"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "tags": [
+                                                            "d",
+                                                            "ignored"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "tags": [
+                                                    "d",
+                                                    "ignored"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

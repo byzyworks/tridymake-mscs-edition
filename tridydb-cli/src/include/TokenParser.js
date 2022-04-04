@@ -134,9 +134,6 @@ class TokenParser {
         this.readWhilePred((ch) => {
             return ch != "\n";
         })
-
-        this.mode = new Stack();
-        this.parser.next();
     }
 
     readJSON() {
@@ -249,10 +246,18 @@ class TokenParser {
         const pos = this.getPos();
 
         const curr = this.parser.peek();
-        const punc = this.readWhilePred((ch) => {
+
+        let punc = this.readWhilePred((ch) => {
             return ch === curr;
         });
 
+        if (curr === '!') {
+            punc = punc.replace(/!!/g, '');
+            if (punc === '') {
+                return this.readNext();
+            }
+        }
+        
         return new Token('punc', punc, pos);
     }
     
@@ -273,11 +278,11 @@ class TokenParser {
     }
 
     isPunc(ch) {
-        return /[~!%^&*()+=\[\]{}|:;,./?]/g.test(ch);
+        return /[~%^&*()+=\[\]{}|:;,./?]/g.test(ch);
     }
 
     isMultiPunc(ch) {
-        return /[<>]/g.test(ch);
+        return /[!<>]/g.test(ch);
     }
 
     isVariableStart(ch) {

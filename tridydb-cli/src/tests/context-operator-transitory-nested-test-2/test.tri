@@ -1,0 +1,29 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b skipped;
+
+@in a/b @new @none @as c;
+
+@in a/b/c @new @none @as c;
+
+@in a/b/c/c @new @none @as d skipped;
+
+@in a/b/c/c/d @new @none @as e;
+
+@in a/b/c/c/d/e @new @none @as f;
+
+@in a/b/c/c/d/e @new @none @as g ignored;
+
+@in a/b/c/c/d/e/g @new @none @as f ignored;
+
+@in a/b/c/c/d/e @new @none @as e ignored;
+
+@in a/b/c/c/d @new @none @as d ignored;
+
+@in a/b/c/c @new @none @as d ignored;
+
+@in a >>> c >> e > f @new @none @as transitory-test;
+
+@get;

@@ -1,0 +1,42 @@
+[
+    {
+        "tree": [
+            {},
+            {},
+            {
+                "tags": [
+                    "tag-test"
+                ],
+                "type": "tag-test"
+            },
+            {
+                "type": "tag-test"
+            },
+            {
+                "tags": [
+                    "tag-test"
+                ]
+            },
+            {
+                "tags": [
+                    "a"
+                ],
+                "type": "tag-test"
+            },
+            {
+                "tags": [
+                    "b"
+                ],
+                "type": "tag-test"
+            },
+            {
+                "tags": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "type": "tag-test"
+            }
+        ]
+    }
+]

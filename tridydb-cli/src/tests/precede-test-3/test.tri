@@ -8,6 +8,12 @@
 
 @in a/b @new @none @as d;
 
+@in a/b @new @none @as e ignored;
+
+@in a @new @none @as f ignored;
+
+@new @none @as g ignored;
+
 @in a > ((b > c) | (b > d)) @new @none @as precedence-test;
 
 @get;

@@ -105,7 +105,12 @@ class Composer {
 
     testAnd(a, b, tested, lvl) {
         a = this.matchingExpression(a, tested, lvl);
-        b = this.matchingExpression(b, tested, lvl);
+        
+        let r = false;
+        if (a === true) {
+            r = this.matchingExpression(b, tested, lvl);
+        }
+        b = r;
 
         return a && b;
     }
@@ -119,14 +124,24 @@ class Composer {
 
     testOr(a, b, tested, lvl) {
         a = this.matchingExpression(a, tested, lvl);
-        b = this.matchingExpression(b, tested, lvl);
+
+        let r = false;
+        if (a === false) {
+            r = this.matchingExpression(b, tested, lvl);
+        }
+        b = r;
 
         return a || b;
     }
 
     testTo(a, b, tested, lvl) {
         a = this.matchingExpression(a, tested, lvl, { ignore_end_check: true });
-        b = this.matchingExpression(b, tested, lvl + 1);
+
+        let r = false;
+        if (a === true) {
+            r = this.matchingExpression(b, tested, lvl + 1);
+        }
+        b = r;
 
         return a && b;
     }
@@ -135,18 +150,18 @@ class Composer {
         a = this.matchingExpression(a, tested, lvl, { ignore_end_check: true });
 
         let r = false;
-
-        lvl++;
-        while ((r === false) && (lvl < tested.length)) {
-            r = this.matchingExpression(b, tested, lvl, { ignore_end_check: true });
+        if (a === true) {
             lvl++;
+            while ((r === false) && (lvl < tested.length)) {
+                r = this.matchingExpression(b, tested, lvl, { ignore_end_check: true });
+                lvl++;
+            }
+    
+            lvl--;
+            if (r === true) {
+                r = this.matchingExpression(b, tested, lvl);
+            }
         }
-
-        lvl--;
-        if (r === true) {
-            r = this.matchingExpression(b, tested, lvl);
-        }
-
         b = r;
 
         return a && b;
@@ -156,10 +171,12 @@ class Composer {
         a = this.matchingExpression(a, tested, lvl, { ignore_end_check: true });
 
         let r = false;
-        lvl++;
-        while ((r === false) && (lvl < tested.length)) {
-            r = this.matchingExpression(b, tested, lvl);
+        if (a === true) {
             lvl++;
+            while ((r === false) && (lvl < tested.length)) {
+                r = this.matchingExpression(b, tested, lvl);
+                lvl++;
+            }
         }
         b = r;
 
@@ -172,23 +189,23 @@ class Composer {
         lvl++;
 
         let r = false;
+        if (a === true) {
+            const target = this.target.peek();
+            target.enterPos(alias.nested);
+            if (!target.isPosEmpty()) {
+                target.enterPos(0);
+                while (!target.isPosEmpty()) {
+                    r = this.matchingExpression(b, this.getContext(), lvl);
+                    if (r === true) {
+                        break;
+                    }
 
-        const target = this.target.peek();
-        target.enterPos(alias.nested);
-        if (!target.isPosEmpty()) {
-            target.enterPos(0);
-            while (!target.isPosEmpty()) {
-                r = this.matchingExpression(b, this.getContext(), lvl);
-                if (r === true) {
-                    break;
+                    target.nextItem();
                 }
-
-                target.nextItem();
+                target.leavePos();
             }
             target.leavePos();
         }
-        target.leavePos();
-
         b = r;
 
         return a && b;
@@ -200,27 +217,27 @@ class Composer {
         lvl++;
 
         let r = false;
+        if (a === true) {
+            const target = this.target.peek();
+            target.enterPos(alias.nested);
+            if (!target.isPosEmpty()) {
+                target.enterPos(0);
+                while (!target.isPosEmpty()) {
+                    tested = this.getContext();
+                    r = this.matchingExpression(b, tested, lvl);
+                    if (r === false) {
+                        r = this.testAscend(a, b, tested, lvl);
+                    }
+                    if (r === true) {
+                        break;
+                    }
 
-        const target = this.target.peek();
-        target.enterPos(alias.nested);
-        if (!target.isPosEmpty()) {
-            target.enterPos(0);
-            while (!target.isPosEmpty()) {
-                tested = this.getContext();
-                r = this.matchingExpression(b, tested, lvl);
-                if (r === false) {
-                    r = this.testAscend(a, b, tested, lvl);
+                    target.nextItem();
                 }
-                if (r === true) {
-                    break;
-                }
-
-                target.nextItem();
+                target.leavePos();
             }
             target.leavePos();
         }
-        target.leavePos();
-
         b = r;
 
         return a && b;

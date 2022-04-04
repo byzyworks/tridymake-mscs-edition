@@ -1,0 +1,36 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "parenth-a-test-1"
+                        ],
+                        "type": "parenth-a-test-1"
+                    },
+                    {
+                        "tags": [
+                            "parenth-a-test-2"
+                        ],
+                        "type": "parenth-a-test-2"
+                    },
+                    {
+                        "tags": [
+                            "parenth-a-test-3-final"
+                        ],
+                        "type": "parenth-a-test-3-final"
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "b"
+                ]
+            }
+        ]
+    }
+]

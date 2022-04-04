@@ -1,0 +1,71 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "c",
+                                            "ignored-by-from-toward"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "e",
+                                                    "from-toall"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "d",
+                                            "from-toward"
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "e",
+                                            "from-toall"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "b",
+                                    "ignored-by-from-to"
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "b",
+                                    "from-to"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "d",
+                            "ignored-by-from-to"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

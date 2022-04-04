@@ -1,0 +1,62 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "precedence-test"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "d"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "precedence-test"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "e",
+                                    "ignored"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "f",
+                            "ignored"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "g",
+                    "ignored"
+                ]
+            }
+        ]
+    }
+]

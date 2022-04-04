@@ -1,0 +1,27 @@
+@tridy;
+
+@new @none @as a;
+
+@in a @new @none @as b;
+
+@in a/b @new @none @as c;
+
+@in a @new @none @as d;
+
+@new @none @as a ignored;
+
+@in a&ignored @new @none @as b;
+
+@in a&ignored/b @new @none @as c;
+
+@new @none @as a ignored2;
+
+@in a&ignored2 @new @none @as d;
+
+@new @none @as a ignored3;
+
+@in (a << c) < d @new @none @as non-transitory-test;
+
+@in (a << c) & (a < d) @new @none @as non-transitory-test;
+
+@get;

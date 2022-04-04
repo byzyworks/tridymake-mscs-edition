@@ -1,0 +1,17 @@
+@tridy;           # This is a comment.
+                  # This is a comment.
+@new @none        # This is a comment.
+@as @none         # This is a comment.
+@is @json {       # This is a comment.
+    "esc": "\#"   # This is a comment.
+} @end            # This is a comment.
+@has {            # This is a comment.
+    @new @none    # This is a comment.
+    @as @none     # This is a comment.
+    @is @yaml     # This is a comment.
+    ---           # This is a comment.
+        esc: "\#" # This is a comment.
+    @end;         # This is a comment.
+};                # This is a comment.
+                  # This is a comment.
+@get;             # This is a comment.

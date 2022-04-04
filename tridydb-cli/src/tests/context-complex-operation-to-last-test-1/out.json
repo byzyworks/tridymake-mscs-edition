@@ -1,0 +1,48 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b",
+                            "first"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "b",
+                                    "middle"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "b",
+                                            "last"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "a"
+                                                ]
+                                            },
+                                            {
+                                                "tags": [
+                                                    "c",
+                                                    "to-last"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
