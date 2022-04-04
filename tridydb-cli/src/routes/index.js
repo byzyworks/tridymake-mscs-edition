@@ -2,104 +2,99 @@ import express from 'express';
 
 import { interpreter } from '../include/interpreter.js';
 
+import { alias }       from '../utility/common.js';
+import { ServerError } from '../utility/error.js';
+import { logger }      from '../utility/logger.js';
+
+const op_map = Object.freeze({
+    get:    'get',
+    post:   'new',
+    put:    'set',
+    delete: 'del'
+});
+
 const toTridy = (op, opts = { }) => {
-    let cmd = '';
+    let cmd;
 
-    if (opts.context) {
-        cmd += `@in ${opts.context} `;
+    if (opts.type === 'verb') {
+        cmd = opts.data;
+    } else {
+        cmd = '';
+
+        if (opts.context) {
+            cmd += `@in ${opts.context} `;
+        }
+    
+        cmd += `@${op}`;
+    
+        if ((op !== 'get') && (op !== 'del')) {
+            if (opts.type === 'mod') {
+                if (opts.handle) {
+                    cmd += ` ${opts.handle}`;
+                } else {
+                    cmd += ` @none`;
+                }
+            
+                if (opts.tags) {
+                    cmd += ` @as ${opts.tags}`;
+                }
+            
+                if (opts.state) {
+                    cmd += ` @is @${opts.statetype} ${opts.state} @end`;
+                }
+            } else {
+                cmd += ` @${opts.type} ${opts.data} @end`;
+            }
+        }
+
+        cmd += ';';
     }
 
-    cmd += `@${op}`;
-
-    if (opts.define.sys) {
-        cmd += ` ${sys}`;
-    }
-
-    if (opts.define.as) {
-        cmd += ` @as ${opts.define.as}`;
-    }
-
-    if (opts.define.is) {
-        cmd += ` @is ${opts.define.is}`;
-    }
-
-    if (opts.define.has) {
-        cmd += ` @has ${opts.define.has}`;
-    }
-
-    cmd += ';';
+    logger.debug(`Generated Tridy command: ${cmd}`);
 
     return cmd;
 }
 
+const getOpts = (req, res) => {
+    const opts = { };
+
+    if (req.query.context) {
+        opts.context = req.query.context;
+    }
+
+    if (req.query.type && (req.query.type !== 'mod')) {
+        opts.type = req.query.type;
+        opts.data = req.query.data;
+    } else {
+        opts.type      = 'mod';
+        opts.handle    = req.params.handle;
+        opts.tags      = req.query[alias.tags];
+        opts.statetype = req.query[alias.state + 'type'];
+        opts.state     = req.query[alias.state];
+    }
+
+    return opts;
+}
+
+const handleRoute = async (method, req, res) => {
+    const opts = getOpts(req, res);
+
+    if ((opts.type === 'verb') && (method !== 'put')) {
+        throw new ServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', { is_fatal: false });
+    }
+
+    const cmd  = toTridy(op_map[method], opts);
+
+    const out  = await interpreter.parse(cmd, { accept_carry: false });
+
+    res.json(out);
+}
+
 export const routes = express.Router();
 
-routes.get('/:context', async (req, res) => {
-    const opts = { context: req.params.context };
-    const cmd = toTridy('get', opts);
-
-    const out = await interpreter.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
-
-routes.post('/:context/:sys', async (req, res) => {
-    const opts = {
-        context: req.params.context,
-        define: {
-            sys: req.params.sys,
-            tags: req.query.as,
-            heap: req.query.is,
-            stack: req.query.has
-        }
-    };
-    const cmd = toTridy('new', opts);
-    
-    const out = await interpreter.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
-
-routes.post('/:sys', async (req, res) => {
-    const opts = { define: { sys: req.params.sys } };
-    const cmd = toTridy('new', opts);
-
-    const out = await interpreter.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
-
-routes.put('/:context/:sys', async (req, res) => {
-    const opts = {
-        context: req.params.context,
-        define: {
-            sys: req.params.sys,
-            tags: req.query.as,
-            heap: req.query.is,
-            stack: req.query.has
-        }
-    };
-    const cmd = toTridy('set', opts);
-
-    const out = await interpreter.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
-
-routes.put('/:sys', async (req, res) => {
-    const opts = { define: { sys: req.params.sys } };
-    const cmd = toTridy('set', opts);
-
-    const out = await interpreter.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
-
-routes.delete('/:context', async (req, res) => {
-    const opts = { context: req.params.context };
-    const cmd = toTridy('del', opts);
-
-    const out = await interpreter.parse(cmd, { accept_carry: false });
-
-    res.json(out);
-});
+routes.get('/',         async (req, res) => await handleRoute('get', req, res));
+routes.post('/:handle', async (req, res) => await handleRoute('post', req, res));
+routes.post('/',        async (req, res) => await handleRoute('post', req, res));
+routes.put('/:handle',  async (req, res) => await handleRoute('put', req, res));
+routes.put('/',         async (req, res) => await handleRoute('put', req, res));
+routes.delete('/',      async (req, res) => await handleRoute('delete', req, res));

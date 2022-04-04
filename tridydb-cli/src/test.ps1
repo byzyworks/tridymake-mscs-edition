@@ -2,7 +2,7 @@ param (
     [string] $Test
 )
 
-$invoke = "node $PSScriptRoot/app.js file"
+$invoke = "node $PSScriptRoot/app.js file";
 
 if (!$Test) {
     $total_tests                                = 0;
@@ -10,10 +10,10 @@ if (!$Test) {
     [System.Collections.ArrayList]$failed_tests = @();
 
     Get-ChildItem -Path "$PSScriptRoot/tests" | ForEach-Object {
-        $test_name = "$_"
-        $test_file = "$($_.FullName)/test.tri";
+        $test_name = "$_";
+        $test_file = "$($_.FullName)/test";
         
-        if (Test-Path -Path "$test_file" -PathType Leaf) {
+        if ((Test-Path -Path "$test_file.tri" -PathType Leaf) -or (Test-Path -Path "$test_file.ps1" -PathType Leaf)) {
             Invoke-Expression -Command ($PSCommandPath + ' -Test $test_name');
             
             $total_tests++;
@@ -32,16 +32,20 @@ if (!$Test) {
             Write-Host "> $test_name";
         }
     }
-    Write-Host
+    Write-Host;
 } else {
-    $test_name = "$Test"
-    $test_file = "$PSScriptRoot/tests/$test_name/test.tri";
+    $test_name = "$Test";
+    $test_file = "$PSScriptRoot/tests/$test_name/test";
         
-    if (Test-Path -Path "$test_file" -PathType Leaf) {
+    if ((Test-Path -Path "$test_file.tri" -PathType Leaf) -or (Test-Path -Path "$test_file.ps1" -PathType Leaf)) {
         Write-Host "Running $test_name...";
 
         if ($Test -like 'error-*') {
-            $out = Invoke-Expression "$invoke $test_file --log-level info" 2>&1;
+            if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
+                $out = Invoke-Expression "$invoke $test_file.tri --log-level info" 2>&1;
+            } else {
+                $out = Invoke-Expression "$test_file.ps1" 2>&1;
+            }
             Write-Output $out;
             
             if ($out -like "*Syntax Error*") {
@@ -54,7 +58,11 @@ if (!$Test) {
                 exit 1;
             }
         } else {
-            $out = Invoke-Expression "$invoke $test_file --log-level info --pretty";
+            if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
+                $out = Invoke-Expression "$invoke $test_file.tri --log-level info --pretty";
+            } else {
+                $out = Invoke-Expression "$test_file.ps1";
+            }
             Write-Output $out;
             
             if ($LastExitCode -eq 0) {
@@ -80,8 +88,6 @@ if (!$Test) {
                 }
             } else {
                 Write-Host 'Test failed.';
-                Write-Host "Re-running $test_name in debug mode...";
-                Invoke-Expression "$invoke $test_file --log-level debug";
                 Write-Host;
                 exit 1;
             }

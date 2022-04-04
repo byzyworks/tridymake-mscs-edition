@@ -19,6 +19,10 @@ export class SyntaxError extends Error {
 
 export class ServerError extends Error {
     constructor(description, original, opts = { }) {
+        opts.http_code  = opts.http_code  ?? StatusCodes.INTERNAL_SERVER_ERROR;
+        opts.is_warning = opts.is_warning ?? false;
+        opts.is_fatal   = opts.is_fatal   ?? true;
+
         super(description);
         Object.setPrototypeOf(this, new.target.prototype);
         
@@ -31,9 +35,10 @@ export class ServerError extends Error {
             this.original = null;
         }
 
-        this.opts.http_code  = opts.http_code  ?? StatusCodes.INTERNAL_SERVER_ERROR;
-        this.opts.is_warning = opts.is_warning ?? false;
-        this.opts.is_fatal   = opts.is_fatal   ?? true;
+        this.opts = { };
+        this.opts.http_code  = opts.http_code;
+        this.opts.is_warning = opts.is_warning;
+        this.opts.is_fatal   = opts.is_fatal;
         
         Error.captureStackTrace(this);
     }
