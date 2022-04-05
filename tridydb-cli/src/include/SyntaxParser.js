@@ -1,5 +1,4 @@
 import * as yaml        from 'js-yaml';
-import { v4 as uuidv4 } from 'uuid';
 
 import { parser as infixParser } from './InfixParser.js';
 import { StateTree }             from './StateTree.js';
@@ -266,7 +265,7 @@ class SyntaxParser {
 
         let current = this.tokens.peek();
         while (true) {
-            if (current.is('tag')) {
+            if (current.is('tag') || current.is('key', 'uuid')) {
                 let new_tag = this.tokens.peek().val;
 
                 for (const current_tag of tags) {
@@ -275,12 +274,12 @@ class SyntaxParser {
                     }
                 }
 
+                if (current.is('key')) {
+                    new_tag = '@' + new_tag;
+                }
+
                 tags.push(new_tag);
                 
-                this.tokens.next();
-            } else if (current.is('key', 'uuid')) {
-                tags.push(uuidv4());
-
                 this.tokens.next();
             } else {
                 break;

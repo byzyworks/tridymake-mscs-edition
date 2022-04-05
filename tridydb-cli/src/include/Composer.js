@@ -1,7 +1,9 @@
+import { v4 as uuidv4 } from 'uuid';
+
 import { StateTree } from './StateTree.js';
 
-import { alias, deepCopy, isEmpty } from '../utility/common.js';
-import { Stack }                    from '../utility/Stack.js';
+import { isArray, alias, deepCopy, isEmpty } from '../utility/common.js';
+import { Stack }                             from '../utility/Stack.js';
 
 class Composer {
     constructor() {
@@ -296,14 +298,29 @@ class Composer {
         return r;
     }
 
+    uniqueCopy(template) {
+        const copy = deepCopy(template);
+
+        const tags = copy[alias.tags];
+        if (isArray(tags)) {
+            for (const i in tags) {
+                if (tags[i] === '@uuid') {
+                    tags[i] = uuidv4();
+                }
+            }
+        }
+
+        return copy;
+    }
+
     composeModule(command, template = null) {
         const target = this.target.peek();
         switch (command) {
             case 'edit':
-                target.setPosValue(deepCopy(template));
+                target.setPosValue(this.uniqueCopy(template));
                 break;
             case 'module':
-                target.enterPutAndLeave([alias.nested], deepCopy(template));
+                target.enterPutAndLeave([alias.nested], this.uniqueCopy(template));
                 break;
             case 'print':
                 this.output.push(deepCopy(target.getPosValue()));
