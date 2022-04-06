@@ -1,25 +1,25 @@
 @tridy;
 
-@new @none @as a;
+@new a;
 
-@in @random @new @none @as using-keyword;
+@in @random @new using-keyword;
 
-@in ? @new @none @as 50-percent-chance;
+@in ? @new 50-percent-chance;
 
-@in ? & ? @new @none @as 25-percent-chance;
+@in ? & ? @new 25-percent-chance;
 
-@in ? & ? & ? @new @none @as 13-percent-chance;
+@in ? & ? & ? @new 13-percent-chance;
 
-@in ? & ? & ? & ? @new @none @as 6-percent-chance;
+@in ? & ? & ? & ? @new 6-percent-chance;
 
-@in ? & ? & ? & ? & ? @new @none @as 3-percent-chance;
+@in ? & ? & ? & ? & ? @new 3-percent-chance;
 
-@in ? | ? @new @none @as 75-percent-chance;
+@in ? | ? @new 75-percent-chance;
 
-@in ? | ? | ? @new @none @as 88-percent-chance;
+@in ? | ? | ? @new 88-percent-chance;
 
-@in ? | ? | ? | ? @new @none @as 94-percent-chance;
+@in ? | ? | ? | ? @new 94-percent-chance;
 
-@in ? | ? | ? | ? | ? @new @none @as 97-percent-chance;
+@in ? | ? | ? | ? | ? @new 97-percent-chance;
 
 @get;

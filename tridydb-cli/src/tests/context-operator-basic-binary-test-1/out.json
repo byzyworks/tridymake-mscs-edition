@@ -6,20 +6,17 @@
                     {
                         "tags": [
                             "nand-test"
-                        ],
-                        "type": "nand-test"
+                        ]
                     },
                     {
                         "tags": [
                             "xnor-test"
-                        ],
-                        "type": "xnor-test"
+                        ]
                     },
                     {
                         "tags": [
                             "nor-test"
-                        ],
-                        "type": "nor-test"
+                        ]
                     }
                 ]
             },
@@ -31,20 +28,17 @@
                     {
                         "tags": [
                             "xor-test"
-                        ],
-                        "type": "xor-test"
+                        ]
                     },
                     {
                         "tags": [
                             "or-test"
-                        ],
-                        "type": "or-test"
+                        ]
                     },
                     {
                         "tags": [
                             "nand-test"
-                        ],
-                        "type": "nand-test"
+                        ]
                     }
                 ]
             },
@@ -56,20 +50,17 @@
                     {
                         "tags": [
                             "xor-test"
-                        ],
-                        "type": "xor-test"
+                        ]
                     },
                     {
                         "tags": [
                             "or-test"
-                        ],
-                        "type": "or-test"
+                        ]
                     },
                     {
                         "tags": [
                             "nand-test"
-                        ],
-                        "type": "nand-test"
+                        ]
                     }
                 ]
             },
@@ -82,20 +73,17 @@
                     {
                         "tags": [
                             "and-test"
-                        ],
-                        "type": "and-test"
+                        ]
                     },
                     {
                         "tags": [
                             "or-test"
-                        ],
-                        "type": "or-test"
+                        ]
                     },
                     {
                         "tags": [
                             "xnor-test"
-                        ],
-                        "type": "xnor-test"
+                        ]
                     }
                 ]
             }

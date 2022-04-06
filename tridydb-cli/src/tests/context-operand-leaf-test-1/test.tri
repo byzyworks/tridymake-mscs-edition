@@ -1,15 +1,15 @@
 @tridy;
 
-@new @none @as a;
+@new a;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a/b @new @none @as c;
+@in a/b @new c;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a >> (@leaf & %) @new @none @as d old-leaf;
+@in a >> (@leaf & %) @new d old-leaf;
 
-@in a >> (@leaf & %) @new @none @as e new-leaf;
+@in a >> (@leaf & %) @new e new-leaf;
 
 @get;

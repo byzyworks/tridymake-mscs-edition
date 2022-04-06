@@ -67,7 +67,6 @@ const getOpts = (req, res) => {
         opts.data = req.query.data;
     } else {
         opts.type      = 'mod';
-        opts.handle    = req.params.handle;
         opts.tags      = req.query[alias.tags];
         opts.statetype = req.query[alias.state + 'type'];
         opts.state     = req.query[alias.state];
@@ -92,9 +91,7 @@ const handleRoute = async (method, req, res) => {
 
 export const routes = express.Router();
 
-routes.get('/',         async (req, res) => await handleRoute('get', req, res));
-routes.post('/:handle', async (req, res) => await handleRoute('post', req, res));
-routes.post('/',        async (req, res) => await handleRoute('post', req, res));
-routes.put('/:handle',  async (req, res) => await handleRoute('put', req, res));
-routes.put('/',         async (req, res) => await handleRoute('put', req, res));
-routes.delete('/',      async (req, res) => await handleRoute('delete', req, res));
+routes.get('/',    async (req, res) => await handleRoute('get', req, res));
+routes.post('/',   async (req, res) => await handleRoute('post', req, res));
+routes.put('/',    async (req, res) => await handleRoute('put', req, res));
+routes.delete('/', async (req, res) => await handleRoute('delete', req, res));

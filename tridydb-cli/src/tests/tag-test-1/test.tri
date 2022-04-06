@@ -2,18 +2,10 @@
 
 @new @none;
 
-@new @none @as @none;
+@new a;
 
-@new tag-test;
+@new b;
 
-@new tag-test @as @none;
-
-@new @none @as tag-test;
-
-@new tag-test @as a;
-
-@new tag-test @as b;
-
-@new tag-test @as a b c;
+@new a b c;
 
 @get;

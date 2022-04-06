@@ -2,11 +2,11 @@
 
 @new @none;
 
-@new @none @as a;
+@new a;
 
-@new @none @as b;
+@new b;
 
-@new @none @as a b;
+@new a b;
 
 @in (a @and b) & (a b) & (a & b) @new and-test;
 

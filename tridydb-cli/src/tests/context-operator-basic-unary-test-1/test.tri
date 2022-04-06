@@ -1,8 +1,8 @@
 @tridy;
 
-@new @none @as a;
+@new a;
 
-@new @none @as b;
+@new b;
 
 @in !a @new not-a-test;
 

@@ -1,21 +1,21 @@
 @tridy;
 
-@new @none @as a;
+@new a;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a @new @none @as d ignored-by-from-to;
+@in a @new d ignored-by-from-to;
 
-@in (a @to b) & (a / b) & (a > b) @new @none @as c;
+@in (a @to b) & (a / b) & (a > b) @new c;
 
-@in a/b/c @new @none @as c ignored-by-from-toward;
+@in a/b/c @new c ignored-by-from-toward;
 
-@in (a @toward c) & (a >> c) @new @none @as d from-toward;
+@in (a @toward c) & (a >> c) @new d from-toward;
 
-@in (a @toall c) & (a >>> c) @new @none @as e from-toall;
+@in (a @toall c) & (a >>> c) @new e from-toall;
 
-@in a/b @new @none @as b ignored-by-from-to;
+@in a/b @new b ignored-by-from-to;
 
-@in a/b @new @none @as b from-to;
+@in a/b @new b from-to;
 
 @get;

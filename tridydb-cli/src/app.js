@@ -14,10 +14,9 @@ import { server }             from './server.js';
 program
     .version('1.0.0')
     .description('Specialized tool for dynamically provisioning and configuring virtual machines.')
-    .option('--handle-key <key>', 'The key under which the handle is imported and exported as', 'type')
     .option('--tags-key <key>', 'The key under which tags are imported and exported as', 'tags')
-    .option('--state-key <key>', 'The key under which the free data structure is imported and exported as', 'free')
-    .option('--nested-key <key>', 'The key under which the tree data structure is imported and exported as', 'tree')
+    .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', 'free')
+    .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', 'tree')
     .option('-l, --log-level <level>', 'Control the log level used')
 ;
 
@@ -92,17 +91,14 @@ if (opts.logLevel) {
     logger.verbose(`Console log level set to '${opts.logLevel}'.`);
 }
 
-if (opts.handleKey) {
-    alias.handle = opts.handleKey;
-}
 if (opts.tagsKey) {
     alias.tags = opts.tagsKey;
 }
-if (opts.stateKey) {
-    alias.state = opts.stateKey;
+if (opts.freeKey) {
+    alias.state = opts.freeKey;
 }
-if (opts.nestedKey) {
-    alias.nested = opts.nestedKey;
+if (opts.treeKey) {
+    alias.nested = opts.treeKey;
 }
 
 process.on('uncaughtException', (err) => {

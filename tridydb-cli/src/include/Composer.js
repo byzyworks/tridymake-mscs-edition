@@ -37,7 +37,6 @@ class Composer {
 
             this.astree.enterCopyAndLeave(module, [alias.state]);
             this.astree.enterCopyAndLeave(module, [alias.tags]);
-            this.astree.enterCopyAndLeave(module, [alias.handle]);
 
             module.leavePos();
         }

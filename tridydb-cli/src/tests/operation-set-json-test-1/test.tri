@@ -1,18 +1,18 @@
 @tridy;
 
-@new @none @as a;
+@new a;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a @new @none @as c;
+@in a @new c;
 
-@in a @new @none @as c;
+@in a @new c;
 
-@in a @new @none @as c;
+@in a @new c;
 
 @in a/c @set @yaml
 ---

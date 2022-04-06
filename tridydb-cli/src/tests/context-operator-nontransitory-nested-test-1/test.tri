@@ -1,19 +1,19 @@
 @tridy;
 
-@new @none @as a gets-d-and-e;
+@new a gets-d-and-e;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a/b @new @none @as c;
+@in a/b @new c;
 
-@new @none @as a gets-only-d;
+@new a gets-only-d;
 
-@in a gets-only-d @new @none @as b;
+@in a gets-only-d @new b;
 
-@new @none @as a gets-neither-d-or-e;
+@new a gets-neither-d-or-e;
 
-@in (a @parent b) & (a < b) @new @none @as d;
+@in (a @parent b) & (a < b) @new d;
 
-@in (a @ascend c) & (a << c) @new @none @as e;
+@in (a @ascend c) & (a << c) @new e;
 
 @get;

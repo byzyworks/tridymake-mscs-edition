@@ -190,7 +190,7 @@ class SyntaxParser {
             
             data = this.readWhileRaw({ multiline: true }).replace(/^\s*/, '');
         } else {
-            this.handleUnexpected();
+            return null;
         }
         
         let parsed;
@@ -207,10 +207,9 @@ class SyntaxParser {
             throw new SyntaxError(err.message);
         }
 
-        if (!this.tokens.peek().is('key', 'end')) {
-            this.handleUnexpected();
+        if (this.tokens.peek().is('key', 'end')) {
+            this.tokens.next();
         }
-        this.tokens.next();
 
         return parsed;
     }
@@ -239,21 +238,6 @@ class SyntaxParser {
             this.tokens.next();
         } else if (this.tokens.peek().is('key', 'del')) {
             this.astree.enterSetAndLeave(['operation'], 'delete');
-            this.tokens.next();
-        } else {
-            this.handleUnexpected();
-        }
-    }
-    
-    handleHandleDefinition() {
-        if (this.tokens.peek().is('key', 'none')) {
-            this.tokens.next();
-        } else if (this.tokens.peek().is('tag')) {
-            const token = this.tokens.peek().val;
-            
-            this.astree.enterSetAndLeave([alias.handle], token);
-            this.astree.enterSetAndLeave([alias.tags], [token]);
-    
             this.tokens.next();
         } else {
             this.handleUnexpected();
@@ -291,18 +275,18 @@ class SyntaxParser {
         return tags;
     }
 
-    handleTagsDefinition() {
+    handleTagsDefinition(opts = { }) {
+        opts.require = opts.require ?? false;
+
         if (this.tokens.peek().is('key', 'none')) {
             this.tokens.next();
-
-            this.astree.enterSetAndLeave([alias.tags], undefined);
         } else {
             const tags = this.readWhileTag();
-            if (isEmpty(tags)) {
+            if (!isEmpty(tags)) {
+                this.astree.enterSetAndLeave([alias.tags], tags);
+            } else if (opts.require) {
                 this.handleUnexpected();
             }
-    
-            this.astree.enterSetAndLeave([alias.tags], tags);
         }
     }
 
@@ -310,7 +294,12 @@ class SyntaxParser {
         if (this.tokens.peek().is('key', 'none')) {
             this.tokens.next();
         } else {
-            this.astree.enterSetAndLeave([alias.state], this.readWhileRawAndParse());
+            const free = this.readWhileRawAndParse();
+            if (free === null) {
+                this.handleUnexpected();
+            } else {
+                this.astree.enterSetAndLeave([alias.state], free);
+            }
         }
     }
 
@@ -333,12 +322,12 @@ class SyntaxParser {
     }
 
     handleDefinition() {
-        this.handleHandleDefinition();
-
         if (this.tokens.peek().is('key', 'as')) {
             this.tokens.next();
 
-            this.handleTagsDefinition();
+            this.handleTagsDefinition({ require: true });
+        } else {
+            this.handleTagsDefinition({ require: false });
         }
 
         if (this.tokens.peek().is('key', 'is')) {

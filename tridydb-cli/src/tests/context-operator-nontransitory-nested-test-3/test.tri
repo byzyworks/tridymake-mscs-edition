@@ -1,27 +1,27 @@
 @tridy;
 
-@new @none @as a;
+@new a;
 
-@in a @new @none @as b;
+@in a @new b;
 
-@in a/b @new @none @as c;
+@in a/b @new c;
 
-@in a @new @none @as d;
+@in a @new d;
 
-@new @none @as a ignored;
+@new a ignored;
 
-@in a&ignored @new @none @as b;
+@in a&ignored @new b;
 
-@in a&ignored/b @new @none @as c;
+@in a&ignored/b @new c;
 
-@new @none @as a ignored2;
+@new a ignored2;
 
-@in a&ignored2 @new @none @as d;
+@in a&ignored2 @new d;
 
-@new @none @as a ignored3;
+@new a ignored3;
 
-@in (a << c) < d @new @none @as non-transitory-test;
+@in (a << c) < d @new non-transitory-test;
 
-@in (a << c) & (a < d) @new @none @as non-transitory-test;
+@in (a << c) & (a < d) @new non-transitory-test;
 
 @get;
