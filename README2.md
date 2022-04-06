@@ -8,7 +8,7 @@ Notably, it is not intended to be as a replacement for SQL or even NoSQL as a ge
 
 As for what it *is* for, Tridy is designed to be a lightweight tool for lightweight, though-slightly-more-heavyweight-than-usual configuration data (usually because of redundancies), and that is organized in a tree or graph-like structure. This data is expected to be processed into a readable output that other applications are meant to interact with directly or, if needed, through a Tridy interface. It is extremely modular in the sense that (non-nested) data is never coupled together, as also an upside to the at-least redundant output. Without that, is is also ideal for creating DAG structures, given that, at the storage level at least, no referencing means no circular references either. Finally, as it creates and stores data in the form of a tree, it is also at a natural advantage when it comes to integrating with a filesystem, and is easily able to input and output to one.
 
-To summarize, Tridy's aim is viewable, portable, modular, and ultimately redundant data defined in an irredundant format.
+To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redundant data defined in an irredundant format.
 
 <br>
 
@@ -18,9 +18,37 @@ To summarize, Tridy's aim is viewable, portable, modular, and ultimately redunda
 
 Tridy is a compiled data format, meaning that the data files aren't immediately useful for being read by an application. Instead, a Tridy **composer** needs to read the data files, parse the contained statements, and output in a common data format such as JSON first. This is because the output of a single statement in Tridy can appear in multiple places in the final output, relative to the output of previously-executed statements. To permit this, Tridy uses a system of *tagged modules* where a statement may be matched to an existing module so long as a boolean expression is satisfied. In particular, the operands of this expression are the tags themselves, and are either true if a tag is shared between both the expression and the given module, or false if not shared with the given module.
 
+<!-- Imported from Overleaf, possibly to be expanded upon -->
+
+TridyDB expects a kind of schema to foster it's capabilities and make it useful in a way that is as generalized as possible, but not as generalized as plain JSON or the like. These expectations are outlined below, and are automatically-enforced at least by the Tridy language:
+
+1. At a minimum, every module should (but is not required to) consist of a **tags** array, which is an array of strings that each form the module's tags
+2. In reality, a module may also have a **free** data structure, and a **tree** data structure.
+3. A module should contain no other data items at the root of the module, not even metadata.
+4. All identification of the module by TridyDB for queries must be done using tags located inside the tags array. TridyDB will not consider anything else.
+5. A module may have zero to many tags, as an array of strings.
+6. Tags have no requirements to be unique, but they may be made unique by design.
+7. Tags are strings that may *only* contain lowercase letters, uppercase letters, numbers, dashes, or underscores.
+8. *All* data that is organized in an arbitrary fashion must be stored under the free data structure. This should include an application's usable data.
+9. There are no rules for how the free data structure should be composed, and it can be a primitive type, an array type, a mapped type, or any combination of all three. It is an application's job to control the schema or format of it.
+10. *All* modules which are nested under the current module must be stored under the tree data structure, which must itself be an array.
+11. A module may have zero to many nested modules inside the tree data structure.
+12. Modules may recursively nest other modules to no limit in depth or number of modules otherwise.
+13. The keys used as identifiers may change depending on the application.
+
+By design, as there is no specialized output format or storage management, TridyDB is meant to be able to output to anywhere directly, whereby applications can read or write to the same storage files without ever touching TridyDB itself again more than once (albeit at a disadvantage). The database part of TridyDB is meant more as an option rather than a necessity.
+
+To support its use for that, though, TridyDB is provided with three possible output paradigms.
+
+1. For applications not interacting with TridyDB at all, there's the **filesystem**. Notably, when TridyDB imports existing data, it does so recursively with respect to the import folder's filesystem such that the structure of it gets placed with the data itself. This is then used to export the data in place.
+2. For applications interacting with TridyDB locally, there's **standard output**, for which there are three possible modes under this setup. TridyDB supports use as an interactive terminal application, running commands inline, or by file import.
+3. For applications interacting with TridyDB remotely (or persistently), there's a **RESTful web API**, though this expects a slightly different syntax as a result of working over an HTTP URI format. However, this API is extremely basic still if one already understands Tridy syntax at all, considering it has only four API endpoints and one route, and that is because Tridy's operational design is already highly analogous to the four commonly-used HTTP methods of RESTful APIs (GET, POST, PUT, and DELETE).
+
+As seen later, Wingspan Habitat uses the third method of interaction, though also while doing so locally (so TridyDB can be utilized as a server, still).
+
 ### Input
 
-AAA
+
 
 ### Output
 
@@ -30,19 +58,15 @@ AAA
 
 AAA
 
-### Module Handles
-
-AAA
-
 ### Module Tags
 
 AAA
 
-### Module "Free" / Unordered Data
+### Module "Free" Data
 
 AAA
 
-### Module "Tree" / Ordered Data
+### Module "Tree" Data
 
 AAA
 
@@ -58,7 +82,10 @@ To show how Tridy actually works, suppose we have a snippet of Tridy code like t
 @new a;
 @new b;
 @new a b;
-@in a @xor b @new c;
+
+@in a @xor b
+@new c
+@is @json { "letter":"true" } @end;
 ```
 
 Tridy contains keywords, or **clauses**, that all begin with an `@` symbol.
@@ -74,6 +101,8 @@ The second statement, `@new b`, acts similarly, creating a new module tagged as 
 The third statement creates a new module tagged as both `a` and `b`. Tags are such that individual modules can have multiple tags, and they do not have to be unique. Thus, TridyDB places no restrictions on how a module is identified, and uniqueness constraints are not meant to be enforced except at a higher level.
 
 The fourth statement is meant to show some of where Tridy can be powerful. In any Tridy statement, `@in` is used to specify a **context**, which is the expression that any module is tested for before the statement can be applied to it. The operation always follows *after* the end of whatever the context expression is, so in this case, the context expression is `a @xor b`. Given this preceding expression, `@new c` will only be applied to an existing module if and only if it has the tags `a` or `b`, but never both at the same time. Only in the modules created by the first two statements would this evaluate as true, so only the first two modules are affected. However, they both receive a copy of the new module tagged as `c`, and the only change needed to make all three existing modules (under the root module) receive a copy would be to change `a @xor b` to `a @or b`.
+
+Finally, the latter half of the statement contains an example bit of arbitrary data given in a JSON format, which is delimited by the `@json` and `@end` clauses, respectively. The `@is` clause to which those are given as arguments is used to provide the definition for the free data structure of the module, given (always) through a common format such as JSON or YAML.
 
 If the output format is a JSON object, then the statements above might have the following as its output:
 
