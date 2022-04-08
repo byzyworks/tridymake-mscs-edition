@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+//import { v4 as uuidv4 } from 'uuid';
 
 import { StateTree } from './StateTree.js';
 
@@ -110,7 +110,7 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
         
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === true) {
+        if ((a_answers.value === true) || (a_answers.valid === false)) {
             this.matchingExpression(b_answers, b, tested, lvl);
         }
 
@@ -134,12 +134,12 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
 
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === false) {
+        if ((a_answers.value === false) || (a_answers.valid === false)) {
             this.matchingExpression(b_answers, b, tested, lvl);
         }
 
         answers.value = a_answers.value || b_answers.value;
-        answers.valid = (a_answers.value && a_answers.valid) || (b_answers.value && b_answers.valid) || (a_answers.valid && b_answers.valid);
+        answers.valid = (a_answers.value && a_answers.valid) || (b_answers.value && b_answers.valid) || a_answers.valid || b_answers.valid;
     }
 
     testParentMain(answers, b, tested, lvl, opts = { }) {
@@ -171,7 +171,7 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
 
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === true) {
+        if ((a_answers.value === true) || (a_answers.valid === false)) {
             this.testParentMain(b_answers, b, tested, lvl + 1, { recurse: false });
         }
 
@@ -184,7 +184,7 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
 
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === true) {
+        if ((a_answers.value === true) || (a_answers.valid === false)) {
             this.testParentMain(b_answers, b, tested, lvl + 1, { recurse: true });
         }
 
@@ -197,7 +197,7 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
 
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === true) {
+        if ((a_answers.value === true) || (a_answers.valid === false)) {
             this.matchingExpression(b_answers, b, tested, lvl - 1);
         }
 
@@ -210,7 +210,7 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
 
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === true) {
+        if ((a_answers.value === true) || (a_answers.valid === false)) {
             lvl--;
             while ((b_answers.value === false) && (lvl >= 0)) {
                 this.matchingExpression(b_answers, b, tested, lvl);
@@ -227,7 +227,7 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
 
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === true) {
+        if ((a_answers.value === true) || (a_answers.valid === false)) {
             this.matchingExpression(b_answers, b, tested, lvl + 1);
         }
 
@@ -240,7 +240,7 @@ class Composer {
         this.matchingExpression(a_answers, a, tested, lvl);
 
         const b_answers = { value: false, valid: true };
-        if (a_answers.value === true) {
+        if ((a_answers.value === true) || (a_answers.valid === false)) {
             lvl++;
             while (((b_answers.value === false) || (b_answers.valid === false)) && (lvl < tested.length)) {
                 this.matchingExpression(b_answers, b, tested, lvl);
@@ -306,7 +306,7 @@ class Composer {
         if (isArray(tags)) {
             for (const i in tags) {
                 if (tags[i] === '@uuid') {
-                    tags[i] = uuidv4();
+                    //tags[i] = uuidv4();
                 }
             }
         }

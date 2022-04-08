@@ -1,0 +1,67 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c"
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "d"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "e"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "precedence-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "precedence-test"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "f",
+                                    "ignored"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "g",
+                            "ignored"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "h",
+                    "ignored"
+                ]
+            }
+        ]
+    }
+]

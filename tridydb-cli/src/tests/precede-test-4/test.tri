@@ -1,0 +1,21 @@
+@tridy;
+
+@new a;
+
+@in a @new b;
+
+@in a/b @new c;
+
+@in a/b @new d;
+
+@in a/b/d @new e;
+
+@in a/b @new f ignored;
+
+@in a @new g ignored;
+
+@new h ignored;
+
+@in a / ((b / d) | (b / d / e)) @new precedence-test;
+
+@get;

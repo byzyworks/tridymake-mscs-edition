@@ -42,16 +42,28 @@ export class Token {
         ;
     }
 
-    isNonTransitoryNestedOpContextToken() {
+    isLookaheadNestedOpContextToken() {
         return false ||
             this.is('o', '>') ||
-            this.is('o', '>>') ||
+            this.is('o', '>>')
+        ;
+    }
+
+    isLookbehindNestedOpContextToken() {
+        return false ||
             this.is('o', '<') ||
             this.is('o', '<<')
         ;
     }
 
-    isTransitoryNestedOpContextToken() {
+    isNonTransitiveNestedOpContextToken() {
+        return false ||
+            this.isLookaheadNestedOpContextToken() ||
+            this.isLookbehindNestedOpContextToken()
+        ;
+    }
+
+    isTransitiveNestedOpContextToken() {
         return false ||
             this.is('o', '/') ||
             this.is('o', '//')
@@ -61,8 +73,8 @@ export class Token {
     isBinaryOpContextToken() {
         return false ||
             this.isBasicBinaryOpContextToken() ||
-            this.isTransitoryNestedOpContextToken() ||
-            this.isNonTransitoryNestedOpContextToken()
+            this.isNonTransitiveNestedOpContextToken() ||
+            this.isTransitiveNestedOpContextToken()
         ;
     }
 
