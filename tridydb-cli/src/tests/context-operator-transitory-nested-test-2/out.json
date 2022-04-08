@@ -24,65 +24,60 @@
                                         "tree": [
                                             {
                                                 "tags": [
-                                                    "d",
-                                                    "skipped"
+                                                    "d"
                                                 ],
                                                 "tree": [
                                                     {
                                                         "tags": [
-                                                            "e"
-                                                        ],
-                                                        "tree": [
-                                                            {
-                                                                "tags": [
-                                                                    "f"
-                                                                ],
-                                                                "tree": [
-                                                                    {
-                                                                        "tags": [
-                                                                            "transitory-test"
-                                                                        ]
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "tags": [
-                                                                    "g",
-                                                                    "ignored"
-                                                                ],
-                                                                "tree": [
-                                                                    {
-                                                                        "tags": [
-                                                                            "f",
-                                                                            "ignored"
-                                                                        ]
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "tags": [
-                                                                    "e",
-                                                                    "ignored"
-                                                                ]
-                                                            }
+                                                            "d",
+                                                            "ignored"
                                                         ]
                                                     },
                                                     {
                                                         "tags": [
-                                                            "d",
-                                                            "ignored"
+                                                            "transitory-test"
                                                         ]
                                                     }
                                                 ]
                                             },
                                             {
                                                 "tags": [
-                                                    "d",
+                                                    "e",
                                                     "ignored"
                                                 ]
                                             }
                                         ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "d"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "d",
+                                                    "ignored"
+                                                ]
+                                            },
+                                            {
+                                                "tags": [
+                                                    "transitory-test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "e",
+                                            "ignored"
+                                        ]
                                     }
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "f",
+                                    "ignored"
                                 ]
                             }
                         ]

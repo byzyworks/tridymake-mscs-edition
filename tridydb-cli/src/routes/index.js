@@ -24,6 +24,9 @@ const toTridy = (op, opts = { }) => {
         if (opts.context) {
             cmd += `@in ${opts.context} `;
         }
+        if (opts.greedy) {
+            cmd += `@once `;
+        }
     
         cmd += `@${op}`;
     
@@ -60,6 +63,9 @@ const getOpts = (req, res) => {
 
     if (req.query.context) {
         opts.context = req.query.context;
+    }
+    if (req.query.greedy) {
+        opts.greedy = req.query.greedy;
     }
 
     if (req.query.type && (req.query.type !== 'mod')) {

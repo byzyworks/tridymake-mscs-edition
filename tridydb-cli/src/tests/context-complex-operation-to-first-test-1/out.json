@@ -9,41 +9,36 @@
                     {
                         "tags": [
                             "b",
-                            "has-to",
-                            "has-toward"
+                            "first"
                         ],
                         "tree": [
                             {
                                 "tags": [
                                     "b",
-                                    "to",
-                                    "has-toward"
+                                    "middle"
                                 ],
                                 "tree": [
                                     {
                                         "tags": [
-                                            "c",
-                                            "toward"
+                                            "b",
+                                            "last"
+                                        ],
+                                        "tree": [
+                                            {
+                                                "tags": [
+                                                    "a"
+                                                ]
+                                            }
                                         ]
                                     }
                                 ]
                             },
                             {
                                 "tags": [
-                                    "ignored"
-                                ]
-                            },
-                            {
-                                "tags": [
                                     "c",
-                                    "toward"
+                                    "to-first"
                                 ]
                             }
-                        ]
-                    },
-                    {
-                        "tags": [
-                            "ignored"
                         ]
                     }
                 ]

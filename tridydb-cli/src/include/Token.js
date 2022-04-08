@@ -42,18 +42,19 @@ export class Token {
         ;
     }
 
-    isTransitoryNestedOpContextToken() {
+    isNonTransitoryNestedOpContextToken() {
         return false ||
             this.is('o', '>') ||
             this.is('o', '>>') ||
-            this.is('o', '>>>')
+            this.is('o', '<') ||
+            this.is('o', '<<')
         ;
     }
 
-    isNonTransitoryNestedOpContextToken() {
+    isTransitoryNestedOpContextToken() {
         return false ||
-            this.is('o', '<') ||
-            this.is('o', '<<')
+            this.is('o', '/') ||
+            this.is('o', '//')
         ;
     }
 
@@ -77,6 +78,9 @@ export class Token {
                 case 'any':
                 case '*':
                     return this.to('t', '*');
+                case 'root':
+                case '~':
+                    return this.to('t', '~');
                 case 'leaf':
                 case '%':
                     return this.to('t', '%');
@@ -96,22 +100,24 @@ export class Token {
                 case '|':
                 case ',':
                     return this.to('o', '|');
-                case 'to':
-                case '/':
+                case 'parent':
                 case '>':
                     return this.to('o', '>');
-                case 'toward':
+                case 'ascend':
                 case '>>':
                     return this.to('o', '>>');
-                case 'toall':
-                case '>>>':
-                    return this.to('o', '>>>');
-                case 'parent':
+                case 'child':
                 case '<':
                     return this.to('o', '<');
-                case 'ascend':
+                case 'descend':
                 case '<<':
                     return this.to('o', '<<');
+                case 'to':
+                case '/':
+                    return this.to('o', '/');
+                case 'toward':
+                case '//':
+                    return this.to('o', '//');
                 case '(':
                     return this.to('o', '(');
                 case ')':

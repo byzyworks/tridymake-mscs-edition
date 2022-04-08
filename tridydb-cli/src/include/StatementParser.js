@@ -3,7 +3,6 @@ import { parser as tokenParser } from './TokenParser.js';
 import { isEmpty }     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { List }        from '../utility/List.js';
-import { Token } from './Token.js';
 
 class StatementParser {
     constructor() {
@@ -76,7 +75,7 @@ class StatementParser {
 
         this.carry = [ ];
 
-        if (stmt_cutoff) {
+        if (stmt_cutoff !== null) {
             for (idx = 0; idx <= stmt_cutoff; idx++) {
                 tokens.push(pool[idx]);
             }

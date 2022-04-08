@@ -188,17 +188,17 @@ class TokenParser {
     readTagRecursive(pos) {
         let tag = '';
 
-        let enclosure_cnt = 0;
+        let is_enclosed = false;
 
         tag += this.readWhilePred((ch) => {
             return ch === '$';
         });
 
         if (!isEmpty(tag)) {
-            while (!this.parser.isEOF() && (this.parser.peek() === '{')) {
+            if (!this.parser.isEOF() && (this.parser.peek() === '{')) {
                 tag += this.parser.next();
     
-                enclosure_cnt++;
+                is_enclosed = true;
             }
         }
 
@@ -214,14 +214,12 @@ class TokenParser {
             }
         }
 
-        while ((enclosure_cnt > 0) && !this.parser.isEOF() && (this.parser.peek() === '}')) {
-            tag += this.parser.next();
-
-            enclosure_cnt--;
-        }
-
-        if (enclosure_cnt !== 0) {
-            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Missing closing bracket in variable "${tag}".`);
+        if (is_enclosed) {
+            if (!this.parser.isEOF() && (this.parser.peek() === '}')) {
+                tag += this.parser.next();
+            } else {
+                throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Missing closing bracket in variable "${tag}".`);
+            }
         }
 
         return tag;
@@ -278,11 +276,11 @@ class TokenParser {
     }
 
     isPunc(ch) {
-        return /[~%^&*()+=\[\]{}|:;,./?]/g.test(ch);
+        return /[~%^&*()+=\[\]{}|:;,.?]/g.test(ch);
     }
 
     isMultiPunc(ch) {
-        return /[!<>]/g.test(ch);
+        return /[!></]/g.test(ch);
     }
 
     isVariableStart(ch) {

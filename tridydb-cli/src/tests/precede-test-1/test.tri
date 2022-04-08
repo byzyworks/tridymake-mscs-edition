@@ -26,6 +26,6 @@
 
 @in f/skipped/e @new a ignored;
 
-@in f >> e > d | c ^ b & !a @new precedence-test;
+@in f // e / d | c ^ b & !a @new precedence-test;
 
 @get;

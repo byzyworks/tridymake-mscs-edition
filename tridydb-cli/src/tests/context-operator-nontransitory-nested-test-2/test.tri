@@ -16,6 +16,6 @@
 
 @new a ignored;
 
-@in a << c < d @new non-transitory-test;
+@in a >> (c > ((d < c) << a)) @new non-transitory-test;
 
 @get;

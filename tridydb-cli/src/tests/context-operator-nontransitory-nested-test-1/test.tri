@@ -1,19 +1,21 @@
 @tridy;
 
-@new a gets-d-and-e;
+@new a parent-of-b ascendant-of-c;
 
-@in a @new b;
+@in a @new b child-of-a;
 
-@in a/b @new c;
+@in a/b @new c descendant-of-a;
 
-@new a gets-only-d;
+@new a parent-of-only-b;
 
-@in a gets-only-d @new b;
+@in a parent-of-only-b @new b;
 
-@new a gets-neither-d-or-e;
+@in (a @parent b) & (a > b) @new d with-parent-of-b;
 
-@in (a @parent b) & (a < b) @new d;
+@in (a @ascend c) & (a >> c) @new e with-ascendant-of-c;
 
-@in (a @ascend c) & (a << c) @new e;
+@in * // (b @child a) & (b < a) @new f with-child-of-a;
+
+@in * // (c @descend a) & (c << a) @new g with-descendent-of-a;
 
 @get;

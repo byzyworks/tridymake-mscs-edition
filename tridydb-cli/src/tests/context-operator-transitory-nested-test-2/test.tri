@@ -8,22 +8,14 @@
 
 @in a/b/c @new c;
 
-@in a/b/c/c @new d skipped;
+@in a/b//c @new d;
 
-@in a/b/c/c/d @new e;
+@in a/b//c/d @new d ignored;
 
-@in a/b/c/c/d/e @new f;
+@in a/b//c @new e ignored;
 
-@in a/b/c/c/d/e @new g ignored;
+@in a/b @new f ignored;
 
-@in a/b/c/c/d/e/g @new f ignored;
-
-@in a/b/c/c/d/e @new e ignored;
-
-@in a/b/c/c/d @new d ignored;
-
-@in a/b/c/c @new d ignored;
-
-@in a >>> c >> e > f @new transitory-test;
+@in a//c/d @new transitory-test;
 
 @get;

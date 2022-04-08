@@ -4,7 +4,56 @@
             {
                 "tags": [
                     "a",
-                    "gets-d-and-e"
+                    "parent-of-b",
+                    "ascendant-of-c"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b",
+                            "child-of-a"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c",
+                                    "descendant-of-a"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "g",
+                                            "with-descendent-of-a"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "f",
+                                    "with-child-of-a"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "d",
+                            "with-parent-of-b"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "e",
+                            "with-ascendant-of-c"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "parent-of-only-b"
                 ],
                 "tree": [
                     {
@@ -14,45 +63,18 @@
                         "tree": [
                             {
                                 "tags": [
-                                    "c"
+                                    "f",
+                                    "with-child-of-a"
                                 ]
                             }
                         ]
                     },
                     {
                         "tags": [
-                            "d"
-                        ]
-                    },
-                    {
-                        "tags": [
-                            "e"
+                            "d",
+                            "with-parent-of-b"
                         ]
                     }
-                ]
-            },
-            {
-                "tags": [
-                    "a",
-                    "gets-only-d"
-                ],
-                "tree": [
-                    {
-                        "tags": [
-                            "b"
-                        ]
-                    },
-                    {
-                        "tags": [
-                            "d"
-                        ]
-                    }
-                ]
-            },
-            {
-                "tags": [
-                    "a",
-                    "gets-neither-d-or-e"
                 ]
             }
         ]

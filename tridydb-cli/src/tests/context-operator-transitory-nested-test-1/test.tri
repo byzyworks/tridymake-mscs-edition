@@ -2,20 +2,14 @@
 
 @new a;
 
-@in a @new b;
+@in a @new b has-to has-toward;
 
-@in a @new d ignored-by-from-to;
+@in a @new ignored;
 
-@in (a @to b) & (a / b) & (a > b) @new c;
+@in (a @to b) & (a / b) @new b to has-toward;
 
-@in a/b/c @new c ignored-by-from-toward;
+@in a/b @new ignored;
 
-@in (a @toward c) & (a >> c) @new d from-toward;
-
-@in (a @toall c) & (a >>> c) @new e from-toall;
-
-@in a/b @new b ignored-by-from-to;
-
-@in a/b @new b from-to;
+@in (a @toward b) & (a // b) @new c toward;
 
 @get;

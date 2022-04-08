@@ -13,12 +13,17 @@
                         "tree": [
                             {
                                 "tags": [
-                                    "c"
+                                    "d"
                                 ],
                                 "tree": [
                                     {
                                         "tags": [
-                                            "d"
+                                            "e"
+                                        ]
+                                    },
+                                    {
+                                        "tags": [
+                                            "only-inside-b"
                                         ]
                                     }
                                 ]
@@ -27,35 +32,24 @@
                     },
                     {
                         "tags": [
-                            "non-transitory-test"
-                        ]
-                    }
-                ]
-            },
-            {
-                "tags": [
-                    "a",
-                    "ignored"
-                ],
-                "tree": [
-                    {
-                        "tags": [
-                            "b"
+                            "c",
+                            "ignored"
                         ],
                         "tree": [
                             {
                                 "tags": [
-                                    "c"
+                                    "d"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "e"
+                                        ]
+                                    }
                                 ]
                             }
                         ]
                     }
-                ]
-            },
-            {
-                "tags": [
-                    "a",
-                    "ignored"
                 ]
             }
         ]

@@ -1,0 +1,17 @@
+@tridy;
+
+@new a;
+
+@in a @new b;
+
+@in a/b @new d;
+
+@in a @new c ignored;
+
+@in a/c @new d;
+
+@in a//d @new e;
+
+@in a // d << b < (@root & ~) @new only-inside-b;
+
+@get;

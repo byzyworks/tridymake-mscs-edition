@@ -10,6 +10,6 @@
 
 @in a/b/b/b @new a;
 
-@in a//b&!(b>>b) @new c to-last;
+@in a//b&!(b<<b) @new c to-first;
 
 @get;

@@ -8,8 +8,8 @@
 
 @in a @new b;
 
-@in a >> (@leaf & %) @new d old-leaf;
+@in a // (@leaf & %) @new d old-leaf;
 
-@in a >> (@leaf & %) @new e new-leaf;
+@in a // (@leaf & %) @new e new-leaf;
 
 @get;

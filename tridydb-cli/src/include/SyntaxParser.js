@@ -155,7 +155,13 @@ class SyntaxParser {
 
         context = infixParser.parse(context);
     
-        this.astree.enterSetAndLeave(['context'], context);
+        this.astree.enterPos('context');
+
+        this.astree.enterSetAndLeave(['expression'], context);
+
+        
+
+        this.astree.leavePos();
     }
 
     readWhileRaw(opts = { }) {
@@ -357,6 +363,11 @@ class SyntaxParser {
         
         if (this.tokens.peek().is('key', 'exit')) {
             interactive_exit = true;
+
+            this.tokens.next();
+        } else if (this.tokens.peek().is('key', 'clear')) {
+            console.clear();
+            
             this.tokens.next();
         }
 
@@ -366,7 +377,7 @@ class SyntaxParser {
             if (!this.tokens.peek().is('punc', ';')) {
                 this.handleContext();
             }
-        } else if (this.tokens.peek().isDefiningOpToken() || this.tokens.peek().is('key', 'in')) {
+        } else if (this.tokens.peek().isDefiningOpToken() || this.tokens.peek().is('key', 'in') || this.tokens.peek().is('key', 'once')) {
             if (this.tokens.peek().is('key', 'in')) {
                 this.tokens.next();
 
@@ -383,6 +394,12 @@ class SyntaxParser {
                     this.handleDefinition();
                     break;
             }
+        }
+
+        if (this.tokens.peek().is('key', 'once')) {
+            this.tokens.next();
+
+            this.astree.enterSetAndLeave(['context', 'greedy'], true);
         }
 
         if (this.tokens.peek().is('punc', ';')) {
