@@ -11,6 +11,10 @@ export const pushAll = (target, source) => {
     }
 }
 
+export const isNullish = (obj) => {
+    return (obj === undefined) || (obj === null);
+}
+
 export const isObject = (obj) => {
     return ((typeof obj === 'object') && (obj !== null));
 }
@@ -48,28 +52,14 @@ export const deepCopy = (source) => {
 
 export const overlay = (target, source) => {
     for (const property in source) {
-        if (isObject(source[property])) {
-            if (!target[property] || !isObject(target[property])) {
-                if (isArray(source[property])) {
-                    target[property] = [ ];
-                } else if (isDictionary(source[property])) {
-                    target[property] = { };
-                }
-            } else if (isArray(target[property]) && isArray(source[property])) {
-                for (const part of source[property]) {
-                    target[property].push(deepCopy(part));
-                }
-            } else if (isArray(target[property]) && isDictionary(source[property])) {
-                target[property].push(deepCopy(source[property]));
-            } else if (isDictionary(target[property]) && isArray(source[property])) {
-                const temp = deepCopy(source[property]);
-                temp.push(deepCopy(target[property]));
-                target[property] = temp;
-            } else {
-                overlay(target[property], source[property]);
+        if (isArray(target[property]) && isArray(source[property])) {
+            for (const part of source[property]) {
+                target[property].push(deepCopy(part));
             }
+        } else if (isDictionary(target[property]) && isDictionary(source[property])) {
+            overlay(target[property], source[property]);
         } else {
-            target[property] = source[property];
+            target[property] = deepCopy(source[property]);
         }
     }
 }

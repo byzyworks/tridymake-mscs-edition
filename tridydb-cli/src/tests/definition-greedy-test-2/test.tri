@@ -1,0 +1,11 @@
+@tridy;
+
+@new a;
+
+@in a @new b;
+
+@in a @new b;
+
+@in a/b @new c @many;
+
+@get;

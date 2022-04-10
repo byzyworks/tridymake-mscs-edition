@@ -400,6 +400,10 @@ class SyntaxParser {
             this.tokens.next();
 
             this.astree.enterSetAndLeave(['context', 'greedy'], true);
+        } else if (this.tokens.peek().is('key', 'many')) {
+            this.tokens.next();
+
+            this.astree.enterSetAndLeave(['context', 'greedy'], false);
         }
 
         if (this.tokens.peek().is('punc', ';')) {

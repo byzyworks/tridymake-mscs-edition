@@ -1,4 +1,4 @@
-//import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 import { StateTree } from './StateTree.js';
 
@@ -259,8 +259,6 @@ class Composer {
         } else if (isEmpty(tested) || (lvl < 0) || (lvl >= tested.length)) {
             answers.value = false;
             answers.valid = true;
-        } else if (typeof test === 'boolean') {
-            answers.value = test;
         } else if (this.isTag(test)) {
             this.matchingTag(answers, test, tested, lvl);
         } else {
@@ -306,7 +304,7 @@ class Composer {
         if (isArray(tags)) {
             for (const i in tags) {
                 if (tags[i] === '@uuid') {
-                    //tags[i] = uuidv4();
+                    tags[i] = uuidv4();
                 }
             }
         }
@@ -394,8 +392,19 @@ class Composer {
 
     parseStatement() {
         const context    = this.astree.enterGetAndLeave(['context']);
-        const expression = context ? context.expression : undefined;
-        const greedy     = context ? context.greedy : undefined;
+        const expression = context ? context.expression : [ ];
+        let greedy;
+        if (context) {
+            if (context.greedy === undefined) {
+                if (isEmpty(expression)) {
+                    greedy = true;
+                } else {
+                    greedy = false;
+                }
+            } else {
+                greedy = context.greedy;
+            }
+        }
 
         const command = this.astree.enterGetAndLeave(['operation']);
 
