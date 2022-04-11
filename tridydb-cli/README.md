@@ -69,7 +69,7 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 13. [@yaml](#syntax-yaml)
                 14. [@end](#syntax-end)
                 15. [@has](#syntax-has)
-                16. [@many](#syntax-none)
+                16. [@none](#syntax-none)
                 17. [@once](#syntax-once)
                 18. [@many](#syntax-many)
             4.  [Summary](#syntax-summary)
