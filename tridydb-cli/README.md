@@ -1,4 +1,8 @@
+<div id="tridy"/>
+
 # Tridy
+
+<div id="intro"/>
 
 ## Introduction
 
@@ -11,6 +15,69 @@ As for what it *is* for, Tridy is designed to be a lightweight tool for lightwei
 To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redundant data defined in an irredundant format.
 
 <br>
+
+## Table of Contents
+
+---
+
+1. [Tridy](#tridy)
+    1. [Introduction](#intro)
+    2. [TridyDB](#tridydb)
+        1. [Format](#tridydb-form)
+        2. [Schemas](#tridydb-schema)
+        3. [Security](#tridydb-sec)
+    3. [Tridy (the Language)](#tridylang)
+        1. [Modules](#modules)
+        2. [Context](#context)
+            1. [Introduction](#context-intro)
+            2. [Empty Expressions](#context-empty)
+            3. [Context Terminals](#context-terminals)
+                1. [Tags](#context-tags)
+                2. [@any](#context-any)
+                3. [@root](#context-root)
+                4. [@leaf](#context-leaf)
+                5. [@random](#context-random)
+            4. [Context Operators](#context-operators)
+                1. [@not](#context-not)
+                2.  [@and](#context-and)
+                3.  [@xor](#context-xor)
+                4.  [@or](#context-or)
+                5.  [@parent](#context-parent)
+                6.  [@ascend](#context-ascend)
+                7.  [@child](#context-child)
+                8.  [@descend](#context-descend)
+                9.  [@to](#context-to)
+                10. [@toward](#context-toward)
+                11. [Parentheses](#context-parenth)
+            5. [Summary](#context-summary)
+        3.  [Syntax](#syntax)
+            1.  [Introduction](#syntax-intro)
+            2.  [Comments](#syntax-comments)
+            3.  [Clauses](#syntax-clauses)
+                1.  [@tridy](#syntax-tridy)
+                2.  [@clear](#syntax-clear)
+                3.  [@exit](#syntax-exit)
+                4.  [@in](#syntax-in)
+                5.  [@get](#syntax-get)
+                6.  [@new](#syntax-new)
+                7.  [@set](#syntax-set)
+                8.  [@del](#syntax-del)
+                9.  [@as](#syntax-as)
+                10. [@uuid](#syntax-uuid)
+                11. [@is](#syntax-is)
+                12. [@json](#syntax-json)
+                13. [@yaml](#syntax-yaml)
+                14. [@end](#syntax-end)
+                15. [@has](#syntax-has)
+                16. [@many](#syntax-none)
+                17. [@once](#syntax-once)
+                18. [@many](#syntax-many)
+            4.  [Summary](#syntax-summary)
+    4.  [Glossary](#glossary)
+
+<br>
+
+<div id="tridydb"/>
 
 ## TridyDB
 
@@ -30,6 +97,8 @@ To support its use for that, though, TridyDB is provided with three possible out
 
 <br>
 
+<div id="tridydb-form"/>
+
 ### Format
 
 <!-- Note about XML: not yet. -->
@@ -38,17 +107,23 @@ TridyDB supports importing JSON-formatted as well as YAML-formatted data. As out
 
 <br>
 
+<div id="tridydb-schema"/>
+
 ### Schemas
 
 TridyDB does not support the use of or creation or validation of schemas at this point in time.
 
 <br>
 
+<div id="tridydb-sec"/>
+
 ### Security
 
 As far as security goes, it is not recommended to use TridyDB except locally right now. While a user system is planned for the future, and TridyDB's nested architecture and context system are ripe for having granularized access controls, TridyDB is currently single-user. In addition, the web-based API shouldn't be used in a secure context either, since it is at risk for command injection in the same manner that SQL or other database engines are. In addition, this port should *never* be opened to the internet for the same reason that you shouldn't open MySQL port 3306 to the internet, even once a user system is built-in. To that end, any accesses to TridyDB should be regulated through another application stacked between the user and the database.
 
 <br>
+
+<div id="tridylang"/>
 
 ## Tridy (The Language)
 
@@ -126,7 +201,11 @@ Tridy is designed especially for these high-power operations, in a sense creatin
 
 <br>
 
+<div id="modules"/>
+
 ## Modules
+
+---
 
 TridyDB expects a kind of schema to foster it's capabilities and make it useful in a way that is as generalized as possible, but not so generalized that it can't offer anything over directly working with JSON, YAML, or similar. As part of this compromise, Tridy works with self-contained units of information that are collectively termed as **modules**. What actually makes a module a module is outlined in the list below:
 
@@ -148,7 +227,13 @@ Every module in an instance of Tridy is also a descendant of the **root module**
 
 <br>
 
+<div id="context"/>
+
 ## Context
+
+---
+
+<div id="context-intro"/>
 
 ### Introduction
 
@@ -193,6 +278,8 @@ Note that beyond just the standard boolean operators, there are six different ve
 
 <br>
 
+<div id="context-empty"/>
+
 ### Empty Expressions
 
 Tridy allows users to forego giving context expressions at all, either by leaving out `@in`, or at least in the case of the affective operations `@get` and `@del`, proceeding it without a context expression. In other words, the following examples are all statements with empty expressions:
@@ -221,6 +308,12 @@ Tridy allows users to forego giving context expressions at all, either by leavin
 If an expression is not given, then the operation is applied to the root/top-level module, whereby only it is affected.
 
 <br>
+
+<div id="context-terminals"/>
+
+## Context Terminals
+
+<div id="context-tags"/>
 
 ### Operand: Tags
 
@@ -263,6 +356,8 @@ A stated previously, an individual tag evaluates to true if a module contains th
 Per why they're called tags, TribyDB places no restrictions on uniqueness or how many tags a module can have, and a module may even contain no tags at all where only wildcard operands can affect it. The only thing TridyDB does restrict are duplicate tags in the same module, but this is simply because including them multiple times in the same module has no effective purpose, and it's better to enforce this as a rule for best practice reasons.
 
 <br>
+
+<div id="context-any"/>
 
 ### Wildcard Operand: `@any` / "`*`"
 
@@ -321,6 +416,8 @@ The `@any` operand is used in a way that is analogous to a tautology in the Trid
 ```
 
 <br>
+
+<div id="context-root"/>
 
 ### Wildcard Operand: `@root` / "`~`"
 
@@ -387,6 +484,8 @@ The `@root` operand applies if and only if the module being evaluated is a direc
 
 <br>
 
+<div id="context-leaf"/>
+
 ### Wildcard Operand: `@leaf` / "`%`"
 
 The `@leaf` operand applies if and only if the module being evaluated is a leaf, meaning that it contains no sub-modules of its own. In more detail, that either it has no nested tree data structure, or this structure is as an empty array. As is typical, the free data structure is not evaluated when making this decision.
@@ -439,11 +538,19 @@ The `@leaf` operand applies if and only if the module being evaluated is a leaf,
 
 <br>
 
+<div id="context-random"/>
+
 ### Wildcard Operand: `@random` / "`?`"
 
 The `@random` operand forms one of the few non-deterministic operands included with the Tridy language. This operand effectively operates like a coin flip, where it has a 50% chance of evaluating to true, and a 50% chance of evaluating to false. The chances of the operand coming out as either can be raised or lowered by chaining multiple `@random` clauses together with either `@and` or `@or` (for instance, as "`? & ?`" or "`? | ?`"), respectively. That is, following statistic reasoning, the probability of success, and therefore, a module being affected, can then be controlled like that of a binomial distribution, allowing for a lot of interesting combinations of modules to be created.
 
 <br>
+
+<div id="context-operators"/>
+
+## Context Operators
+
+<div id="context-not"/>
 
 ### Basic Operator: `@not` / "`!`"
 
@@ -495,6 +602,8 @@ If not including parantheses, `@not` has the highest precedence out of all the o
 
 <br>
 
+<div id="context-and"/>
+
 ### Basic Operator: `@and` / "`&`" / " "
 
 The `@and` operator evaluates as true if and only if the operands on both sides of the operator are true. Otherwise, it evaluates as false. This can be used if you wish only for a module that has two or more particular tags at the same time to be affected.
@@ -541,6 +650,8 @@ Worth noting is that `@and` is also considered as the "implicit" operation, mean
 `@and`'s precedence is higher than that of `@not` and lower than that of `@xor`.
 
 <br>
+
+<div id="context-xor"/>
 
 ### Basic Operator: `@xor` / "`^`"
 
@@ -591,6 +702,8 @@ The `@xor` operator evaluates as true if and only if an operand on one side of t
 `@xor`'s precedence is higher than that of `@and` and lower than that of `@or`.
 
 <br>
+
+<div id="context-or"/>
 
 ### Basic Operator: `@or` / "`|`" / "`,`"
 
@@ -647,6 +760,8 @@ The `@or` operator evaluates as true if either side of the operator evaluates as
 
 <br>
 
+<div id="context-parent"/>
+
 ### Lookahead Nested Operator: `@parent` / "`>`"
 
 The `@parent` operator returns true only if the right side of the operator is true for a child of a module for which the left side of the operator is true. For instance, in the case where a module tagged as `apple` has one or more sub-modules with the `seed` tag, then the expression "`apple > seed`" will only apply to those `apple` modules that have at least one of these sub-modules tagged with `seed`. In essence, the parent module is thus affected as the result of a property that one or more of its child modules have.
@@ -687,6 +802,8 @@ The `@parent` operator returns true only if the right side of the operator is tr
 `@parent`'s precedence is the same as all of the non-transitive nested operators, being higher than that of `@or` and lower than the transitive nested operators.
 
 <br>
+
+<div id="context-ascend"/>
 
 ### Lookahead Nested Operator: `@ascend` / "`>>`"
 
@@ -740,6 +857,8 @@ The `@ascend` operator extends `@parent` to recursively look for sub-modules whe
 
 <br>
 
+<div id="context-child"/>
+
 ### Lookbehind Nested Operator: `@child` / "`<`"
 
 The `@child` operator returns true only if the left side of the operator is true for a child of a module for which the right side of the operator is true. While it effectively just reverses directions from `@parent` (and because the two sides are AND'ed together in the end, the final outcome would happen to be pretty much or nearly the same), it differs rather in the module that gets affected when the result is true. Since `@parent` affects the parent, obviously this would affect the child instead, i.e. still the left-hand side of the operator.
@@ -787,6 +906,8 @@ The `@child` operator returns true only if the left side of the operator is true
 `@child`'s precedence is the same as all of the non-transitive nested operators, being higher than that of `@or` and lower than the transitive nested operators.
 
 <br>
+
+<div id="context-descend"/>
 
 ### Lookbehind Nested Operator: `@descend` / "`<<`"
 
@@ -861,6 +982,8 @@ The `@descend` operator extends `@child` similar to the way `@ascend` extends `@
 
 <br>
 
+<div id="context-to"/>
+
 ### Transitive Nested Operator: `@to` / "`/`"
 
 The `@to` operator has a behavior similar to that of `@child`, where it will return true only for a child of another module, though the ordering from left to right is from parent to child like with `@parent`, and unlike `@child`. That would not be enough reason alone to have a separate operator, however, yet `@to` has an important role by the fact that it is *transitive*, meaning that it both affects a child (as `@child` does), and shifts the context level forward while it's at it (as `@parent` does). In fact, `@to` (or `@toward` below) is a necessity to affect child modules at all, since `@child`/`@descend` only works at the current context level (`@child`/`@descend` without `@to`/`@toward` is just searching for parents of a root module, which always returns false), and `@parent`/`@ascend`, while they do shift the context level, rather end up affecting the parent, or in other words, at the original context. This is why this operator (likely as `/`), or `@toward` (likely as `//`) is so frequently used here.
@@ -903,6 +1026,8 @@ The `@to` operator has a behavior similar to that of `@child`, where it will ret
 `@to`'s precedence, as a transitive nested operator, has a lower precedence than any of the operators that are not transitive nested operators, and equal precedence with any that are, such as `@toward`.
 
 <br>
+
+<div id="context-toward"/>
 
 ### Transitive Nested Operator: `@toward` / "`//`"
 
@@ -960,6 +1085,8 @@ The `@toward` operator does not just have an effect on the . `@toward` looks for
 `@towards`'s precedence, as a transitive nested operator, has a lower precedence than any of the operators that are not transitive nested operators, and equal precedence with any that are, such as `@to`.
 
 <br>
+
+<div id="context-parenth"/>
 
 ### Parentheses
 
@@ -1091,6 +1218,8 @@ Note that parentheses can also be used to reverse the transitions created by the
 
 <br>
 
+<div id="context-summary"/>
+
 ### Summary
 
 | Precedence | Operation | Shorthands | Input | Output | Search Depth (RHS) | Effective Depth |
@@ -1111,11 +1240,19 @@ Note: if first in an expression, LHS = 0. Additionally, the LHS, unless both the
 
 <br>
 
+<div id="syntax"/>
+
 ## Statements/Syntax
+
+---
+
+<div id="syntax-intro"/>
 
 ### Introduction
 
 Understanding how modules are addressed using context expressions, we now look into what actually composes a statement in the Tridy language, and what it actually means for a statement to "affect" a Tridy module.
+
+Tridy is composed of **clauses**, which are keywords that are used to control the behavior of the Tridy interpreter. Every clause begins with the `@` symbol.
 
 A Tridy statement, *at a minimum*, is composed of one and only ever one operation, as well as a single semicolon at the end of the statement.
 
@@ -1123,44 +1260,57 @@ In addition, a statement may be composed of **meta-operations**, which happen to
 
 Finally, as with certain operations but not others, the statement might contain a couple of **definition** clauses. Definition clauses are Tridy's way of spelling out the contents of a module, though these are not to be confused with the **raw** clauses that do similarly, but in a Tridy-lite manner.
 
-It's important to note that **order matters** and Tridy is not commutative, at least for the time being. That means that per the order in which this guide is written, most of the clauses follow the given order, and would result in syntax errors if instead given out-of-order. With each of these clauses, their particular ordering should become clear from their explanations, but as an overview, the syntax rules are detailed below using Microsoft's command line syntax:
-
-```
-[@tridy]
-{
-    {
-        {
-            {@get | @del} [<context expression>]
-        |
-            @in <context expression>
-            {@get | @del}
-        }
-    |
-        [@in <context expression>]
-        {@new | @set}
-        {
-            <@json <json> | @yaml <yaml>> @end
-        |
-            {
-                @tridy
-                @as {<tags> | @none}
-            |
-                [@as] {<tags> | @none}
-            }
-            [@is {<{@json <json> | @yaml <yaml>} @end> | @none}]
-            [@has {\{ <tridy statements> \} | @none}]
-        }
-    }
-    [{@once | @many}]
-|
-    @clear
-|
-    @exit
-}
-;
-```
+It's important to note that **order matters** and Tridy is not commutative, at least for the time being. That means that per the order in which this guide is written, most of the clauses follow the given order, and would result in syntax errors if instead given out-of-order. With each of these clauses, their particular ordering should become clear from their explanations, but as an overview, one can refer to the [summary](#syntax-summary).
 
 <br>
+
+<div id="syntax-comments"/>
+
+## Comments
+
+In Tridy, it is possible to provide comments inside of scripts using the hashtag character `#`, which can be placed anywhere at the end of a line, and any text which follows it will be ignored by the Tridy interpreter until the next line.
+
+On the other hand, Tridy does not have a multi-line comment syntax.
+
+<br>
+
+<div id="syntax-clauses"/>
+
+## Clauses
+
+<div id="syntax-tridy"/>
+
+### Definition / Control: `@tridy`
+
+The `@tridy` clause has a unique role to play, considering it is the only clause that can appear more than one place in a Tridy statement, and has a different effect depending on where it is placed.
+
+The first place is at the very beginning of the statement. Placing it at the beginning is to allow the clause to be used like a file signature, so that any files that have it may immediately be recognized as Tridy scripts. It has no effect on the statement itself, being essentially a no-op.
+
+In the second location, it can be placed between the operation clause and the definition clause `@as`. This will make `@as` a requirement for specifying tags, however, the purpose there is only to explicitly exclude the use of raw input clauses like `@json`.
+
+<br>
+
+<div id="syntax-clear"/>
+
+### Control: `@clear`
+
+The `@exit` clause is meant as a control command for the TridyDB interactive terminal, in which the terminal moves the screen down to where the previous output is made invisible.
+
+`@clear` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
+
+<br>
+
+<div id="syntax-exit"/>
+
+### Control: `@exit`
+
+The `@exit` clause is meant as a control command for the TridyDB interactive terminal, causing the interactive terminal to close.
+
+`@exit` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
+
+<br>
+
+<div id="syntax-in"/>
 
 ### Meta-Operation: `@in`
 
@@ -1169,6 +1319,8 @@ It's important to note that **order matters** and Tridy is not commutative, at l
 Syntactically, `@in` is meant to precede one of the operation clauses, and thus also all other clauses in a statement. However, use of `@in` to provide a context expression is optional for `@get` and `@del`, and only required for `@new` and `@set`. This is because only `@new` and `@set` use the space to the right of them to allow defining module characteristics (via. the definition clauses), while `@get` and `@del` are specific to the current state of the database. Thus, they can be shortcutted by avoiding `@in` and simply giving the context expression after the operation itself (`@in ... @get;` vs. `@get ...;`).
 
 <br>
+
+<div id="syntax-get"/>
 
 ### Operation: `@get`
 
@@ -1223,6 +1375,8 @@ By default, the results of `@get` will be a JSON representation of the database 
 
 <br>
 
+<div id="syntax-new"/>
+
 ### Operation: `@new`
 
 `@new` is the main operation used with Tridy, as without it, Tridy modules would not be composable to begin with. `@new` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then copies this module to the tree data structure of all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, it is placed only at the root module. Thus, a module created through `@new` becomes a sub-module of the context to which it is provided. Using `@new` is never an idempotent operation.
@@ -1253,6 +1407,8 @@ By default, the results of `@get` will be a JSON representation of the database 
 ```
 
 <br>
+
+<div id="syntax-set"/>
 
 ### Operation: `@set`
 
@@ -1288,6 +1444,8 @@ Note that this command is generally not recommended for normal use, and Tridy sc
 ```
 
 <br>
+
+<div id="syntax-del"/>
 
 ### Operation: `@del`
 
@@ -1325,6 +1483,8 @@ The operation is not completely permanent, though, since modules can always be r
 
 <br>
 
+<div id="syntax-as"/>
+
 ### Definition: `@as`
 
 `@as` is one of few clauses in Tridy that are totally unnecessary to give, but exist as a convenience to the user simply as a way to be explicit. The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set`. `@as` is meant to come after the operation, but before `@is` or `@has`. Normally, tags are be given to the right-hand side of the operation even without the use of `@as`, hence why it is usually unnecessary.
@@ -1344,6 +1504,50 @@ The operation is not completely permanent, though, since modules can always be r
 ```
 
 <br>
+
+<div id="syntax-uuid"/>
+
+### Definition Operand: `@uuid`
+
+The `@uuid` clause is used in place of a tag right of `@as`, `@new`, or `@set`, and displays a unique behavior whereby in its place, a UUIDv4 string (as a tag) is generated. The UUID provides the module with a way to be identifiable by a totally-unique tag/identifier, and importantly, the UUID generation happens *after* the module is copied and placed, meaning that every copy of the module, if there are any, even get a completely-separate UUID of their own such that two or more modules placed from a single statement while having this clause are never identical.
+
+As a disadvantage of this, though, the UUID would not be known beforehand, making it necessary to `@get` the results of these statements afterwards in order to read and use the unique identifier in further Tridy statements, which wouldn't be possible in a Tridy script alone.
+
+```
+# After
+@new a;
+@new a;
+
+# After
+@in a @new @uuid;
+```
+
+```diff
+{
+    "tree": [
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "tags": ["2c483f4f-04da-42a7-9dfb-a25e614f190b"]
++               }
+            ]
+        },
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "tags": ["ee45339a-4d3c-4e27-80d8-76ea422cf8a7"]
++               }
+            ]
+        }
+    ]
+}
+```
+
+<br>
+
+<div id="syntax-is"/>
 
 ### Definition: `@is`
 
@@ -1388,148 +1592,7 @@ Following `@is`, the user would specify a format clause, most commonly `@json`, 
 
 <br>
 
-### Definition: `@has`
-
-`@has` is another way to nest modules inside of other modules. The main purpose of `@has` is to set the initial tree data structure of the module, which are defined in the format of recursively-nested Tridy statements. Of note is that every `@has` requires a following opening bracket (`{`) at the beginning and a closing bracket (`}`) at the end of the nested statements.
-
-As another important aspect of `@has`, the nested Tridy statements provided using it are created *prior* to the (top) module's duplication and placement. What this means, inevitably, is that statements provided through `@has` exhibit a unique property whereby they are **context-locked**, meaning that context expressions inside of these nested statements have no view of the database outside the modules until the full, unnested statement has already been executed, and yet, nested statements are executed prior to their parent statement being executed.
-
-Thus, relative to a nested statement, the module represented by the parent statement is the root module, and context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation). The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as a root. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without affecting the wider database.
-
-`@has` along with its bracketed statements is meant to be specified after `@is` if given, but before `@once` or `@many`.
-
-```
-@new orchard @has {
-    @new apple @has {
-        @new seed;
-    };
-    @new apple;
-    @in apple @new seed;
-};
-```
-
-```json
-{
-    "tree": [
-        {
-            "tags": ["orchard"],
-            "tree": [
-                {
-                    "tags": ["apple"],
-                    "tree": [
-                        {
-                            "tags": ["seed"]
-                        },
-                        {
-                            "tags": ["seed"]
-                        }
-                    ]
-                },
-                {
-                    "tags": ["apple"],
-                    "tree": [
-                        {
-                            "tags": ["seed"]
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
-```
-
-<br>
-
-### Meta-Operation: `@once`
-
-`@once` is a special parameter that is used to make a Tridy statement (and in fact, any Tridy statement regardless of operation) "greedy". Effectively, a greedy Tridy statement is one which is limited to affecting a single module, whereby it will stop searching for new modules once at least one module returns true according to the context expression. This means it will not only retract from searching through sub-modules, but through co-modules as well, meaning modules in the same tree of a parent module that each may or may not have a matching context as well. It is not possible otherwise to ignore co-modules.
-
-There is a particular use case for this, namely where context expressions are addressing a module which is unique, perhaps because it has a unique identifier or tag, and it is known beforehand to be as such. Using this in such a way would at least have the effect of speeding up such statements since the composer does needlessly search further after the point the uniquely-matching module is found.
-
-`@once` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@many`.
-
-```
-# Before
-@new a;
-@new a;
-@new a;
-
-# After
-@in a @new b @once;
-```
-
-```diff
-{
-    "tree": [
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        },
-        {
-            "tags": ["a"]
-        },
-        {
-            "tags": ["a"]
-        }
-    ]
-}
-```
-
-<br>
-
-### Meta-Operation: `@many`
-
-As an alternative to `@once`, `@many` is an explicit way to specify the default behavior Tridy exhibits when selecting modules, which is to test all existing modules where a context expression evaluates as true and apply an operation therein. It is not necessary to include.
-
-`@many` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@once`.
-
-```
-# Before
-@new a;
-@new a;
-@new a;
-
-# After
-@in a @new b @many;
-```
-
-```diff
-{
-    "tree": [
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        },
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        },
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        }
-    ]
-}
-```
-
-<br>
+<div id="syntax-json"/>
 
 ### Raw Definition: `@json`
 
@@ -1585,6 +1648,8 @@ The `@json` clause is used as a starting delimiter for JSON-formatted input wher
 For obvious reasons that it bypasses Tridy's requirements for modules, using this or other raw definition tags is recommended against under normal circumstances where the module definition is not enforced by the application interfacing with Tridy.
 
 <br>
+
+<div id="syntax-yaml"/>
 
 ### Raw Definition: `@yaml`
 
@@ -1644,6 +1709,8 @@ For obvious reasons that it bypasses Tridy's requirements for modules, using thi
 
 <br>
 
+<div id="syntax-end"/>
+
 ### Raw Definition: `@end`
 
 The `@end` clause is used as an ending delimiter for raw input clauses like `@json` and `@yaml`. Whereby these would pass control over parsing the input to their respective interpreter, `@end` closes this input and passes control back to the Tridy interpreter.
@@ -1652,13 +1719,62 @@ The `@end` clause is used as an ending delimiter for raw input clauses like `@js
 
 <br>
 
-## Special Clauses
+<div id="syntax-has"/>
 
-### Introduction
+### Definition: `@has`
 
-Under here are the clauses that are entirely optional to use or do not fit into one of the major categories, either because they serve as explicit specifiers for default behavior, have a special but optional purpose, or provide a special function that only works when paired with a particular setup of TridyDB. At least in the latter case, these are referred to as the set of **control** clauses.
+`@has` is another way to nest modules inside of other modules. The main purpose of `@has` is to set the initial tree data structure of the module, which are defined in the format of recursively-nested Tridy statements. Of note is that every `@has` requires a following opening bracket (`{`) at the beginning and a closing bracket (`}`) at the end of the nested statements.
+
+As another important aspect of `@has`, the nested Tridy statements provided using it are created *prior* to the (top) module's duplication and placement. What this means, inevitably, is that statements provided through `@has` exhibit a unique property whereby they are **context-locked**, meaning that context expressions inside of these nested statements have no view of the database outside the modules until the full, unnested statement has already been executed, and yet, nested statements are executed prior to their parent statement being executed.
+
+Thus, relative to a nested statement, the module represented by the parent statement is the root module, and context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation). The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as a root. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without affecting the wider database.
+
+`@has` along with its bracketed statements is meant to be specified after `@is` if given, but before `@once` or `@many`.
+
+```
+@new orchard @has {
+    @new apple @has {
+        @new seed;
+    };
+    @new apple;
+    @in apple @new seed;
+};
+```
+
+```json
+{
+    "tree": [
+        {
+            "tags": ["orchard"],
+            "tree": [
+                {
+                    "tags": ["apple"],
+                    "tree": [
+                        {
+                            "tags": ["seed"]
+                        },
+                        {
+                            "tags": ["seed"]
+                        }
+                    ]
+                },
+                {
+                    "tags": ["apple"],
+                    "tree": [
+                        {
+                            "tags": ["seed"]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+```
 
 <br>
+
+<div id="syntax-none"/>
 
 ### Definition Operand: `@none`
 
@@ -1679,19 +1795,24 @@ Under here are the clauses that are entirely optional to use or do not fit into 
 
 <br>
 
-### Definition Operand: `@uuid`
+<div id="syntax-once"/>
 
-The `@uuid` clause is used in place of a tag right of `@as`, `@new`, or `@set`, and displays a unique behavior whereby in its place, a UUIDv4 string (as a tag) is generated. The UUID provides the module with a way to be identifiable by a totally-unique tag/identifier, and importantly, the UUID generation happens *after* the module is copied and placed, meaning that every copy of the module, if there are any, even get a completely-separate UUID of their own such that two or more modules placed from a single statement while having this clause are never identical.
+### Meta-Operation: `@once`
 
-As a disadvantage of this, though, the UUID would not be known beforehand, making it necessary to `@get` the results of these statements afterwards in order to read and use the unique identifier in further Tridy statements, which wouldn't be possible in a Tridy script alone.
+`@once` is a special parameter that is used to make a Tridy statement (and in fact, any Tridy statement regardless of operation) "greedy". Effectively, a greedy Tridy statement is one which is limited to affecting a single module, whereby it will stop searching for new modules once at least one module returns true according to the context expression. This means it will not only retract from searching through sub-modules, but through co-modules as well, meaning modules in the same tree of a parent module that each may or may not have a matching context as well. It is not possible otherwise to ignore co-modules.
+
+There is a particular use case for this, namely where context expressions are addressing a module which is unique, perhaps because it has a unique identifier or tag, and it is known beforehand to be as such. Using this in such a way would at least have the effect of speeding up such statements since the composer does needlessly search further after the point the uniquely-matching module is found.
+
+`@once` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@many`.
 
 ```
-# After
+# Before
+@new a;
 @new a;
 @new a;
 
 # After
-@in a @new @uuid;
+@in a @new b @once;
 ```
 
 ```diff
@@ -1701,7 +1822,48 @@ As a disadvantage of this, though, the UUID would not be known beforehand, makin
             "tags": ["a"],
             "tree": [
 +               {
-+                   "tags": ["2c483f4f-04da-42a7-9dfb-a25e614f190b"]
++                   "tags": ["b"],
++               }
+            ]
+        },
+        {
+            "tags": ["a"]
+        },
+        {
+            "tags": ["a"]
+        }
+    ]
+}
+```
+
+<br>
+
+<div id="syntax-many"/>
+
+### Meta-Operation: `@many`
+
+As an alternative to `@once`, `@many` is an explicit way to specify the default behavior Tridy exhibits when selecting modules, which is to test all existing modules where a context expression evaluates as true and apply an operation therein. It is not necessary to include.
+
+`@many` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@once`.
+
+```
+# Before
+@new a;
+@new a;
+@new a;
+
+# After
+@in a @new b @many;
+```
+
+```diff
+{
+    "tree": [
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "tags": ["b"],
 +               }
             ]
         },
@@ -1709,7 +1871,15 @@ As a disadvantage of this, though, the UUID would not be known beforehand, makin
             "tags": ["a"],
             "tree": [
 +               {
-+                   "tags": ["ee45339a-4d3c-4e27-80d8-76ea422cf8a7"]
++                   "tags": ["b"],
++               }
+            ]
+        },
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "tags": ["b"],
 +               }
             ]
         }
@@ -1719,41 +1889,54 @@ As a disadvantage of this, though, the UUID would not be known beforehand, makin
 
 <br>
 
-### Definition / Control: `@tridy`
+<div id="syntax-summary"/>
 
-The `@tridy` clause has a unique role to play, considering it is the only clause that can appear more than one place in a Tridy statement, and has a different effect depending on where it is placed.
+### Summary
 
-The first place is at the very beginning of the statement. Placing it at the beginning is to allow the clause to be used like a file signature, so that any files that have it may immediately be recognized as Tridy scripts. It has no effect on the statement itself, being essentially a no-op.
+The syntax rules are detailed below using Microsoft's command line syntax:
 
-In the second location, it can be placed between the operation clause and the definition clause `@as`. This will make `@as` a requirement for specifying tags, however, the purpose there is only to explicitly exclude the use of raw input clauses like `@json`.
+```
+[@tridy]
+{
+    {
+        {
+            {@get | @del} [<context expression>]
+        |
+            @in <context expression>
+            {@get | @del}
+        }
+    |
+        [@in <context expression>]
+        {@new | @set}
+        {
+            <@json <json> | @yaml <yaml>> @end
+        |
+            {
+                @tridy
+                @as {<tags> | @none}
+            |
+                [@as] {<tags> | @none}
+            }
+            [@is {<{@json <json> | @yaml <yaml>} @end> | @none}]
+            [@has {\{ <tridy statements> \} | @none}]
+        }
+    }
+    [{@once | @many}]
+|
+    @clear
+|
+    @exit
+}
+;
+```
 
 <br>
 
-### Control: `@clear`
-
-The `@exit` clause is meant as a control command for the TridyDB interactive terminal, in which the terminal moves the screen down to where the previous output is made invisible.
-
-`@clear` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
-
-<br>
-
-### Control: `@exit`
-
-The `@exit` clause is meant as a control command for the TridyDB interactive terminal, causing the interactive terminal to close.
-
-`@exit` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
-
-<br>
-
-## Comments
-
-In Tridy, it is possible to provide comments inside of scripts using the hashtag character `#`, which can be placed anywhere at the end of a line, and any text which follows it will be ignored by the Tridy interpreter until the next line.
-
-On the other hand, Tridy does not have a multi-line comment syntax.
-
-<br>
+<div id="glossary"/>
 
 ## Glossary
+
+---
 
 ### **Ascendant Module**
 The module in which another module (the subject) is nested under, either in which the subject module is a direct child of the ascendant, or that is recursively a child of the ascendant.
@@ -1768,10 +1951,13 @@ Any word beginning with an `@` symbol in a Tridy statement; used as keywords to 
 Strings starting with `#` and ending with a line feed, which are entirely ignored by the Tridy interpreter, and can be used for providing developer commentary.
 
 ### **Context**:
-The context of a module is the collection of a module's tags, along with the tags of all of ascendants in the order in which they are nested (from the root downward), acting as a location specifier for the module which the Tridy composer uses to identify it.
+The context of a module is a module's tagset, along with the tagset of all its ascendants in the order in which they are nested (from the root downward), acting as a location specifier for the module which the Tridy composer uses to evaluate against context expressions.
 
 ### **Context Expression**:
-A boolean-style expression that, when placed inside of a Tridy statement, uses context terminals and operators to determine whether a module should be affected or not by a statement, i.e. by evaluatin the expression against the module's context.
+A boolean-style expression that, when placed inside of a Tridy statement, uses context terminals and operators to determine whether a module should be affected or not by a statement, i.e. by evaluating the expression against the module's context.
+
+### **Context-Locking**:
+A property specific to the `@has` definition clause whereby a statement nested under another statement via. this clause is prevented from having access outside the module created by the statement it is nested under, since it is seen by the nested statement as the root module.
 
 ### **Context Operand**:
 A context terminal or sub-expression.
@@ -1789,38 +1975,61 @@ A special context operand that evaluates as true for reasons other than being a 
 A clause used only to control how TridyDB behaves depending on the manner in which it is used, and that does not have any particular effect on Tridy's interpretation engine.
 
 ### **Database**:
-see "Root Module".
+see "**Root Module**".
 
 ### **Definition Clause**:
+A clause used to define one of the major characteristic sections of a module in relation to the module's contents.
 
 ### **Descendant Module**:
+The module which is nested under another module (the subject), either in which the subject module is a direct parent of the descendant, or that is recursively a parent of the descendant.
 
 ### **Free Data Structure**:
+A module section for storing information about the module that is organized arbitrarily, usually for use in an application-specific context, and that is always provided as raw input.
 
 ### **Meta-Operation Clause**:
+A clause controlling the behavior of the Tridy composer with respect to which modules a statement ends up being applied to.
 
 ### **Module**:
+A self-contained unit of information that is individually-addressable by the Tridy composer, and organized in Tridy's particular format consisting of three sections: a tagset, a free data structure, and a tree data structure.
 
 ### **Operation Clause**:
+A clause which determines the type of action taken by a Tridy statement towards a module when that module is identified with a context matching a particular context expression.
 
 ### **Parent Module**:
+A module in which another module (the subject) is placed or located in the tree data structure of. In other words, that is "nesting" another module (the subject).
 
 ### **Raw Definition Clause**:
+A clause used as control flow for passing raw input through the Tridy interpreter.
+
+### **Raw Input**:
+A string of data that is passed through the Tridy interpreter in a common, established data format that doesn't include Tridy itself, namely JSON and/or YAML.
 
 ### **Root Module**:
+The module in which all other modules are nested under, that is not nested under any other modules itself, and that is addressed whenever a context expression is not provided in a statement.
 
 ### **Statement**:
+A string of Tridy code that is "complete" (according to the Tridy interpreter), part of which means being ended with a semicolon, and that can be interpreted individually separate from other statements.
 
 ### **Tag**:
+An unique or non-unique alphanumeric identifier that is used to identify a module, and form a part of its tagset/context.
+
+### **Tagset**:
+The array/list of tags that a particular module has, not including the tags of modules that are nested under it, and of which all tags are unique within this same array.
 
 ### **Tree Data Structure**:
+A particular array that is sometimes present in modules as the place in which other modules nested under the given module are contained.
 
 ### **Tridy**:
+A "data programming" language with a syntax designed for creating modules of data that can be copied and composed in various ways using boolean expressions without necessitating re-definition of the same data.
 
 ### **Tridy Composer**:
+A sub-component of the Tridy interpreter that is tasked specifically with evaluating context expressions against the contexts of different modules, and then executing specific operations of the interpreted statement on the modules that are matched by the context expression.
 
 ### **Tridy Interpreter**:
+A sub-component of TridyDB that is tasked with reading in Tridy statements and performing the correct actions that those statements describe in accordance with the Tridy language specifications.
 
 ### **TridyDB**:
+A middleware application consisting of an object storage engine (the database), a Tridy interpreter that reads and processes statements written in the Tridy language against the database, and presents the affected object or sub-objects as output, thus providing both the database and the main interface for it.
 
 ### **Variable**:
+Special tags or parts of tags starting with `$` that are used to associate the tag as a key to a corresponding value that be called by this key to result in the value of the key being placed with the final output.
