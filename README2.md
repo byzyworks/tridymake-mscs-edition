@@ -1531,27 +1531,136 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 
 <br>
 
-## Special Clauses
-
 ### Raw Definition: `@json`
 
-PLACEHOLDER
+The `@json` clause is used as a starting delimiter for JSON-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a JSON object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character (`\`) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
+
+```
+# Before
+@new a;
+
+# After
+@in a @new @json {
+    "string": "This is a string.",
+    "number": 10,
+    "boolean": true,
+    "array": ["apples", "oranges"],
+    "map": {
+        "a": "b",
+        "c": "d",
+        "nested": {
+            "e": "f",
+            "g": "h"
+        }
+    }
+} @end;
+```
+
+```diff
+{
+    "tree": [
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "string": "This is a string.",
++                   "number": 10,
++                   "boolean": true,
++                   "array": ["apples", "oranges"],
++                   "map": {
++                       "a": "b",
++                       "c": "d",
++                       "nested": {
++                           "e": "f",
++                           "g": "h"
++                       }
++                   }
++               }
+            ]
+        }
+    ]
+}
+```
+
+For obvious reasons that it bypasses Tridy's requirements for modules, using this or other raw definition tags is recommended against under normal circumstances where the module definition is not enforced by the application interfacing with Tridy.
 
 <br>
 
 ### Raw Definition: `@yaml`
 
-PLACEHOLDER
+The `@yaml` clause is used as a starting delimiter for YAML-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a YAML object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character (`\`) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
+
+YAML, unlike JSON, is sensitive to whitespace. However, the rules as with YAML raw input are no different than with YAML input on its own in other circumstances, so as long as identation is consistent without the use of tab characters, then the input should run through the interpreter successfully. 
+
+```
+# Before
+@new a;
+
+# After
+@in a @new @yaml
+    ---
+    string: This is a string.
+    number: 10
+    boolean: true
+    array:
+      - apples
+      - oranges
+    map:
+        a: b
+        c: d
+        nested:
+            e: f
+            g: h
+@end;
+```
+
+```diff
+{
+    "tree": [
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "string": "This is a string.",
++                   "number": 10,
++                   "boolean": true,
++                   "array": ["apples", "oranges"],
++                   "map": {
++                       "a": "b",
++                       "c": "d",
++                       "nested": {
++                           "e": "f",
++                           "g": "h"
++                       }
++                   }
++               }
+            ]
+        }
+    ]
+}
+```
+
+For obvious reasons that it bypasses Tridy's requirements for modules, using this or other raw definition tags is recommended against under normal circumstances where the module definition is not enforced by the application interfacing with Tridy.
 
 <br>
 
 ### Raw Definition: `@end`
 
-PLACEHOLDER
+The `@end` clause is used as an ending delimiter for raw input clauses like `@json` and `@yaml`. Whereby these would pass control over parsing the input to their respective interpreter, `@end` closes this input and passes control back to the Tridy interpreter.
+
+`@end` always appears at the end of a raw input string, as it is required for the Tridy statement to be completed with a Tridy-parsed semicolon in any case. The raw input string enclosed by the beginning delimiter and `@end` can be one to several lines long if need be, where line feed characters will either be trimmed out or kept in accordance with the format used.
 
 <br>
 
-### Definition: `@none`
+## Special Clauses
+
+### Introduction
+
+Under here are the clauses that are entirely optional to use or do not fit into one of the major categories, either because they serve as explicit specifiers for default behavior, have a special but optional purpose, or provide a special function that only works when paired with a particular setup of TridyDB. At least in the latter case, these are referred to as the set of **control** clauses.
+
+<br>
+
+### Definition Operand: `@none`
 
 `@none` is used as a definition placeholder for all of the Tridy (non-raw) definition clauses where the clause's respective affected section is empty or unincluded, for instance, in the form "`@as @none`", "`@is @none`", or "`@has @none`". Once again, the purpose of using this is simply as an explicit way of stating the absence of either of these elements when simply leaving the clauses out fully would have the same effect. Likewise, it has no effect on the statement over this alternative.
 
@@ -1570,17 +1679,51 @@ PLACEHOLDER
 
 <br>
 
-### Definition: `@uuid`
+### Definition Operand: `@uuid`
 
-PLACEHOLDER
+The `@uuid` clause is used in place of a tag right of `@as`, `@new`, or `@set`, and displays a unique behavior whereby in its place, a UUIDv4 string (as a tag) is generated. The UUID provides the module with a way to be identifiable by a totally-unique tag/identifier, and importantly, the UUID generation happens *after* the module is copied and placed, meaning that every copy of the module, if there are any, even get a completely-separate UUID of their own such that two or more modules placed from a single statement while having this clause are never identical.
+
+As a disadvantage of this, though, the UUID would not be known beforehand, making it necessary to `@get` the results of these statements afterwards in order to read and use the unique identifier in further Tridy statements, which wouldn't be possible in a Tridy script alone.
+
+```
+# After
+@new a;
+@new a;
+
+# After
+@in a @new @uuid;
+```
+
+```diff
+{
+    "tree": [
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "tags": ["2c483f4f-04da-42a7-9dfb-a25e614f190b"]
++               }
+            ]
+        },
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "tags": ["ee45339a-4d3c-4e27-80d8-76ea422cf8a7"]
++               }
+            ]
+        }
+    ]
+}
+```
 
 <br>
 
-### Control: `@tridy`
+### Definition / Control: `@tridy`
 
-The `@tridy` clause has a unique role to play, considering it is the only clause that can appear more than one place in a Tridy statement.
+The `@tridy` clause has a unique role to play, considering it is the only clause that can appear more than one place in a Tridy statement, and has a different effect depending on where it is placed.
 
-The first place is at the very beginning of the statement. Placing it at the beginning is to allow the clause to be used like a file signature, so that any files that have it may immediately be recognized as Tridy scripts. It has no effect on the statement itself.
+The first place is at the very beginning of the statement. Placing it at the beginning is to allow the clause to be used like a file signature, so that any files that have it may immediately be recognized as Tridy scripts. It has no effect on the statement itself, being essentially a no-op.
 
 In the second location, it can be placed between the operation clause and the definition clause `@as`. This will make `@as` a requirement for specifying tags, however, the purpose there is only to explicitly exclude the use of raw input clauses like `@json`.
 
@@ -1612,4 +1755,72 @@ On the other hand, Tridy does not have a multi-line comment syntax.
 
 ## Glossary
 
-AAA
+### **Ascendant Module**
+The module in which another module (the subject) is nested under, either in which the subject module is a direct child of the ascendant, or that is recursively a child of the ascendant.
+
+### **Child Module**
+A module which is placed or located in the tree data structure of another module (the subject). In other words, that is "nested" under another module (the subject).
+
+### **Clause**
+Any word beginning with an `@` symbol in a Tridy statement; used as keywords to direct the behavior and syntax of the Tridy language.
+
+### **Comment**
+Strings starting with `#` and ending with a line feed, which are entirely ignored by the Tridy interpreter, and can be used for providing developer commentary.
+
+### **Context**:
+The context of a module is the collection of a module's tags, along with the tags of all of ascendants in the order in which they are nested (from the root downward), acting as a location specifier for the module which the Tridy composer uses to identify it.
+
+### **Context Expression**:
+A boolean-style expression that, when placed inside of a Tridy statement, uses context terminals and operators to determine whether a module should be affected or not by a statement, i.e. by evaluatin the expression against the module's context.
+
+### **Context Operand**:
+A context terminal or sub-expression.
+
+### **Context Operator**:
+A boolean operation that is evaluated against one or more context operands, either being based on a common boolean operator like NOT or AND, or being used to control the flow of the expression with respect to Tridy's nested architecture and a module's multiple possible ascendants within its context.
+
+### **Context Terminal**:
+Either a tag that is expected to be found in a module's context, or a context wildcard.
+
+### **Context Wildcard**:
+A special context operand that evaluates as true for reasons other than being a tag present in a module's context, either arbitrarily or over additional, specific properties present in a module.
+
+### **Control Clause**:
+A clause used only to control how TridyDB behaves depending on the manner in which it is used, and that does not have any particular effect on Tridy's interpretation engine.
+
+### **Database**:
+see "Root Module".
+
+### **Definition Clause**:
+
+### **Descendant Module**:
+
+### **Free Data Structure**:
+
+### **Meta-Operation Clause**:
+
+### **Module**:
+
+### **Operation Clause**:
+
+### **Parent Module**:
+
+### **Raw Definition Clause**:
+
+### **Root Module**:
+
+### **Statement**:
+
+### **Tag**:
+
+### **Tree Data Structure**:
+
+### **Tridy**:
+
+### **Tridy Composer**:
+
+### **Tridy Interpreter**:
+
+### **TridyDB**:
+
+### **Variable**:

@@ -2,7 +2,7 @@
 
 @new @none @is @yaml
 ---
-a: true
+a: This is a string.
 b: true
 c:
     d: 0

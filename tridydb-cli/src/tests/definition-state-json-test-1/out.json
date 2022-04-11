@@ -3,10 +3,10 @@
         "tree": [
             {
                 "free": {
-                    "a": "true",
-                    "b": "true",
+                    "a": "This is a string.",
+                    "b": true,
                     "c": {
-                        "d": "0",
+                        "d": 0,
                         "e": "one"
                     },
                     "f": [
