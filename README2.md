@@ -959,6 +959,8 @@ The `@toward` operator does not just have an effect on the . `@toward` looks for
 
 `@towards`'s precedence, as a transitive nested operator, has a lower precedence than any of the operators that are not transitive nested operators, and equal precedence with any that are, such as `@to`.
 
+<br>
+
 ### Parentheses
 
 Naturally, to control the precedence of different operators in a context expression, the user can include parentheses to either raise or lower the precedence of some operations, and thus affect the final outcome of the expression, in most cases.
@@ -1124,22 +1126,37 @@ Finally, as with certain operations but not others, the statement might contain 
 It's important to note that **order matters** and Tridy is not commutative, at least for the time being. That means that per the order in which this guide is written, most of the clauses follow the given order, and would result in syntax errors if instead given out-of-order. With each of these clauses, their particular ordering should become clear from their explanations, but as an overview, the syntax rules are detailed below using Microsoft's command line syntax:
 
 ```
-[@tridy] 
-[{@clear | @exit}]
-[@in <context expression>]
+[@tridy]
 {
-    {@get | @del} [<context expression>]
-|
-    {@new | @set}
     {
-        <@json <json> | @yaml <yaml>> @end
+        {
+            {@get | @del} [<context expression>]
+        |
+            @in <context expression>
+            {@get | @del}
+        }
     |
-        [@as {<tags> | @none}]
-        [@is {<{@json <json> | @yaml <yaml>} @end> | @none}]
-        [@has {\{ <tridy statements> \} | @none}]
+        [@in <context expression>]
+        {@new | @set}
+        {
+            <@json <json> | @yaml <yaml>> @end
+        |
+            {
+                @tridy
+                @as {<tags> | @none}
+            |
+                [@as] {<tags> | @none}
+            }
+            [@is {<{@json <json> | @yaml <yaml>} @end> | @none}]
+            [@has {\{ <tridy statements> \} | @none}]
+        }
     }
+    [{@once | @many}]
+|
+    @clear
+|
+    @exit
 }
-[{@once | @many}]
 ;
 ```
 
@@ -1147,13 +1164,21 @@ It's important to note that **order matters** and Tridy is not commutative, at l
 
 ### Meta-Operation: `@in`
 
-`@in` is the clause normally used to read in a context expression for the statement
+`@in` is the clause normally used to read in a context expression for the statement, where its argument would be the context expression itself. This context expression is used to filter out the modules affected by the statements according to what the context expression contains, and to expand out from the root, which is normally the only module affected when a context expression is not present. More of this is explained in detail in the section on context.
+
+Syntactically, `@in` is meant to precede one of the operation clauses, and thus also all other clauses in a statement. However, use of `@in` to provide a context expression is optional for `@get` and `@del`, and only required for `@new` and `@set`. This is because only `@new` and `@set` use the space to the right of them to allow defining module characteristics (via. the definition clauses), while `@get` and `@del` are specific to the current state of the database. Thus, they can be shortcutted by avoiding `@in` and simply giving the context expression after the operation itself (`@in ... @get;` vs. `@get ...;`).
 
 <br>
 
 ### Operation: `@get`
 
-PLACEHOLDER
+`@get` is a read-only operation that queries the database using a context expression (or none), and returns an array containing the modules that happen to match the query/expression. The reason why an array is returned is that if there happen to be multiple `@get` statements run in a single batch order or script, then the results of all of these get added to the same array.
+
+`@get`'s equivalent in SQL is `SELECT` and in REST architecture is `GET`.
+
+By default, the results of `@get` will be a JSON representation of the database in a condensed form. Specifying `--pretty` as a program argument for TridyDB can at least print an output in a more human-readable form, though this option isn't present when running TribyDB as a REST API (since the presentation, if any, is up to the browser).
+
+`@get` may be used with `@in` to filter output based on a context expression, however, the context expression may also be given after `@get` without the use of `@in`. `@get` takes no definition arguments to its right-hand side.
 
 ```
 @new a;
@@ -1200,7 +1225,9 @@ PLACEHOLDER
 
 ### Operation: `@new`
 
-PLACEHOLDER
+`@new` is the main operation used with Tridy, as without it, Tridy modules would not be composable to begin with. `@new` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then copies this module to the tree data structure of all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, it is placed only at the root module. Thus, a module created through `@new` becomes a sub-module of the context to which it is provided. Using `@new` is never an idempotent operation.
+
+`@new`'s equivalent in SQL is `CREATE`/`INSERT` and in REST architecture is `POST`.
 
 ```
 # Before
@@ -1229,7 +1256,11 @@ PLACEHOLDER
 
 ### Operation: `@set`
 
-PLACEHOLDER
+`@set` is an operation that is intended to apply changes to an existing module, and as the same module which is matched through `@in` as a context expression. `@set` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then overwrites all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, then the root module is altered (in effect overwriting the entire database). Using `@set` is sometimes an idempotent operation.
+
+Note that this command is generally not recommended for normal use, and Tridy scripts can be designed without ever needing to use `@set`. The main reason why this isn't recommended is because it is nearly equivalent to deleting a module and then placing a new one in the same spot or order that the deleted one was in before, making it particularly dangerous as with `@del`. However, also as a result of this, `@set` generally makes the most sense when used in combination with `@get` to acquire the original module and replace it's elements and/or apply soft operations defined by the application such that this operation is usable in such a way that isn't completely destructive.
+
+`@set`'s equivalent in SQL is `ALTER`/`UPDATE` and in REST architecture is `PUT`.
 
 ```
 # Before
@@ -1260,7 +1291,13 @@ PLACEHOLDER
 
 ### Operation: `@del`
 
-PLACEHOLDER
+`@del`, as its namesake probably suggests, is Tridy's way of deleting modules. This will match a context expression to an existing module, and then delete that same module. In effect, the module is removed from the tree of its parent module, and if there are no modules left in the tree data structure afterwards, so is the tree itself deleted. If no context expression is given, then the root module (aka. the database) is deleted.
+
+The operation is not completely permanent, though, since modules can always be re-populated with the same modules they were given originally so long as the Tridy statements that led to them are re-given in the same order. Even if the tree data structure of a module or the root module itself is deleted, these are regenerated automatically (albeit as stubs, and not as what was deleted) whenever new statements that would affect them are applied after `@del` is given.
+
+`@del`'s equivalent in SQL is `DROP`/`DELETE` and in REST architecture is `DELETE`.
+
+`@del` may be used with `@in` to filter output based on a context expression, however, the context expression may also be given after `@del` without the use of `@in`. `@del` takes no definition arguments to its right-hand side.
 
 ```
 # Before
@@ -1290,7 +1327,7 @@ PLACEHOLDER
 
 ### Definition: `@as`
 
-PLACEHOLDER
+`@as` is one of few clauses in Tridy that are totally unnecessary to give, but exist as a convenience to the user simply as a way to be explicit. The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set`. `@as` is meant to come after the operation, but before `@is` or `@has`. Normally, tags are be given to the right-hand side of the operation even without the use of `@as`, hence why it is usually unnecessary.
 
 ```
 @new @as a b c;
@@ -1310,7 +1347,11 @@ PLACEHOLDER
 
 ### Definition: `@is`
 
-PLACEHOLDER
+`@is` is used as a way to detail the contents of the free data structure, a subsection of each module that is allowed to have free or unrestricted contents. This lack of restriction means that, though the use of raw input is optional for giving the full definition of a module otherwise, it is required with `@is` since common, established data formats are better for the purpose of complex data not following the Tridy module paradigm.
+
+Following `@is`, the user would specify a format clause, most commonly `@json`, and type in the full value of the free data structure using whatever format they gave. Once they give the format tag, their input is no longer validated according to Tridy rules, and instead becomes validated according to the format of their choosing. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character (`\`) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
+
+`@is` along with its formatted argument is meant to be specified after `@as` if given, but before `@has`.
 
 ```
 @new file fsobj @is @json {
@@ -1349,7 +1390,13 @@ PLACEHOLDER
 
 ### Definition: `@has`
 
-PLACEHOLDER
+`@has` is another way to nest modules inside of other modules. The main purpose of `@has` is to set the initial tree data structure of the module, which are defined in the format of recursively-nested Tridy statements. Of note is that every `@has` requires a following opening bracket (`{`) at the beginning and a closing bracket (`}`) at the end of the nested statements.
+
+As another important aspect of `@has`, the nested Tridy statements provided using it are created *prior* to the (top) module's duplication and placement. What this means, inevitably, is that statements provided through `@has` exhibit a unique property whereby they are **context-locked**, meaning that context expressions inside of these nested statements have no view of the database outside the modules until the full, unnested statement has already been executed, and yet, nested statements are executed prior to their parent statement being executed.
+
+Thus, relative to a nested statement, the module represented by the parent statement is the root module, and context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation). The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as a root. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without affecting the wider database.
+
+`@has` along with its bracketed statements is meant to be specified after `@is` if given, but before `@once` or `@many`.
 
 ```
 @new orchard @has {
@@ -1396,7 +1443,11 @@ PLACEHOLDER
 
 ### Meta-Operation: `@once`
 
-PLACEHOLDER
+`@once` is a special parameter that is used to make a Tridy statement (and in fact, any Tridy statement regardless of operation) "greedy". Effectively, a greedy Tridy statement is one which is limited to affecting a single module, whereby it will stop searching for new modules once at least one module returns true according to the context expression. This means it will not only retract from searching through sub-modules, but through co-modules as well, meaning modules in the same tree of a parent module that each may or may not have a matching context as well. It is not possible otherwise to ignore co-modules.
+
+There is a particular use case for this, namely where context expressions are addressing a module which is unique, perhaps because it has a unique identifier or tag, and it is known beforehand to be as such. Using this in such a way would at least have the effect of speeding up such statements since the composer does needlessly search further after the point the uniquely-matching module is found.
+
+`@once` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@many`.
 
 ```
 # Before
@@ -1433,7 +1484,9 @@ PLACEHOLDER
 
 ### Meta-Operation: `@many`
 
-PLACEHOLDER
+As an alternative to `@once`, `@many` is an explicit way to specify the default behavior Tridy exhibits when selecting modules, which is to test all existing modules where a context expression evaluates as true and apply an operation therein. It is not necessary to include.
+
+`@many` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@once`.
 
 ```
 # Before
@@ -1480,19 +1533,19 @@ PLACEHOLDER
 
 ## Special Clauses
 
-### Raw: `@json`
+### Raw Definition: `@json`
 
 PLACEHOLDER
 
 <br>
 
-### Raw: `@yaml`
+### Raw Definition: `@yaml`
 
 PLACEHOLDER
 
 <br>
 
-### Raw: `@end`
+### Raw Definition: `@end`
 
 PLACEHOLDER
 
@@ -1500,7 +1553,20 @@ PLACEHOLDER
 
 ### Definition: `@none`
 
-PLACEHOLDER
+`@none` is used as a definition placeholder for all of the Tridy (non-raw) definition clauses where the clause's respective affected section is empty or unincluded, for instance, in the form "`@as @none`", "`@is @none`", or "`@has @none`". Once again, the purpose of using this is simply as an explicit way of stating the absence of either of these elements when simply leaving the clauses out fully would have the same effect. Likewise, it has no effect on the statement over this alternative.
+
+```
+# After
+@new @as @none @is @none @has @none;
+```
+
+```diff
+{
+    "tree": [
++       { }
+    ]
+}
+```
 
 <br>
 
@@ -1512,25 +1578,35 @@ PLACEHOLDER
 
 ### Control: `@tridy`
 
-PLACEHOLDER
+The `@tridy` clause has a unique role to play, considering it is the only clause that can appear more than one place in a Tridy statement.
+
+The first place is at the very beginning of the statement. Placing it at the beginning is to allow the clause to be used like a file signature, so that any files that have it may immediately be recognized as Tridy scripts. It has no effect on the statement itself.
+
+In the second location, it can be placed between the operation clause and the definition clause `@as`. This will make `@as` a requirement for specifying tags, however, the purpose there is only to explicitly exclude the use of raw input clauses like `@json`.
 
 <br>
 
 ### Control: `@clear`
 
-PLACEHOLDER
+The `@exit` clause is meant as a control command for the TridyDB interactive terminal, in which the terminal moves the screen down to where the previous output is made invisible.
+
+`@clear` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
 
 <br>
 
 ### Control: `@exit`
 
-PLACEHOLDER
+The `@exit` clause is meant as a control command for the TridyDB interactive terminal, causing the interactive terminal to close.
+
+`@exit` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
 
 <br>
 
 ## Comments
 
-AAA
+In Tridy, it is possible to provide comments inside of scripts using the hashtag character `#`, which can be placed anywhere at the end of a line, and any text which follows it will be ignored by the Tridy interpreter until the next line.
+
+On the other hand, Tridy does not have a multi-line comment syntax.
 
 <br>
 

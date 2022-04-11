@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { routes }             from './routes/index.js';
-import { error_handler }       from './utility/error.js';
+import { error_handler }      from './utility/error.js';
 import { logger, httpLogger } from './utility/logger.js';
 
 export const server = async (opts = { }) => {
@@ -29,7 +29,7 @@ export const server = async (opts = { }) => {
         error_handler.handle(err);
         error_handler.errorResponse(req, res);
     });
-
+    
     if (opts.ipv6Only !== true) {
         let address = opts.localhost_only ? '127.0.0.1' : '0.0.0.0';
         app.listen(opts.port, address, () => {

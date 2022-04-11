@@ -139,7 +139,7 @@ class TokenParser {
     readJSON() {
         const pos = this.getPos();
 
-        const part = this.readWhileEscaped().replace(/\s+/g, '');
+        const part = this.readWhileEscaped().replace(/(?:^\s+|\s+$)/gm, '');
 
         return new Token('part', part, pos);
     }

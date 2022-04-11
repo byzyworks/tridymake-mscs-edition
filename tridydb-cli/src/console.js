@@ -4,8 +4,9 @@ import chalk    from 'chalk';
 import { interactive_exit }           from './include/SyntaxParser.js';
 import { interpreter }                from './include/Interpreter.js';
 import { parser as tokenizer }        from './include/StatementParser.js';
+
+import { isEmpty }            from './utility/common.js';
 import { SyntaxError, error_handler } from './utility/error.js';
-import { isEmpty }                    from './utility/common.js';
 
 export const cli = async (opts = { }) => {
     opts.pretty = opts.pretty ?? false;

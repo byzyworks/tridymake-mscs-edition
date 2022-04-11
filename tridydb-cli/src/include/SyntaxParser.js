@@ -328,7 +328,15 @@ class SyntaxParser {
     }
 
     handleDefinition() {
-        if (this.tokens.peek().is('key', 'as')) {
+        if (this.tokens.peek().is('key', 'tridy')) {
+            this.tokens.next();
+
+            if (this.tokens.peek().is('key', 'as')) {
+                this.tokens.next();
+
+                this.handleTagsDefinition({ require: true });
+            }
+        } else if (this.tokens.peek().is('key', 'as')) {
             this.tokens.next();
 
             this.handleTagsDefinition({ require: true });
@@ -369,41 +377,41 @@ class SyntaxParser {
             console.clear();
             
             this.tokens.next();
-        }
-
-        if (this.tokens.peek().isAffectingOpToken()) {
-            this.handleOperation();
-
-            if (!this.tokens.peek().is('punc', ';')) {
-                this.handleContext();
+        } else {
+            if (this.tokens.peek().isAffectingOpToken()) {
+                this.handleOperation();
+    
+                if (!this.tokens.peek().is('punc', ';')) {
+                    this.handleContext();
+                }
+            } else if (this.tokens.peek().isDefiningOpToken() || this.tokens.peek().is('key', 'in')) {
+                if (this.tokens.peek().is('key', 'in')) {
+                    this.tokens.next();
+    
+                    this.handleContext();
+                }
+    
+                this.handleOperation();
+    
+                switch (this.astree.getTopPos()) {
+                    case 'imported':
+                        this.handleImported();
+                        break;
+                    case 'definition':
+                        this.handleDefinition();
+                        break;
+                }
             }
-        } else if (this.tokens.peek().isDefiningOpToken() || this.tokens.peek().is('key', 'in') || this.tokens.peek().is('key', 'once')) {
-            if (this.tokens.peek().is('key', 'in')) {
+    
+            if (this.tokens.peek().is('key', 'once')) {
                 this.tokens.next();
-
-                this.handleContext();
+    
+                this.astree.enterSetAndLeave(['context', 'greedy'], true);
+            } else if (this.tokens.peek().is('key', 'many')) {
+                this.tokens.next();
+    
+                this.astree.enterSetAndLeave(['context', 'greedy'], false);
             }
-
-            this.handleOperation();
-
-            switch (this.astree.getTopPos()) {
-                case 'imported':
-                    this.handleImported();
-                    break;
-                case 'definition':
-                    this.handleDefinition();
-                    break;
-            }
-        }
-
-        if (this.tokens.peek().is('key', 'once')) {
-            this.tokens.next();
-
-            this.astree.enterSetAndLeave(['context', 'greedy'], true);
-        } else if (this.tokens.peek().is('key', 'many')) {
-            this.tokens.next();
-
-            this.astree.enterSetAndLeave(['context', 'greedy'], false);
         }
 
         if (this.tokens.peek().is('punc', ';')) {

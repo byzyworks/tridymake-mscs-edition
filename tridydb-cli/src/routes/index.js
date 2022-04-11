@@ -88,9 +88,9 @@ const handleRoute = async (method, req, res) => {
         throw new ServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', { is_fatal: false });
     }
 
-    const cmd  = toTridy(op_map[method], opts);
+    const cmd = toTridy(op_map[method], opts);
 
-    const out  = await interpreter.parse(cmd, { accept_carry: false });
+    const out = await interpreter.parse(cmd, { accept_carry: false });
 
     res.json(out);
 }
