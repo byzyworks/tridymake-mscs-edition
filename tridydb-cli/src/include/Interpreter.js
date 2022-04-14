@@ -9,7 +9,7 @@ class Interpreter {
         this.composer  = composer;
     }
 
-    async parse(input, opts) {
+    parse(input, opts) {
         const output = [ ];
 
         this.tokenizer.load(input);

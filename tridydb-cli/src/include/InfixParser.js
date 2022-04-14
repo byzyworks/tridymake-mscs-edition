@@ -1,10 +1,17 @@
+import { Token } from '../include/Token.js';
+
 import { Stack } from '../utility/Stack.js';
 import { Queue } from '../utility/Queue.js';
 
 class InfixParser {
     constructor() { }
 
-    toPostfix(input) {
+    /**
+     * This method is designed according to the Shunting-Yard algorithm for converting infix expressions to postfix. Refer to it better understand the algorithm below.
+     * Postfix is much easier to parse algorithmically since operands can be grabbed at will from a stack when an operator is encountered, and don't need to be parsed out-of-order.
+     * (In other words, no need for parentheses).
+     */
+    _toPostfix(input) {
         const prec = {
             '!':  0,
             '&':  1,
@@ -16,7 +23,7 @@ class InfixParser {
             '>>': 4,
             '/':  5,
             '//': 5
-        }
+        };
 
         const out = new Queue();
         const ops = new Stack();
@@ -47,7 +54,16 @@ class InfixParser {
         return out;
     }
     
-    toTree(postfix) {
+    /**
+     * The now-postfix expression is converted to a tree afterwards.
+     * This is done for the composer's sake, which tests the expressions contained in the tree recursively.
+     * Having the composer use the postfix array directly was the original intention.
+     * This idea was scrapped because the operator type in Tridy can change how a sub-expression is to be evaluated.
+     * '@to' and '@toward' notably force the second operand to be evaluated at a nesting level above the current one.
+     * The postfix array makes this difficult because the operator isn't reached until both operands are already evaluated and reduced into booleans.
+     * Having a tree gives much greater flexibility over when and how to evaluate operands (and is easier to read).
+     */
+    _toTree(postfix) {
         const out = new Stack();
 
         let current;
@@ -71,9 +87,7 @@ class InfixParser {
     }
 
     parse(input) {
-        return this.toTree(this.toPostfix(input));
-
-        //return out.toArray();
+        return this._toTree(this._toPostfix(input));
     }
 }
 

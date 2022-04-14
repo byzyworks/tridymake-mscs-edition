@@ -6,34 +6,34 @@ import { List }        from '../utility/List.js';
 
 class StatementParser {
     constructor() {
-        this.parser = tokenParser;
+        this._parser = tokenParser;
 
-        this.carry      = [ ];
-        this.last_depth = 0;
-        this.last_ended = false;
+        this._carry      = [ ];
+        this._last_depth = 0;
+        this._last_ended = false;
     }
 
     load(input) {
-        this.parser.load(input);
+        this._parser.load(input);
     }
 
     clear() {
-        this.parser.clear();
+        this._parser.clear();
 
-        this.carry      = [ ];
-        this.last_depth = 0;
-        this.last_ended = false;
+        this._carry      = [ ];
+        this._last_depth = 0;
+        this._last_ended = false;
     }
 
     isStatementComplete() {
-        return (this.last_depth === 0) && (this.last_ended === true);
+        return (this._last_depth === 0) && (this._last_ended === true);
     }
 
     isCarryEmpty() {
-        return isEmpty(this.carry);
+        return isEmpty(this._carry);
     }
 
-    readNext() {
+    _readNext() {
         const tokens = new List();
 
         const pool = [ ];
@@ -41,30 +41,32 @@ class StatementParser {
 
         let token;
 
-        for (token of this.carry) {
+        for (token of this._carry) {
             pool.push(token);
         }
         
-        while (token = this.parser.next()) {
+        while (token = this._parser.next()) {
             pool.push(token);
         }
 
         let stmt_cutoff = null;
         for (idx = 0; idx < pool.length; idx++) {
+            // Nested Tridy statements have to be executed with their parent statements, so the statement isn't complete until the root statement is reached again.
+            // That's why the brackets are checked for in addition to the semicolons.
             if (pool[idx].is('punc', '{')) {
-                this.last_depth++;
+                this._last_depth++;
             } else if (pool[idx].is('punc', '}')) {
-                this.last_depth--;
+                this._last_depth--;
 
-                if (this.last_depth < 0) {
+                if (this._last_depth < 0) {
                     throw new SyntaxError(`line ${pool[idx].debug.line}, col ${pool[idx].debug.col}: Unexpected token "}".`);
                 }
             }
 
             if (pool[idx].is('punc', ';')) {
-                this.last_ended = true;
+                this._last_ended = true;
             } else {
-                this.last_ended = false;
+                this._last_ended = false;
             }
 
             if (this.isStatementComplete()) {
@@ -73,18 +75,18 @@ class StatementParser {
             }
         }
 
-        this.carry = [ ];
+        this._carry = [ ];
 
-        if (stmt_cutoff !== null) {
+        if (stmt_cutoff === null) {
+            for (idx = 0; idx < pool.length; idx++) {
+                this._carry.push(pool[idx]);
+            }
+        } else {
             for (idx = 0; idx <= stmt_cutoff; idx++) {
                 tokens.push(pool[idx]);
             }
             for (idx = stmt_cutoff + 1; idx < pool.length; idx++) {
-                this.carry.push(pool[idx]);
-            }
-        } else {
-            for (idx = 0; idx < pool.length; idx++) {
-                this.carry.push(pool[idx]);
+                this._carry.push(pool[idx]);
             }
         }
 
@@ -94,7 +96,7 @@ class StatementParser {
     next(opts = { }) {
         opts.accept_carry = opts.accept_carry ?? false;
 
-        const tokens = this.readNext();
+        const tokens = this._readNext();
 
         if (!opts.accept_carry) {
             if (!this.isCarryEmpty() && !this.isStatementComplete()) {
@@ -102,6 +104,7 @@ class StatementParser {
             }
         }
 
+        // Clearing is done so the line and col can be made with respect to any new statement that comes next.
         if (this.isCarryEmpty()) {
             this.clear();
         }

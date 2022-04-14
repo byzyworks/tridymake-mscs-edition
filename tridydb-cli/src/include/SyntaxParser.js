@@ -12,80 +12,82 @@ export let interactive_exit = false;
 class SyntaxParser {
     constructor() { }
 
-    handleUnexpected() {
-        const token = this.tokens.peek();
+    _handleUnexpected() {
+        const token = this._tokens.peek();
         switch (token.debug.type) {
             case 'key':
-                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected keyword "${token.debug.val}".`);
+                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected clause "@${token.debug.val}".`);
             default:
                 throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected token "${token.debug.val}".`);
         }
     }
 
-    getContextImplicitBinaryOp () {
+    _getContextImplicitBinaryOp () {
+        // The operator given below is what the parser assumes the user means when two operands are separated by no operand other than a whitespace.
+        // Why is this chosen? Naturally, if a module is described with two words (tags) alone, then it should match both.
         return new Token('o', '&');
     }
 
-    handleWhileContextTerminal(context) {
-        let current = this.tokens.peek().toContextToken();
+    _handleWhileContextTerminal(context) {
+        let current = this._tokens.peek().toContextToken();
 
         if (current.is('t')) {
             context.push(current);
 
-            current = this.tokens.next().toContextToken();
+            current = this._tokens.next().toContextToken();
         }
 
         while (current.is('t')) {
-            context.push(this.getContextImplicitBinaryOp());
+            context.push(this._getContextImplicitBinaryOp());
             context.push(current);
 
-            current = this.tokens.next().toContextToken();
+            current = this._tokens.next().toContextToken();
         }
     }
 
-    handleWhileContextUnaryOp(context) {
-        let current = this.tokens.peek().toContextToken();
+    _handleWhileContextUnaryOp(context) {
+        let current = this._tokens.peek().toContextToken();
 
         while (current.isUnaryOpContextToken()) {
             context.push(current);
 
-            current = this.tokens.next().toContextToken();
+            current = this._tokens.next().toContextToken();
         }
     }
 
-    isPreviousContextExpression(context) {
+    _isPreviousContextExpression(context) {
         return (!isEmpty(context) && context[context.length - 1].isExpressionEnderContextToken());
     }
     
-    handleContextBinaryOp(context) {
-        if (this.isPreviousContextExpression(context)) {
-            const current = this.tokens.peek().toContextToken();
+    _handleContextBinaryOp(context) {
+        if (this._isPreviousContextExpression(context)) {
+            const current = this._tokens.peek().toContextToken();
             context.push(current);
-            this.tokens.next();
+            this._tokens.next();
         } else {
-            this.handleUnexpected();
+            this._handleUnexpected();
         }
     }
 
-    handleContextExpressionInner(context) {
+    _handleContextExpressionInner(context) {
         let current;
         let runs = 0;
 
         while (true) {
-            current = this.tokens.peek().toContextToken();
+            current = this._tokens.peek().toContextToken();
             if (current.isExpressionStarterContextToken()) {
-                if (this.isPreviousContextExpression(context)) {
-                    context.push(this.getContextImplicitBinaryOp());
+                if (this._isPreviousContextExpression(context)) {
+                    context.push(this._getContextImplicitBinaryOp());
                 }
 
                 if (current.is('t')) {
-                    this.handleWhileContextTerminal(context);
+                    this._handleWhileContextTerminal(context);
                 } else if (current.isUnaryOpContextToken() || current.is('o', '(')) {
-                    this.handleContextExpressionOuter(context);
+                    this._handleContextExpressionOuter(context);
                 }
             } else if (current.isBinaryOpContextToken()) {
-                this.handleContextBinaryOp(context);
-                this.handleContextExpressionOuter(context);
+                this._handleContextBinaryOp(context);
+                this._handleContextExpressionOuter(context);
             } else {
                 break;
             }
@@ -94,51 +96,51 @@ class SyntaxParser {
         }
 
         if (runs === 0) {
-            this.handleUnexpected();
+            this._handleUnexpected();
         }
     }
 
-    handleContextExpressionOuter(context) {
+    _handleContextExpressionOuter(context) {
         let current;
 
-        this.handleWhileContextUnaryOp(context);
+        this._handleWhileContextUnaryOp(context);
 
         let is_enclosed = false;
 
-        current = this.tokens.peek().toContextToken();
+        current = this._tokens.peek().toContextToken();
         if (current.is('o', '(')) {
             context.push(current);
-            this.tokens.next();
+            this._tokens.next();
             
             is_enclosed = true;
         }
         
-        this.handleContextExpressionInner(context);
+        this._handleContextExpressionInner(context);
 
         if (is_enclosed) {
-            current = this.tokens.peek().toContextToken();
+            current = this._tokens.peek().toContextToken();
             if (current.is('o', ')')) {
                 context.push(current);
-                this.tokens.next();
+                this._tokens.next();
             } else {
-                this.handleUnexpected();
+                this._handleUnexpected();
             }
         }
     }
 
-    readWhileContextExpression() {
+    _readWhileContextExpression() {
         let context = [ ];
         let current;
 
-        this.handleContextExpressionOuter(context);
+        this._handleContextExpressionOuter(context);
 
         while (true) {
-            current = this.tokens.peek().toContextToken();
+            current = this._tokens.peek().toContextToken();
             if (current.isExpressionStarterContextToken()) {
-                this.handleContextExpressionOuter(context);
+                this._handleContextExpressionOuter(context);
             } else if (current.isBinaryOpContextToken()) {
-                this.handleContextBinaryOp(context);
-                this.handleContextExpressionOuter(context);
+                this._handleContextBinaryOp(context);
+                this._handleContextExpressionOuter(context);
             } else {
                 break;
             }
@@ -147,54 +149,60 @@ class SyntaxParser {
         return context;
     }
     
-    handleContext() {
-        let context = this.readWhileContextExpression();
+    _handleContext() {
+        let context = this._readWhileContextExpression();
         if (isEmpty(context)) {
-            this.handleUnexpected();
+            this._handleUnexpected();
         }
 
+        // The context expression has to be converted to a tree format before it can be useable, which is a multi-step process handled by a separate parser.
+        // It would be even more difficult to parse it in the same human-readable format (as an "infix" array).
         context = infixParser.parse(context);
     
-        this.astree.enterPos('context');
-
-        this.astree.enterSetAndLeave(['expression'], context);
-
-        
-
-        this.astree.leavePos();
+        this._astree.enterSetAndLeave(['context', 'expression'], context);
     }
 
-    readWhileRaw(opts = { }) {
+    _readWhileRaw(opts = { }) {
         opts.multiline = opts.multiline ?? false;
 
         let data = '';
-        while (this.tokens.peek().is('part')) {
+        while (this._tokens.peek().is('part')) {
+            /**
+             * With certain formats like YAML that are whitespace-sensitive, the line feed needs to be respected so the indentation is as well.
+             * If there are multiple "part" tokens, this function assumes each is equivalent to one line.
+             * This is because if the user is entering the a multi-line string in a special format, the tokenizer will produce a new "part" token for every line until it receives a token with the clause "@end".
+             * There are no other circumstances where two or more consecutive "part" tokens are produced.
+             */ 
             if (opts.multiline) {
                 data += "\n";
             }
-            data += this.tokens.peek().val;
 
-            this.tokens.next();
+            data += this._tokens.peek().val;
+
+            this._tokens.next();
         }
     
         return data;
     }
 
-    readWhileRawAndParse() {
+    _readWhileRawAndParse() {
         let type;
         let data;
 
-        const current = this.tokens.peek();
+        const current = this._tokens.peek();
         if (current.is('key', 'json')) {
             type = 'json';
-            this.tokens.next();
+            this._tokens.next();
             
-            data = this.readWhileRaw({ multiline: false }).replace(/\\/g, '\\\\');
+            // The JSON parser does its own escaping using the backslash characters.
+            // Thus, the backslash characters have to themselves be escaped before they are put through the JSON parser.
+            // Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
+            data = this._readWhileRaw({ multiline: false }).replace(/\\/g, '\\\\');
         } else if (current.is('key', 'yaml')) {
             type = 'yaml';
-            this.tokens.next();
-            
-            data = this.readWhileRaw({ multiline: true }).replace(/^\s*/, '');
+            this._tokens.next();
+
+            data = this._readWhileRaw({ multiline: true }).replace(/^\s*/, '');
         } else {
             return null;
         }
@@ -213,228 +221,252 @@ class SyntaxParser {
             throw new SyntaxError(err.message);
         }
 
-        if (this.tokens.peek().is('key', 'end')) {
-            this.tokens.next();
+        if (this._tokens.peek().is('key', 'end')) {
+            this._tokens.next();
         }
 
         return parsed;
     }
     
-    handleOperation() {
-        if (this.tokens.peek().is('key', 'set')) {
-            this.astree.enterSetAndLeave(['operation'], 'edit');
-            this.tokens.next();
+    _handleOperation() {
+        if (this._tokens.peek().is('key', 'set')) {
+            this._astree.enterSetAndLeave(['operation'], 'edit');
+            this._tokens.next();
 
-            if (this.tokens.peek().isRawInputToken()) {
-                this.astree.enterPos('imported');
+            if (this._tokens.peek().isRawInputToken()) {
+                this._astree.enterPos('raw');
             } else {
-                this.astree.enterPos('definition');
+                this._astree.enterPos('definition');
             }
-        } else if (this.tokens.peek().is('key', 'new')) {
-            this.astree.enterSetAndLeave(['operation'], 'module');
-            this.tokens.next();
+        } else if (this._tokens.peek().is('key', 'new')) {
+            this._astree.enterSetAndLeave(['operation'], 'module');
+            this._tokens.next();
 
-            if (this.tokens.peek().isRawInputToken()) {
-                this.astree.enterPos('imported');
+            if (this._tokens.peek().isRawInputToken()) {
+                this._astree.enterPos('raw');
             } else {
-                this.astree.enterPos('definition');
+                this._astree.enterPos('definition');
             }
-        } else if (this.tokens.peek().is('key', 'get')) {
-            this.astree.enterSetAndLeave(['operation'], 'print');
-            this.tokens.next();
-        } else if (this.tokens.peek().is('key', 'del')) {
-            this.astree.enterSetAndLeave(['operation'], 'delete');
-            this.tokens.next();
+        } else if (this._tokens.peek().is('key', 'get')) {
+            this._astree.enterSetAndLeave(['operation'], 'print');
+            this._tokens.next();
+        } else if (this._tokens.peek().is('key', 'del')) {
+            this._astree.enterSetAndLeave(['operation'], 'delete');
+            this._tokens.next();
         } else {
-            this.handleUnexpected();
+            this._handleUnexpected();
         }
     }
 
-    readWhileTag() {                            
+    _readWhileTag() {                            
         const tags = [ ];
 
-        let current = this.tokens.peek();
+        let current = this._tokens.peek();
         while (true) {
             if (current.is('tag') || current.is('key', 'uuid')) {
-                let new_tag = this.tokens.peek().val;
+                let new_tag = this._tokens.peek().val;
 
+                // There is no reason one would want to post duplicate tags in the same module.
+                // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
                 for (const current_tag of tags) {
                     if (new_tag == current_tag) {
-                        this.handleUnexpected();
+                        this._handleUnexpected();
                     }
                 }
 
+                // When a clause token is produced, the @ at the beginning of it is lost.
+                // To continue distinguishing it from regular tags here, it is added back.
+                // It is assumed that the outer if-statement will filter out clauses that can't perform as tags.
                 if (current.is('key')) {
                     new_tag = '@' + new_tag;
                 }
 
                 tags.push(new_tag);
                 
-                this.tokens.next();
+                this._tokens.next();
             } else {
                 break;
             }
 
-            current = this.tokens.peek();
+            current = this._tokens.peek();
         }
     
         return tags;
     }
 
-    handleTagsDefinition(opts = { }) {
+    _handleTagsDefinition(opts = { }) {
         opts.require = opts.require ?? false;
 
-        if (this.tokens.peek().is('key', 'none')) {
-            this.tokens.next();
+        if (this._tokens.peek().is('key', 'none')) {
+            this._tokens.next();
         } else {
-            const tags = this.readWhileTag();
+            const tags = this._readWhileTag();
             if (!isEmpty(tags)) {
-                this.astree.enterSetAndLeave([alias.tags], tags);
+                this._astree.enterSetAndLeave([alias.tags], tags);
             } else if (opts.require) {
-                this.handleUnexpected();
+                this._handleUnexpected();
             }
         }
     }
 
-    handleStateDefinition() {
-        if (this.tokens.peek().is('key', 'none')) {
-            this.tokens.next();
+    _handleStateDefinition() {
+        if (this._tokens.peek().is('key', 'none')) {
+            this._tokens.next();
         } else {
-            const free = this.readWhileRawAndParse();
+            const free = this._readWhileRawAndParse();
             if (free === null) {
-                this.handleUnexpected();
+                this._handleUnexpected();
             } else {
-                this.astree.enterSetAndLeave([alias.state], free);
+                this._astree.enterSetAndLeave([alias.state], free);
             }
         }
     }
 
-    handleNestedDefinition() {
-        if (this.tokens.peek().is('key', 'none')) {
-            this.tokens.next();
+    _handleNestedDefinition() {
+        if (this._tokens.peek().is('key', 'none')) {
+            this._tokens.next();
         } else {
-            if (!this.tokens.peek().is('punc', '{')) {
-                this.handleUnexpected();
+            if (!this._tokens.peek().is('punc', '{')) {
+                this._handleUnexpected();
             }
-            this.astree.enterNested();
-            this.tokens.next();
+            this._astree.enterNested();
+            this._tokens.next();
 
-            while (!this.tokens.peek().is('punc', '}')) {
-                this.handleStatement();
+            while (!this._tokens.peek().is('punc', '}')) {
+                this._handleStatement();
             }
-            this.astree.leaveNested();
-            this.tokens.next();
+            this._astree.leaveNested();
+            this._tokens.next();
         }
     }
 
-    handleDefinition() {
-        if (this.tokens.peek().is('key', 'tridy')) {
-            this.tokens.next();
+    _handleDefinition() {
+        // As usual, the grammar of the language is meant to appeal to different styles by offering different options with the same outcome.
+        // Here, the user has three possible ways to enter tags: "@tridy @as <tags>", "@as <tags>", or just "<tags>".
+        // The first option, for instance, is just an optional way to distinguish it from the raw input (e.g. "@json ... @end") options that specify a format first.
+        if (this._tokens.peek().is('key', 'tridy')) {
+            this._tokens.next();
 
-            if (this.tokens.peek().is('key', 'as')) {
-                this.tokens.next();
+            if (this._tokens.peek().is('key', 'as')) {
+                this._tokens.next();
 
-                this.handleTagsDefinition({ require: true });
+                this._handleTagsDefinition({ require: true });
             }
-        } else if (this.tokens.peek().is('key', 'as')) {
-            this.tokens.next();
+        } else if (this._tokens.peek().is('key', 'as')) {
+            this._tokens.next();
 
-            this.handleTagsDefinition({ require: true });
+            this._handleTagsDefinition({ require: true });
         } else {
-            this.handleTagsDefinition({ require: false });
+            this._handleTagsDefinition({ require: false });
         }
 
-        if (this.tokens.peek().is('key', 'is')) {
-            this.tokens.next();
+        if (this._tokens.peek().is('key', 'is')) {
+            this._tokens.next();
 
-            this.handleStateDefinition();
+            this._handleStateDefinition();
         }
 
-        if (this.tokens.peek().is('key', 'has')) {
-            this.tokens.next();
+        if (this._tokens.peek().is('key', 'has')) {
+            this._tokens.next();
 
-            this.handleNestedDefinition();
+            this._handleNestedDefinition();
         }
 
-        this.astree.leavePos();
+        this._astree.leavePos();
     }
 
-    handleImported() {
-        this.astree.setPosValue(this.readWhileRawAndParse());
-        this.astree.leavePos();
+    _handleRawDefinition() {
+        this._astree.setPosValue(this._readWhileRawAndParse());
+        this._astree.leavePos();
     }
 
-    handleStatement(token) {
-        if (this.tokens.peek().is('key', 'tridy')) {
-            this.tokens.next();
+    _handleStatement(token) {
+        // This tag is allowed at the beginning just so it can act as a file signature if the input is a script.
+        if (this._tokens.peek().is('key', 'tridy')) {
+            this._tokens.next();
         }
         
-        if (this.tokens.peek().is('key', 'exit')) {
+        if (this._tokens.peek().is('key', 'exit')) {
+            // This clause pertains only to the interactive CLI, and doesn't affect any other mode of operation.
+
+            // The inline and file inputs already exit on their own, making this pointless there.
+            // The REST API doesn't provide its own mapped equivalent, for obvious reasons that a user shouldn't be able to turn a server process off remotely via. the process itself.
             interactive_exit = true;
 
-            this.tokens.next();
-        } else if (this.tokens.peek().is('key', 'clear')) {
+            this._tokens.next();
+        } else if (this._tokens.peek().is('key', 'clear')) {
+            // This clause pertains only to the interactive CLI, and doesn't affect any other mode of operation.
+
+            // Note this only moves the viewport of the user down, not actually removing the output, but this is how most command terminals already work.
             console.clear();
             
-            this.tokens.next();
+            this._tokens.next();
         } else {
-            if (this.tokens.peek().isAffectingOpToken()) {
-                this.handleOperation();
+            if (this._tokens.peek().isAffectingOpToken()) {
+                this._handleOperation();
     
-                if (!this.tokens.peek().is('punc', ';')) {
-                    this.handleContext();
+                if (!this._tokens.peek().is('punc', ';')) {
+                    this._handleContext();
                 }
-            } else if (this.tokens.peek().isDefiningOpToken() || this.tokens.peek().is('key', 'in')) {
-                if (this.tokens.peek().is('key', 'in')) {
-                    this.tokens.next();
+            } else if (this._tokens.peek().isDefiningOpToken() || this._tokens.peek().is('key', 'in')) {
+                /**
+                 * '@in' should be required to give a context expression with some operations.
+                 * Some operations like '@new' and '@set' create new modules, so they need the space to the right of them to detail these newly created modules.
+                 * It would nonetheless be possible merge context expressions and tag definitions.
+                 * However, it gets complicated when you want something like ''@new' a/b' when a doesn't exist yet, or ''@new' a/b|(b/c)'.
+                 * Meanwhile ''@get' a/b' works because you know you're only addressing an existing module with it.
+                 */
+
+                if (this._tokens.peek().is('key', 'in')) {
+                    this._tokens.next();
     
-                    this.handleContext();
+                    this._handleContext();
                 }
     
-                this.handleOperation();
+                this._handleOperation();
     
-                switch (this.astree.getTopPos()) {
-                    case 'imported':
-                        this.handleImported();
+                switch (this._astree.getTopPos()) {
+                    case 'raw':
+                        this._handleRawDefinition();
                         break;
                     case 'definition':
-                        this.handleDefinition();
+                        this._handleDefinition();
                         break;
                 }
             }
     
-            if (this.tokens.peek().is('key', 'once')) {
-                this.tokens.next();
+            if (this._tokens.peek().is('key', 'once')) {
+                this._tokens.next();
     
-                this.astree.enterSetAndLeave(['context', 'greedy'], true);
-            } else if (this.tokens.peek().is('key', 'many')) {
-                this.tokens.next();
+                this._astree.enterSetAndLeave(['context', 'greedy'], true);
+            } else if (this._tokens.peek().is('key', 'many')) {
+                this._tokens.next();
     
-                this.astree.enterSetAndLeave(['context', 'greedy'], false);
+                this._astree.enterSetAndLeave(['context', 'greedy'], false);
             }
         }
 
-        if (this.tokens.peek().is('punc', ';')) {
-            this.astree.nextItem();
+        if (this._tokens.peek().is('punc', ';')) {
+            this._astree.nextItem();
 
-            this.tokens.next();
+            this._tokens.next();
         } else {
-            this.handleUnexpected();
+            this._handleUnexpected();
         }
     }
 
     parse(input, opts = { }) {
-        this.tokens = input;
+        this._tokens = input;
 
-        this.astree = new StateTree();
+        this._astree = new StateTree();
 
-        this.astree.enterNested();
-        while (!this.tokens.isEnd()) {
-            this.handleStatement();
+        this._astree.enterNested();
+        while (!this._tokens.isEnd()) {
+            this._handleStatement();
         }
-        this.astree.leaveNested();
+        this._astree.leaveNested();
 
-        return this.astree;
+        return this._astree;
     }
 }
 

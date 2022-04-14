@@ -7,63 +7,63 @@ import { Stack }       from '../utility/Stack.js';
 
 class TokenParser {
     constructor() {
-        this.parser = charParser;
+        this._parser = charParser;
 
-        this.mode    = new Stack();
-        this.current = null;
+        this._mode    = new Stack();
+        this._current = null;
     }
 
     load(input) {
-        this.parser.load(input);
+        this._parser.load(input);
     }
 
     clear() {
-        this.parser.clear();
+        this._parser.clear();
 
-        this.mode    = new Stack();
-        this.current = null;
+        this._mode    = new Stack();
+        this._current = null;
     }
 
     next() {
-        const token  = this.current;
-        this.current = null;
+        const token  = this._current;
+        this._current = null;
 
-        return token || this.readNext();
+        return token || this._readNext();
     }
 
     peek() {
-        this.current = this.current ?? this.readNext();
+        this._current = this._current ?? this._readNext();
 
-        return this.current;
+        return this._current;
     }
 
-    readWhilePred(pred) {
+    _readWhilePred(pred) {
         let str = '';
-        while (!this.parser.isEOF() && pred(this.parser.peek())) {
-            str += this.parser.next();
+        while (!this._parser.isEOF() && pred(this._parser.peek())) {
+            str += this._parser.next();
         }
 
         return str;
     }
 
-    readWhileEscaped() {
+    _readWhileEscaped() {
         let is_escaped = false
         let str        = '';
         let ch;
 
-        while (!this.parser.isEOF()) {
-            ch = this.parser.next();
+        while (!this._parser.isEOF()) {
+            ch = this._parser.next();
 
             if (is_escaped) {
                 str += ch;
                 is_escaped = false;
-            } else if (this.isEscape(ch)) {
+            } else if (this._isEscape(ch)) {
                 is_escaped = true;
             } else if (ch === '#') {
-                this.mode.push('com');
+                this._mode.push('com');
                 break;
             } else if (ch === '@') {
-                this.mode.push('key');
+                this._mode.push('key');
                 break;
             } else {
                 str += ch;
@@ -73,90 +73,82 @@ class TokenParser {
         return str;
     }
 
-    readNext() {
-        if (this.mode.peek() !== 'yaml') {
-            this.readWhilePred(this.isWhitespace);
+    _readNext() {
+        if (this._mode.peek() !== 'yaml') {
+            this._readWhilePred(this._isWhitespace);
         }
 
-        if (this.parser.isEOF()) {
+        if (this._parser.isEOF()) {
             return null;
         }
 
-        const ch = this.parser.peek();
+        const ch = this._parser.peek();
 
         if (ch === '#') {
-            this.mode.push('com');
-            this.parser.next();
+            this._mode.push('com');
+            this._parser.next();
         }
-        if (this.mode.peek() === 'com') {
-            this.mode.pop();
-            this.readComment();
+        if (this._mode.peek() === 'com') {
+            this._mode.pop();
+            this._readComment();
 
-            return this.readNext();
+            return this._readNext();
         }
 
         if (ch === '@') {
-            this.mode.push('key');
-            this.parser.next();
+            this._mode.push('key');
+            this._parser.next();
         }
-        if (this.mode.peek() === 'key') {
-            this.mode.pop();
-            const keyword = this.readKeyword();
+        if (this._mode.peek() === 'key') {
+            this._mode.pop();
+            const keyword = this._readKeyword();
 
             return keyword;
         }
 
-        const mode = this.mode.peek();
-        if (mode === 'json') {
-            return this.readJSON();
-        } else if (mode === 'yaml') {
-            return this.readYAML();
+        const mode = this._mode.peek();
+        switch (mode) {
+            case 'json':
+            case 'yaml':
+                return this._readRaw();
         }
 
-        if (this.isIdentifier(ch) || this.isVariableStart(ch)) {
-            return this.readTag();
+        if (this._isIdentifier(ch) || this._isVariableStart(ch)) {
+            return this._readTag();
         }
 
-        if (this.isPunc(ch)) {
-            return this.readPunc();
+        if (this._isPunc(ch)) {
+            return this._readPunc();
         }
 
-        if (this.isMultiPunc(ch)) {
-            return this.readMultiPunc();
+        if (this._isMultiPunc(ch)) {
+            return this._readMultiPunc();
         }
 
-        const pos = this.getPos();
-        const anomaly = this.readWhilePred(this.isNonWhitespace);
+        const pos = this._getPos();
+        const anomaly = this._readWhilePred(this._isNonWhitespace);
         throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Unknown token type of "${anomaly}".`);
     }
 
-    readComment() {
-        this.readWhilePred((ch) => {
+    _readComment() {
+        this._readWhilePred((ch) => {
             return ch != "\n";
         })
     }
 
-    readJSON() {
-        const pos = this.getPos();
+    _readRaw() {
+        const pos = this._getPos();
 
-        const part = this.readWhileEscaped().replace(/(?:^\s+|\s+$)/gm, '');
-
-        return new Token('part', part, pos);
-    }
-
-    readYAML() {
-        const pos = this.getPos();
-
-        const part = this.readWhileEscaped().replace(/\s+$/gm, '');
+        const part = this._readWhileEscaped();
 
         return new Token('part', part, pos);
     }
 
-    readKeyword() {
-        const pos = this.getPos();
+    _readKeyword() {
+        const pos = this._getPos();
         pos.col--;
 
-        const keyword = this.readWhilePred(this.isIdentifier).toLowerCase();
+        const keyword = this._readWhilePred(this._isIdentifier).toLowerCase();
 
         if (isEmpty(keyword)) {
             throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "@".`);
@@ -164,20 +156,20 @@ class TokenParser {
 
         switch (keyword) {
             case 'json':
-                if (this.mode.peek() != 'json') {
-                    this.mode.push('json');
+                if (this._mode.peek() != 'json') {
+                    this._mode.push('json');
                 }
                 break;
             case 'yaml':
-                if (this.mode.peek() != 'yaml') {
-                    this.mode.push('yaml');
+                if (this._mode.peek() != 'yaml') {
+                    this._mode.push('yaml');
                 }
                 break;
             case 'end':
-                switch (this.mode.peek()) {
+                switch (this._mode.peek()) {
                     case 'json':
                     case 'yaml':
-                        this.mode.pop();
+                        this._mode.pop();
                         break;
                 }
         }
@@ -185,18 +177,18 @@ class TokenParser {
         return new Token('key', keyword, pos);
     }
 
-    readTagRecursive(pos) {
+    _readTagRecursive(pos) {
         let tag = '';
 
         let is_enclosed = false;
 
-        tag += this.readWhilePred((ch) => {
+        tag += this._readWhilePred((ch) => {
             return ch === '$';
         });
 
         if (!isEmpty(tag)) {
-            if (!this.parser.isEOF() && (this.parser.peek() === '{')) {
-                tag += this.parser.next();
+            if (!this._parser.isEOF() && (this._parser.peek() === '{')) {
+                tag += this._parser.next();
     
                 is_enclosed = true;
             }
@@ -204,19 +196,19 @@ class TokenParser {
 
         let ch;
         while (true) {
-            ch = this.parser.peek();
-            if (this.isVariableStart(ch)) {
-                tag += this.readTagRecursive();
-            } else if (this.isIdentifier(ch)) {
-                tag += this.readWhilePred(this.isIdentifier);
+            ch = this._parser.peek();
+            if (this._isVariableStart(ch)) {
+                tag += this._readTagRecursive();
+            } else if (this._isIdentifier(ch)) {
+                tag += this._readWhilePred(this._isIdentifier);
             } else {
                 break;
             }
         }
 
         if (is_enclosed) {
-            if (!this.parser.isEOF() && (this.parser.peek() === '}')) {
-                tag += this.parser.next();
+            if (!this._parser.isEOF() && (this._parser.peek() === '}')) {
+                tag += this._parser.next();
             } else {
                 throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Missing closing bracket in variable "${tag}".`);
             }
@@ -225,74 +217,75 @@ class TokenParser {
         return tag;
     }
 
-    readTag() {
-        const pos = this.getPos();
+    _readTag() {
+        const pos = this._getPos();
 
         let tag = '';
         do {
-            tag += this.readTagRecursive(pos);
-        } while (this.isTag(this.parser.peek()));
+            tag += this._readTagRecursive(pos);
+        } while (this._isTag(this._parser.peek()));
 
         return new Token('tag', tag, pos);
     }
 
-    readPunc() {
-        return new Token('punc', this.parser.next(), this.getPos());
+    _readPunc() {
+        return new Token('punc', this._parser.next(), this._getPos());
     }
 
-    readMultiPunc() {
-        const pos = this.getPos();
+    _readMultiPunc() {
+        const pos = this._getPos();
 
-        const curr = this.parser.peek();
+        const curr = this._parser.peek();
 
-        let punc = this.readWhilePred((ch) => {
+        let punc = this._readWhilePred((ch) => {
             return ch === curr;
         });
 
         if (curr === '!') {
             punc = punc.replace(/!!/g, '');
             if (punc === '') {
-                return this.readNext();
+                return this._readNext();
             }
         }
         
         return new Token('punc', punc, pos);
     }
     
-    isWhitespace(ch) {
+    _isWhitespace(ch) {
         return /\s/g.test(ch);
     }
 
-    isNonWhitespace(ch) {
+    _isNonWhitespace(ch) {
         return !/\s/g.test(ch);
     }
 
-    isEscape(ch) {
+    _isEscape(ch) {
         return /\\/g.test(ch);
     }
 
-    isIdentifier(ch) {
+    _isIdentifier(ch) {
         return /[-A-Za-z0-9_]/g.test(ch);
     }
 
-    isPunc(ch) {
+    // Not all of these punctuation symbols are used, but they are included in case one day they are (avoids having to change this bit of code in the future).
+    _isPunc(ch) {
         return /[~%^&*()+=\[\]{}|:;,.?]/g.test(ch);
     }
 
-    isMultiPunc(ch) {
+    _isMultiPunc(ch) {
         return /[!></]/g.test(ch);
     }
 
-    isVariableStart(ch) {
+    _isVariableStart(ch) {
         return /[$]/g.test(ch);
     }
 
-    isTag(ch) {
-        return this.isIdentifier(ch) || this.isVariableStart(ch);
+    _isTag(ch) {
+        return this._isIdentifier(ch) || this._isVariableStart(ch);
     }
 
-    getPos() {
-        return { line: this.parser.getLine(), col: this.parser.getCol() };
+    _getPos() {
+        return { line: this._parser.getLine(), col: this._parser.getCol() };
     }
 }
 

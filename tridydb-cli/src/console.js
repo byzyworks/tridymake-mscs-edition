@@ -46,6 +46,7 @@ export const cli = async (opts = { }) => {
         }
 
         if (!retry && !isEmpty(out)) {
+            // The replace() calls are required because of how the JSON parser handles backslashes as literal input.
             if (opts.pretty) {
                 console.log(JSON.stringify(out, null, 4).replace(/\\\\/g, '\\'));
             } else {
