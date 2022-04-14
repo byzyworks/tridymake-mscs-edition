@@ -35,7 +35,7 @@ export const cli = async (opts = { }) => {
         let out;
         let retry = false;
         try {
-            out = await interpreter.parse(answers.parsed, { accept_carry: true });
+            out = interpreter.parse(answers.parsed, { accept_carry: true });
         } catch (err) {
             if (err instanceof SyntaxError) {
                 error_handler.handle(err);

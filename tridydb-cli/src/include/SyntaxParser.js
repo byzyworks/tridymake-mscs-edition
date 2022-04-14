@@ -22,9 +22,9 @@ class SyntaxParser {
         }
     }
 
+    // The operator given below is what the parser assumes the user means when two operands are separated by no operand other than a whitespace.
+    // Why is this chosen? Semantically, the assumption is that if a module is described with two words (tags) alone, then it should match both.
     _getContextImplicitBinaryOp () {
-        // The operator given below is what the parser assumes the user means when two operands are separated by no operand other than a whitespace.
-        // Why is this chosen? Naturally, if a module is described with two words (tags) alone, then it should match both.
         return new Token('o', '&');
     }
 
@@ -194,9 +194,11 @@ class SyntaxParser {
             type = 'json';
             this._tokens.next();
             
-            // The JSON parser does its own escaping using the backslash characters.
-            // Thus, the backslash characters have to themselves be escaped before they are put through the JSON parser.
-            // Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
+            /**
+             * The JSON parser does its own escaping using the backslash characters.
+             * Thus, the backslash characters have to themselves be escaped before they are put through the JSON parser.
+             * Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
+             */
             data = this._readWhileRaw({ multiline: false }).replace(/\\/g, '\\\\');
         } else if (current.is('key', 'yaml')) {
             type = 'yaml';

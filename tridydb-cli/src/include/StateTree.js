@@ -1,4 +1,4 @@
-import { alias } from '../utility/common.js';
+import { alias, isObject } from '../utility/common.js';
 
 /**
  * A generalized class that is basically an iterable n-ary tree, used as both a skeleton for the Tridy database, and for the abstract syntax tree used to prepare it.
@@ -6,7 +6,7 @@ import { alias } from '../utility/common.js';
  * 
  * Primarily, nodes are accessed by entering and leaving "positions", which are tracked as an array of array indices leading up from the root.
  * The position identifies a node in the tree by its location, being the indices needed to reach it from the root. 
- * A reference/pointer to the node is created (if it doesn't exist yet) once a read or write is requested at the currently-set position.
+ * A reference/pointer to the node is created (if it doesn't exist yet) once a write is requested at the currently-set position.
  * 
  * Since all non-leaf nodes are either arrays or maps themselves, every node in the tree can be accessed in such a way.
  * However, it means having to keep track of the position stack so long as the same tree is used.
@@ -89,18 +89,23 @@ export class StateTree {
     getTopPos() {
         if (this._pos.length === 0) {
             return null;
+        } else {
+            return this._pos[this._pos.length - 1];
         }
-        return this._pos[this._pos.length - 1];
     }
 
     getPosValue() {
-        this._updatePtrs();
-
-        const pos = this.getTopPos();
-        if (pos === null) {
-            return this._tree;
+        if (this.isPosEmpty()) {
+            return undefined;
         } else {
-            return this._ptr[pos];
+            this._updatePtrs();
+
+            const pos = this.getTopPos();
+            if (pos === null) {
+                return this._tree;
+            } else {
+                return this._ptr[pos];
+            }
         }
     }
 
@@ -191,13 +196,19 @@ export class StateTree {
     }
 
     isPosEmpty() {
-        this._updatePtrs();
-
-        const pos = this.getTopPos();
-        if (pos === null) {
-            return this._tree === undefined;
+        let ptr = this._tree;
+        for (let i = 0; i < this._pos.length - 1; i++) {
+            if (!isObject(ptr[this._pos[i]])) {
+                return true;
+            }
+            ptr = ptr[this._pos[i]];
         }
-        return this._ptr[pos] === undefined;
+        const pos = this.getTopPos();
+        if ((pos !== null) && (ptr[pos] === undefined)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     isPosRoot() {

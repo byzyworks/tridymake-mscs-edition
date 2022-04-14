@@ -53,7 +53,7 @@ program.command('inline')
     .argument('<input>', 'Tridy commands to read.')
     .option('-p, --pretty', 'Pretty-print output data.')
     .action(async (input, opts) => {
-        const out = await interpreter.parse(input, { accept_carry: false });
+        const out = interpreter.parse(input, { accept_carry: false });
 
         if (opts.pretty) {
             console.log(JSON.stringify(out, null, 4).replace(/\\\\/g, '\\'));
@@ -75,7 +75,7 @@ program.command('file')
             throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
         }
 
-        const out = await interpreter.parse(input, { accept_carry: false });
+        const out = interpreter.parse(input, { accept_carry: false });
 
         if (opts.pretty) {
             console.log(JSON.stringify(out, null, 4).replace(/\\\\/g, '\\'));
