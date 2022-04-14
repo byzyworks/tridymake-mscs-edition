@@ -1,4 +1,4 @@
-//import { v4 as uuidv4 } from 'uuid';
+import uuid from 'uuid-random';
 
 import { StateTree } from './StateTree.js';
 
@@ -341,7 +341,7 @@ class Composer {
         if (isArray(tags)) {
             for (const i in tags) {
                 if (tags[i] === '@uuid') {
-                    //tags[i] = uuidv4();
+                    tags[i] = uuid();
                 }
             }
         }

@@ -5,7 +5,7 @@ import { alias, isObject } from '../utility/common.js';
  * Underneath, it's just an object that the class method provides a means to traversing around via. iterator, placing values and such.
  * 
  * Primarily, nodes are accessed by entering and leaving "positions", which are tracked as an array of array indices leading up from the root.
- * The position identifies a node in the tree by its location, being the indices needed to reach it from the root. 
+ * The position identifies a node in the tree by its location, being the indices needed to reach it from the root.
  * A reference/pointer to the node is created (if it doesn't exist yet) once a write is requested at the currently-set position.
  * 
  * Since all non-leaf nodes are either arrays or maps themselves, every node in the tree can be accessed in such a way.

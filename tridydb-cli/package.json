@@ -8,7 +8,7 @@
     "file": "node src/app.js file",
     "console": "node src/app.js console",
     "web": "node src/app.js web",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "powershell -file src/test.ps1 || pwsh -file test.ps1"
   },
   "author": "J. E. Ellis",
   "license": "MIT",
@@ -21,7 +21,7 @@
     "js-yaml": "^4.1.0",
     "mongoose": "^6.2.5",
     "morgan": "^1.10.0",
-    "uuid": "^8.3.2",
+    "uuid-random": "^1.3.2",
     "winston": "^3.6.0"
   },
   "type": "module"
