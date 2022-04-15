@@ -1,7 +1,13 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import winston from 'winston';
 import morgan  from 'morgan';
 
 import * as common from './common.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 export const log_levels     = winston.config.npm.levels;
 const        log_level_opts = Object.keys(log_levels);
@@ -16,7 +22,7 @@ export const format = winston.format.combine(
 
 export const transports = {
     error: new winston.transports.File({
-        filename: 'logs/error.log',
+        filename: path.join(__dirname, '../../logs/error.log'),
         level:    'error',
         format:   winston.format.combine(
             format,
@@ -24,7 +30,7 @@ export const transports = {
         )
     }),
     info: new winston.transports.File({
-        filename: 'logs/combined.log',
+        filename: path.join(__dirname, '../../logs/combined.log'),
         level:    'info',
         format:   winston.format.combine(
             format,
