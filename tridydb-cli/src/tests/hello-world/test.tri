@@ -1,0 +1,5 @@
+@tridy;
+
+@set @is @json { "message": "Hello, World!" } @end;
+
+@get;
