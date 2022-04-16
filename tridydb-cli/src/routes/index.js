@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { interpreter } from '../include/interpreter.js';
+import { interpreter } from '../include/Interpreter.js';
 
 import { alias }       from '../utility/common.js';
 import { ServerError } from '../utility/error.js';
