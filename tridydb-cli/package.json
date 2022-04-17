@@ -23,5 +23,9 @@
     "uuid-random": "^1.3.2",
     "winston": "^3.6.0"
   },
-  "type": "module"
+  "devDependencies": {
+    "jsdoc": "^3.6.10"
+  },
+  "type": "module",
+  "exports": "./src/include/Interpreter.js"
 }

@@ -94,8 +94,6 @@ class StatementParser {
     }
 
     next(opts = { }) {
-        opts.accept_carry = opts.accept_carry ?? false;
-
         const tokens = this._readNext();
 
         if (!opts.accept_carry) {

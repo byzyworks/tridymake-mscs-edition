@@ -1,4 +1,4 @@
-import { alias, isObject } from '../utility/common.js';
+import { global, isObject } from '../utility/common.js';
 
 /**
  * A generalized class that is basically an iterable n-ary tree, used as both a skeleton for the Tridy database, and for the abstract syntax tree used to prepare it.
@@ -218,8 +218,8 @@ export class StateTree {
     enterNested(opts = { }) {
         opts.append_mode = opts.append_mode ?? true;
 
-        if (this.getTopPos() != alias.nested) {
-            this.enterPos(alias.nested);
+        if (this.getTopPos() != global.alias.nested) {
+            this.enterPos(global.alias.nested);
         }
 
         if (opts.append_mode) {
@@ -231,11 +231,11 @@ export class StateTree {
     }
 
     leaveNested() {
-        while (this.leavePos() != alias.nested);
+        while (this.leavePos() != global.alias.nested);
     }
 
     nextItem() {
-        while (this._pos[this._pos.length - 2] != alias.nested) {
+        while (this._pos[this._pos.length - 2] != global.alias.nested) {
             this.leavePos();
         }
 
@@ -246,7 +246,7 @@ export class StateTree {
     }
 
     traverse(callback) {
-        this.enterPos(alias.nested);
+        this.enterPos(global.alias.nested);
         if (!this.isPosEmpty()) {
             this.enterPos(0);
             while (!this.isPosEmpty()) {

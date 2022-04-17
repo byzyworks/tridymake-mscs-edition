@@ -1,10 +1,10 @@
-import * as yaml        from 'js-yaml';
+import * as yaml from 'js-yaml';
 
 import { parser as infixParser } from './InfixParser.js';
 import { StateTree }             from './StateTree.js';
 import { Token }                 from './Token.js';
 
-import { alias, isEmpty } from '../utility/common.js';
+import { global, isEmpty } from '../utility/common.js';
 import { SyntaxError }    from '../utility/error.js';
 
 export let interactive_exit = false;
@@ -304,7 +304,7 @@ class SyntaxParser {
         } else {
             const tags = this._readWhileTag();
             if (!isEmpty(tags)) {
-                this._astree.enterSetAndLeave([alias.tags], tags);
+                this._astree.enterSetAndLeave([global.alias.tags], tags);
             } else if (opts.require) {
                 this._handleUnexpected();
             }
@@ -319,7 +319,7 @@ class SyntaxParser {
             if (free === null) {
                 this._handleUnexpected();
             } else {
-                this._astree.enterSetAndLeave([alias.state], free);
+                this._astree.enterSetAndLeave([global.alias.state], free);
             }
         }
     }

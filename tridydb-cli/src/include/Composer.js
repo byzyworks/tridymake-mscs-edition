@@ -2,7 +2,7 @@ import uuid from 'uuid-random';
 
 import { StateTree } from './StateTree.js';
 
-import { isArray, alias, deepCopy, isEmpty } from '../utility/common.js';
+import { isArray, global, deepCopy, isEmpty } from '../utility/common.js';
 import { Stack }                             from '../utility/Stack.js';
 
 class Composer {
@@ -22,7 +22,7 @@ class Composer {
 
         this._astree.enterPos('definition');
         if (!this._astree.isPosEmpty()) {
-            this._astree.enterPos(alias.nested);
+            this._astree.enterPos(global.alias.nested);
             if (!this._astree.isPosEmpty()) {
                 this._astree.leavePos();
 
@@ -33,8 +33,8 @@ class Composer {
                 this._astree.leavePos();
             }
 
-            this._astree.enterCopyAndLeave(module, [alias.state]);
-            this._astree.enterCopyAndLeave(module, [alias.tags]);
+            this._astree.enterCopyAndLeave(module, [global.alias.state]);
+            this._astree.enterCopyAndLeave(module, [global.alias.tags]);
 
             module.leavePos();
         }
@@ -57,10 +57,10 @@ class Composer {
          */
         for (let i = 0; i < indices.length; i += 2) {
             ptr = ptr[indices[i]][indices[i + 1]];
-            if (isEmpty(ptr[alias.tags])) {
+            if (isEmpty(ptr[global.alias.tags])) {
                 current.push([ ]);
             } else {
-                current.push(ptr[alias.tags]);
+                current.push(ptr[global.alias.tags]);
             }
         }
 
@@ -82,7 +82,7 @@ class Composer {
                 answers.value = lvl === 0;
                 break;
             case '%': // from @leaf
-                answers.value = isEmpty(this._target.peek().enterGetAndLeave([alias.nested]));
+                answers.value = isEmpty(this._target.peek().enterGetAndLeave([global.alias.nested]));
                 break;
             case '?': // from @random
                 answers.value = (Math.random() >= 0.5);
@@ -168,7 +168,7 @@ class Composer {
         let answers = { value: false, ended: true };
 
         const target = this._target.peek();
-        target.enterPos(alias.nested);
+        target.enterPos(global.alias.nested);
         if (!target.isPosEmpty()) {
             target.enterPos(0);
             while (!target.isPosEmpty()) {
@@ -337,7 +337,7 @@ class Composer {
         const copy = deepCopy(template);
 
         // A UUID needs to be unique for every copy of a module, even if generated in the same statement.
-        const tags = copy[alias.tags];
+        const tags = copy[global.alias.tags];
         if (isArray(tags)) {
             for (const i in tags) {
                 if (tags[i] === '@uuid') {
@@ -358,7 +358,7 @@ class Composer {
                 target.setPosValue(this._uniqueCopy(opts.template));
                 break;
             case 'module':
-                target.enterPutAndLeave([alias.nested], this._uniqueCopy(opts.template));
+                target.enterPutAndLeave([global.alias.nested], this._uniqueCopy(opts.template));
                 break;
             case 'print':
                 this._output.push(deepCopy(target.getPosValue()));
@@ -428,7 +428,7 @@ class Composer {
         const matched_this = matched;
         if (((max_depth === null) || (depth < max_depth)) && (!opts.greedy || !matched)) {
             const target = this._target.peek();
-            target.enterPos(alias.nested);
+            target.enterPos(global.alias.nested);
             if (!target.isPosEmpty()) {
                 target.enterPos(0);
                 while (!target.isPosEmpty()) {
@@ -478,7 +478,7 @@ class Composer {
     }
 
     _parse() {
-        this._astree.enterPos(alias.nested);
+        this._astree.enterPos(global.alias.nested);
         if (!this._astree.isPosEmpty()) {
             this._astree.enterPos(0);
             while (!this._astree.isPosEmpty()) {

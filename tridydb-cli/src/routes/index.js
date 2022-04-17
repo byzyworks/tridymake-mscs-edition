@@ -1,8 +1,8 @@
 import express from 'express';
 
-import { interpreter } from '../include/Interpreter.js';
+import { tridy } from '../include/Interpreter.js';
 
-import { alias }       from '../utility/common.js';
+import { global }       from '../utility/common.js';
 import { ServerError } from '../utility/error.js';
 import { logger }      from '../utility/logger.js';
 
@@ -84,9 +84,9 @@ const getOpts = (req, res) => {
         opts.data = req.query.data;
     } else {
         opts.type      = 'mod';
-        opts.tags      = req.query[alias.tags];
-        opts.statetype = req.query[alias.state + 'type'];
-        opts.state     = req.query[alias.state];
+        opts.tags      = req.query[global.alias.tags];
+        opts.statetype = req.query[global.alias.state + 'type'];
+        opts.state     = req.query[global.alias.state];
     }
 
     return opts;
@@ -108,7 +108,7 @@ const handleRoute = async (method, req, res) => {
 
     const cmd = toTridy(op_map[method], opts);
 
-    const out = interpreter.parse(cmd, { accept_carry: false });
+    const out = tridy.parse(cmd, { accept_carry: false });
 
     res.json(out);
 }

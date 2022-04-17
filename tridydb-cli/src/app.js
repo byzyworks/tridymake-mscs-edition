@@ -4,8 +4,8 @@ import fs from 'fs';
 
 import { program } from 'commander';
 
-import { interpreter }        from './include/Interpreter.js';
-import { alias }              from './utility/common.js';
+import { tridy }              from './include/Interpreter.js';
+import { global }              from './utility/common.js';
 import { error_handler }      from './utility/error.js';
 import { transports, logger } from './utility/logger.js';
 import { cli }                from './console.js';
@@ -36,14 +36,15 @@ program
             logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         }
         
+        global.alias = { };
         if (opts.tagsKey) {
-            alias.tags = opts.tagsKey;
+            global.alias.tags = opts.tagsKey;
         }
         if (opts.freeKey) {
-            alias.state = opts.freeKey;
+            global.alias.state = opts.freeKey;
         }
         if (opts.treeKey) {
-            alias.nested = opts.treeKey;
+            global.alias.nested = opts.treeKey;
         }
     })
 ;
@@ -52,14 +53,10 @@ program.command('inline')
     .description('Read Tridy commands as a string and exit.')
     .argument('<input>', 'Tridy commands to read.')
     .option('-p, --pretty', 'Pretty-print output data.')
-    .action(async (input, opts) => {
-        const out = interpreter.parse(input, { accept_carry: false });
+    .action((input, opts) => {
+        const out = tridy.parse(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
 
-        if (opts.pretty) {
-            console.log(JSON.stringify(out, null, 4).replace(/\\\\/g, '\\'));
-        } else {
-            console.log(JSON.stringify(out).replace(/\\\\/g, '\\'));
-        }
+        console.log(out);
     })
 ;
 
@@ -75,13 +72,9 @@ program.command('file')
             throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
         }
 
-        const out = interpreter.parse(input, { accept_carry: false });
+        const out = tridy.parse(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
 
-        if (opts.pretty) {
-            console.log(JSON.stringify(out, null, 4).replace(/\\\\/g, '\\'));
-        } else {
-            console.log(JSON.stringify(out).replace(/\\\\/g, '\\'));
-        }
+        console.log(out);
     })
 ;
 

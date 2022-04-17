@@ -1,9 +1,9 @@
 import inquirer from 'inquirer';
 import chalk    from 'chalk';
 
-import { interactive_exit }           from './include/SyntaxParser.js';
-import { interpreter }                from './include/Interpreter.js';
-import { parser as tokenizer }        from './include/StatementParser.js';
+import { interactive_exit }    from './include/SyntaxParser.js';
+import { tridy }               from './include/Interpreter.js';
+import { parser as tokenizer } from './include/StatementParser.js';
 
 import { isEmpty }            from './utility/common.js';
 import { SyntaxError, error_handler } from './utility/error.js';
@@ -35,7 +35,7 @@ export const cli = async (opts = { }) => {
         let out;
         let retry = false;
         try {
-            out = interpreter.parse(answers.parsed, { accept_carry: true });
+            out = tridy.parse(answers.parsed, { accept_carry: true, stringify: true, pretty: opts.pretty });
         } catch (err) {
             if (err instanceof SyntaxError) {
                 error_handler.handle(err);
@@ -45,13 +45,8 @@ export const cli = async (opts = { }) => {
             }
         }
 
-        if (!retry && !isEmpty(out)) {
-            // The replace() calls are required because of how the JSON parser handles backslashes as literal input.
-            if (opts.pretty) {
-                console.log(JSON.stringify(out, null, 4).replace(/\\\\/g, '\\'));
-            } else {
-                console.log(JSON.stringify(out).replace(/\\\\/g, '\\'));
-            }
+        if (!retry && (out !== '[]')) {
+            console.log(out);
         }
     }
 }

@@ -3,7 +3,7 @@ export const APP = Object.freeze({
     VERSION: '1.0.0'
 });
 
-export const alias = { };
+export const global = { };
 
 export const pushAll = (target, source) => {
     for (const part of source) {
