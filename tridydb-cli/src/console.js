@@ -35,7 +35,7 @@ export const cli = async (opts = { }) => {
         let out;
         let retry = false;
         try {
-            out = tridy.parse(answers.parsed, { accept_carry: true, stringify: true, pretty: opts.pretty });
+            out = tridy.query(answers.parsed, { accept_carry: true, stringify: true, pretty: opts.pretty });
         } catch (err) {
             if (err instanceof SyntaxError) {
                 error_handler.handle(err);

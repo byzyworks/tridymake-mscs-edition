@@ -54,7 +54,7 @@ program.command('inline')
     .argument('<input>', 'Tridy commands to read.')
     .option('-p, --pretty', 'Pretty-print output data.')
     .action((input, opts) => {
-        const out = tridy.parse(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
+        const out = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
 
         console.log(out);
     })
@@ -72,7 +72,7 @@ program.command('file')
             throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
         }
 
-        const out = tridy.parse(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
+        const out = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
 
         console.log(out);
     })

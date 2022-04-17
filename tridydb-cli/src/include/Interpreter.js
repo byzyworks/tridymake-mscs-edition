@@ -17,7 +17,7 @@ import { SyntaxError }     from '../utility/error.js';
  * A Tridy interpreter includes three parts: a tokenizer, parser, and composer.
  * Each may be stateful to varying degrees.
  * 
- * Interacting with this class is all done through the parse() method, which automatically pipes the input through these separate components in order.
+ * Interacting with this class is all done through the query() method, which automatically pipes the input through these separate components in order.
  * 
  * @class
  * @property {StatementParser} _tokenizer Extracts tokens from the input string, and manages statement-queuing.
@@ -46,7 +46,7 @@ class Interpreter {
      * @returns {(Array<Object> | String)}  The output of the statement(s).
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      */
-    parse(input, opts = { }) {
+    query(input, opts = { }) {
         opts.accept_carry = opts.accept_carry ?? false;
         opts.stringify    = opts.stringify    ?? false;
         opts.pretty       = opts.pretty       ?? false;

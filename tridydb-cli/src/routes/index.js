@@ -108,7 +108,7 @@ const handleRoute = async (method, req, res) => {
 
     const cmd = toTridy(op_map[method], opts);
 
-    const out = tridy.parse(cmd, { accept_carry: false });
+    const out = tridy.query(cmd, { accept_carry: false });
 
     res.json(out);
 }
