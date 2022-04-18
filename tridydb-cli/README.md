@@ -73,6 +73,15 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 17. [@once](#syntax-once)
                 18. [@many](#syntax-many)
             4.  [Summary](#syntax-summary)
+        4.  [Getting Started](#running)
+            1.  [Introduction](#running-intro)
+            2.  [Package](#package)
+            3.  [CLI](#cli)
+            4.  [REST API](#rest)
+                1.  [GET /](#rest-get-/)
+                2.  [POST /](#rest-post-/)
+                3.  [PUT /](#rest-put-/)
+                4.  [DELETE /](#rest-delete-/)
     4.  [Glossary](#glossary)
 
 <br>
@@ -1929,6 +1938,264 @@ The syntax rules are detailed below using Microsoft's command line syntax:
 }
 ;
 ```
+
+<br>
+
+<div id="running"/>
+
+## Getting Started
+
+---
+
+<div id="running-intro"/>
+
+## Introduction
+
+TridyDB, at least in its current form, is a NodeJS application. Therefore, it requires NodeJS to be installed along with its package manager NPM. Additionally, there are a number of libraries expected with it, but this is, of course, easily managed using NPM. It is required that NodeJS and NPM are installed first before attempting to install or run TridyDB, however, NPM is responsible for the libraries surrounding TridyDB.
+
+Install scripts are provided with TridyDB as "install.ps1" (PowerShell) and "install.sh", which are tested as functional on both Windows and Linux, respectively. Compatibility with MacOS is not yet guaranteed, and the install scripts do not have guaranteed intercompatibility either (using PowerShell for Linux or Bash for Windows via. WSL/Cygwin). The install scripts will automatically install the required libraries if needed.
+
+They will also optionally add TridyDB to the system's PATH variable, making it callable from anywhere inside a terminal or command prompt with just `tridydb`, though the user is expected to move or rename the directory beforehand as they see fit. An uninstall script is provided as a way to reverse this.s
+
+<br>
+
+<div id="package"/>
+
+## Package
+
+The easiest method of using TridyDB, and the most preferrable if the application using it is another Node application, is to import it as a package into your project.
+
+So long as the package is installed into one's own inside `node_modules`, here is how one can import and use TridyDB in their own project.
+
+```javascript
+import { tridy } from 'tridydb-cli';
+
+const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
+
+tridy.query(input, { stringify: true });
+// Returns [{"free":{"foo":"bar"}}] as a string.
+```
+
+As can be seen, the query() method is the entry point to working with the package. The first argument can be sent as any string of valid Tridy code. Meanwhile, the second argument is where the user can specify options according to their needs.
+
+One option, stringify, was presented here, which meant the return of the statement was a string. Normally, without this option, the JSON object representing the output is returned as-is for users to make their own manipulations to before presenting the output, if so desired.
+
+If `stringify` is set as true, `pretty` will present it in a way that's indented / more human-readable. This is hard-coded to 4 spaces per indent, though getting around this is simply a matter of not outputting with `stringify` and working with `JSON.stringify(...)` (natively provided by NodeJS) and its own options on the output of `tridy.query(...)` directly.
+
+```javascript
+import { tridy } from 'tridydb-cli';
+
+const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
+
+tridy.query(input, { stringify: true, pretty: true });
+// [
+//     {
+//         "free": {
+//             "foo": "bar"
+//         }
+//     }
+// ]
+```
+
+An important point about using `tridy.query(...)` in general is that it is a *stateful* method. Therefore, where two or more calls to the method are issued in a sequence, the input of later calls will use the output of previous calls implicitly. Thus, *under some circumstances*, statements are factorable into multiple calls while having the same results. In other words, the state of the database after `tridy.query('@get; @del;');` is the same as after `tridy.query('@get;'); tridy.query('@del;');`. However, just as it would matter elsewhere, Tridy commands are not commutative, and `tridy.query('@get; @del;');` will have different results from `tridy.query('@del; @get;');`.
+
+Another available option to control the stateful of Tridy is `accept_carry`. If `accept_carry` is enabled, then statements can be provided to `tridy.query()` in an incomplete form that is measured token-by-token rather than statement-by-statement.
+
+```javascript
+import { tridy } from 'tridydb-cli';
+
+const input1 = '@set @as @none @is @json';
+const input2 = '{ "foo": "bar" }';
+const input3 = '@end;';
+const input4 = '@get;';
+
+tridy.query(input1, { accept_carry: false });
+// Throws an error since input1 is an incomplete statement.
+
+tridy.query(input1, { accept_carry: true });
+tridy.query(input2, { accept_carry: true });
+tridy.query(input3, { accept_carry: true });
+tridy.query(input4, { accept_carry: true });
+// Returns [{"free":{"foo":"bar"}}].
+```
+
+This behavior does not extend to incomplete tokens. For instance,
+
+```javascript
+const input1 = '@set @as @none @is @';
+const input2 = 'json { "foo": "bar" }';
+const input3 = '@e';
+const input4 = 'nd; @get;';
+
+tridy.query(input1);
+```
+
+Would still throw errors regardless.
+
+It should be pointed out, however, that even though using TridyDB like this is *stateful*, it is not, at the same time, *persistent*. Whenever Tridy is used as a package, the first call to `tridy.query()` is always one that is working with a fresh object/root module, or in other words, one that is totally empty. Generally speaking, TridyDB as a package is not meant to directly deal with persistent data; instead, the application should be built to handle that on its own, or should alternatively try to interface with TridyDB using one of the available methods more suited to work with persistent data. As detailed below, Tridy provides a separate CLI application and REST API, which both allow TridyDB to act independently as a standalone instance, and have extra options for persistence.
+
+Finally, `tridy.parse()` has options to alias the keys associated to the various data structures that Tridy uses, which is as well provided with the standalone program versions.
+
+```javascript
+import { tridy } from 'tridydb-cli';
+
+const input = '@set @as tag @is @json { "key": "value" } @end; @get;';
+
+tridy.query(input1, { alias: { tags: foo, free: bar } });
+// Returns [{"foo":["tag"],"bar":{"key":"value"}}].
+```
+
+<br>
+
+<div id="cli"/>
+
+## CLI
+
+The standard way to run TridyDB as a standalone application is by running `src/app.js` from the project folder using NodeJS directly, or as `node src/app.js`, assuming your current working directory is the project folder. Clearly, this is unappealing, so just going into your favorite terminal and entering `tridydb` should be enough if the installer was run and the option to create this shortcut was marked.
+
+This isn't totally sufficient, however, as there are three different sub-variants that the user is required to pick if and when they try to run standalone TridyDB, given as the first positional argument to `tridydb`. Otherwise, it will simply pop up with a help screen showing these options (the help screen is achievable also with `tridydb help`).
+
+<br>
+
+### Inline Mode
+
+Inline mode is arguably the simplest of the four, and the one that is most similar to using `tridy.query()` directly, since it is effectively the same as this, but allocated to a separate process.
+
+Inline mode allows one to enter Tridy commands as a string, and pass that string as an argument to TridyDB. The string itself is given as the second positional argument in such a case.
+
+Usage:
+
+```
+tridydb inline [options] <input>
+```
+
+Example:
+
+```bash
+$ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;';
+# [{"free":{"foo":"bar"}}].
+```
+
+<br>
+
+### File Mode
+
+With file mode, the user provides paths to any number of files, each of which is loaded sequentially following the order in which they are given.
+
+The paths are provided through the second positional argument onward. In other words, the second positional argument would be the path to the first file to load, the third positional argument would be the second file to load, and so on.
+
+Every script should be made up of complete Tridy statements, so it's not possible to split a statement across two files token-wise without the possibility of generating syntax errors.
+
+Usage:
+
+```
+tridydb file [options] <paths...>
+```
+
+Example:
+
+`/path/to/example1.tri`
+```
+@tridy;
+
+@set
+@as @none
+@is @json {
+    "foo": "bar"
+} @end;
+```
+
+`/path/to/example2.tri`
+```
+@tridy;
+
+@in *
+@new baz;
+
+@get;
+```
+
+```bash
+$ tridydb file '/path/to/example1.tri' '/path/to/example2.tri';
+# [{"free":{"foo":"bar"},"tree":[{"tags":["baz"]}]}].
+```
+
+<br>
+
+### Console Mode
+
+PLACEHOLDER
+
+Usage:
+
+```
+tridydb console [options]
+```
+
+Example:
+
+```bash
+$ tridydb console;
+```
+
+<br>
+
+### Shared Features
+
+Unlike when using TridyDB as a package, all output from the CLI is transformed to a string in the end, though reparsing is usually as simple as running back `JSON.parse(...)` on the output.
+
+Pretty-printing is provided as the option `--pretty` or `-p` in all cases as well. Like when the equivalent option is used with `tridy.query()`, 4 spaces are used per indent.
+
+```bash
+$ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty;
+# [
+#     {
+#         "free": {
+#             "foo": "bar"
+#         }
+#     }
+# ]
+```
+
+<br>
+
+<div id="rest"/>
+
+## REST API
+
+PLACEHOLDER
+
+<br>
+
+<div id="rest-get-/"/>
+
+### Endpoint: `GET /`
+
+PLACEHOLDER
+
+<br>
+
+<div id="rest-post-/"/>
+
+### Endpoint: `POST /`
+
+PLACEHOLDER
+
+<br>
+
+<div id="rest-put-/"/>
+
+### Endpoint: `PUT /`
+
+PLACEHOLDER
+
+<br>
+
+<div id="rest-delete-/"/>
+
+### Endpoint: `DELETE /`
+
+PLACEHOLDER
 
 <br>
 
