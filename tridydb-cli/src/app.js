@@ -54,27 +54,31 @@ program.command('inline')
     .argument('<input>', 'Tridy commands to read.')
     .option('-p, --pretty', 'Pretty-print output data.')
     .action((input, opts) => {
-        const out = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
+        const output = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
 
-        console.log(out);
+        console.log(output);
     })
 ;
 
 program.command('file')
-    .description('Read Tridy commands from a file and exit.')
-    .argument('<path>', 'Path of Tridy script to read.')
+    .description('Read Tridy commands from any number of files and exit.')
+    .argument('<paths...>', 'Paths of Tridy scripts to read.')
     .option('-p, --pretty', 'Pretty-print output data.')
-    .action(async (path, opts) => {
+    .action(async (paths, opts) => {
         let input;
-        try {
-            input = await fs.promises.readFile(path);
-        } catch (err) {
-            throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
+        let output;
+        
+        for (const path of paths) {
+            try {
+                input = await fs.promises.readFile(path);
+            } catch (err) {
+                throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
+            }
+
+            output = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
         }
 
-        const out = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
-
-        console.log(out);
+        console.log(output);
     })
 ;
 
