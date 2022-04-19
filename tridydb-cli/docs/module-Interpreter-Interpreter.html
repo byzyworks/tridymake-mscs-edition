@@ -36,7 +36,7 @@
 A Tridy interpreter includes three parts: a tokenizer, parser, and composer.
 Each may be stateful to varying degrees.
 
-Interacting with this class is all done through the parse() method, which automatically pipes the input through these separate components in order.</div>
+Interacting with this class is all done through the query() method, which automatically pipes the input through these separate components in order.</div>
         
     
 </header>
@@ -197,7 +197,7 @@ Interacting with this class is all done through the parse() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line27">line 27</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line56">line 56</a>
     </li></ul></dd>
     
 
@@ -253,7 +253,7 @@ Interacting with this class is all done through the parse() method, which automa
     
 
     
-    <h4 class="name" id="query"><span class="type-signature"></span>query<span class="signature">(input)</span><span class="type-signature"> &rarr; {Array.&lt;Object>|String}</span></h4>
+    <h4 class="name" id="query"><span class="type-signature">(async) </span>query<span class="signature">(input)</span><span class="type-signature"> &rarr; {Array.&lt;Object>|String}</span></h4>
     
 
     
@@ -320,6 +320,29 @@ Interacting with this class is all done through the parse() method, which automa
 
         <tr>
             
+                <td class="name"><code>opts.tokenless</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.</td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>opts.accept_carry</code></td>
             
 
@@ -360,29 +383,6 @@ Interacting with this class is all done through the parse() method, which automa
             
 
             <td class="description last">True to convert the JSON object to a string on output, false to output a JSON object directly (use this if you want to do your own transformations). Default is false.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>opts.pretty</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Boolean</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Only works if opts.stringify is enabled. Default is false.</td>
         </tr>
 
     
@@ -455,6 +455,98 @@ Interacting with this class is all done through the parse() method, which automa
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>opts.remote.host</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Server to connect to. If not given, then a temporary local (not localhost) session is created.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.remote.port</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Port to connect to, if a host is provided. Default is 21780.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.remote.timeout</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Timeout period (in milliseconds) to wait for responses, if a host is provided. Default is 3000.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.output.pretty</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Only works if opts.stringify is enabled. Default is false.</td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -492,7 +584,7 @@ Interacting with this class is all done through the parse() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line49">line 49</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line84">line 84</a>
     </li></ul></dd>
     
 
@@ -516,8 +608,8 @@ Interacting with this class is all done through the parse() method, which automa
 
 
 <h5>Throws:</h5>
-
-        
+<ul>
+        <li>
 
 <dl>
     <dt>
@@ -542,8 +634,35 @@ Interacting with this class is all done through the parse() method, which automa
     <dd></dd>
 </dl>
 
-
+</li>
     
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        Thrown if the server host (optional) sends back an error response.
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">ClientSideServerError</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
 
 
 <h5>Returns:</h5>
@@ -598,7 +717,7 @@ Interacting with this class is all done through the parse() method, which automa
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Apr 17 2022 14:56:19 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Tue Apr 19 2022 17:37:03 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>
