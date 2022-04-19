@@ -3,7 +3,22 @@ export const APP = Object.freeze({
     VERSION: '1.0.0'
 });
 
-export const global = { };
+export const global = {
+    alias: {
+        tags:   'tags',
+        state:  'free',
+        nested: 'tree'
+    },
+    remote: {
+        host:    null,
+        port:    21780,
+        timeout: 3000
+    },
+    output: {
+        pretty: false
+    },
+    log_level: 'info'
+};
 
 export const pushAll = (target, source) => {
     for (const part of source) {
@@ -50,16 +65,28 @@ export const deepCopy = (source) => {
     return copy;
 }
 
-export const overlay = (target, source) => {
+export const deepOverlay = (target, source) => {
     for (const property in source) {
         if (isArray(target[property]) && isArray(source[property])) {
             for (const part of source[property]) {
                 target[property].push(deepCopy(part));
             }
         } else if (isDictionary(target[property]) && isDictionary(source[property])) {
-            overlay(target[property], source[property]);
+            deepOverlay(target[property], source[property]);
         } else {
             target[property] = deepCopy(source[property]);
+        }
+    }
+}
+
+export const deepModify = (target, callback) => {
+    let modified;
+    for (const property in source) {
+        if (isObject(target[property])) {
+            deepOverlay(target[property], source[property]);
+        } else {
+            modified = callback(target[property]);
+            target[property] = modified;
         }
     }
 }

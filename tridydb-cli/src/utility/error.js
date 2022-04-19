@@ -1,4 +1,4 @@
-import { StatusCodes } from 'http-status-codes';
+import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
 import { parser as tokenizer } from '../include/StatementParser.js';
 
@@ -17,11 +17,52 @@ export class SyntaxError extends Error {
     }
 }
 
-export class ServerError extends Error {
+class ServerError extends Error { }
+
+export class ClientSideServerError extends ServerError {
+    constructor(server_error = null) {
+        let http_code = StatusCodes.NOT_FOUND;
+        if (server_error && server_error.status) {
+            http_code = server_error.status;
+        }
+
+        let description = 'Error ' + http_code + ': ' + getReasonPhrase(http_code);
+        if (server_error && server_error.message) {
+            description = server_error.message;
+        }
+        
+        super(description);
+        Object.setPrototypeOf(this, new.target.prototype);
+
+        if (server_error && server_error.stack) {
+            this.stack = server_error.stack;
+        }
+
+        /**
+         * There are a couple of reasons why is_fatal is always false, but first, the alternatives.
+         * The obvious choice would be for the server to provide info on whether an error is fatal or not.
+         * However, this is information that in general it's assumed a server shouldn't need to provide to the client.
+         * Important information, like what type of error something is, is only provided by the server in debug mode.
+         * Only the return status code is provided in both development and production.
+         * This does not provide enough information on its own.
+         * Thus, it becomes a question of user-friendliness, and the best option is rather to leave the client session open.
+         * That is in case the server's issues are resolved and/or it is restarted.
+         * Note that non-fatal syntax errors are already generated and handled by the client before forwarding requests.
+         * As a result, this should never be thrown for reasons not already fatal to the server.
+         */
+        this.opts = {
+            http_code:  http_code,
+            is_warning: false,
+            is_fatal:   false
+        };
+    }
+}
+
+export class ServerSideServerError extends ServerError {
     constructor(description, original, opts = { }) {
-        opts.http_code  = opts.http_code  ?? StatusCodes.INTERNAL_SERVER_ERROR;
-        opts.is_warning = opts.is_warning ?? false;
-        opts.is_fatal   = opts.is_fatal   ?? true;
+        opts.http_code  = opts.http_code  ?? StatusCodes.INTERNAL_SERVER_ERROR,
+        opts.is_warning = opts.is_warning ?? false,
+        opts.is_fatal   = opts.is_fatal   ?? true
 
         super(description);
         Object.setPrototypeOf(this, new.target.prototype);
@@ -35,12 +76,13 @@ export class ServerError extends Error {
             this.original = null;
         }
 
-        this.opts = { };
-        this.opts.http_code  = opts.http_code;
-        this.opts.is_warning = opts.is_warning;
-        this.opts.is_fatal   = opts.is_fatal;
-        
         Error.captureStackTrace(this);
+
+        this.opts = {
+            http_code:  opts.http_code,
+            is_warning: opts.is_warning,
+            is_fatal:   opts.is_fatal
+        };
     }
 }
 
@@ -52,7 +94,7 @@ class ErrorHandler {
             this.lastError = err;
 
             try {
-                if ((err instanceof ServerError) && (err.opts.is_warning)) {
+                if ((err instanceof ServerSideServerError) && (err.opts.is_warning)) {
                     logger.warn(err.message);
                 } else if (err instanceof Error) {
                     logger.error(err.message);
@@ -61,14 +103,14 @@ class ErrorHandler {
                     logger.debug(err.stack);
                 }
 
-                if ((err instanceof ServerError) && (err.original !== null)) {
+                if ((err instanceof ServerSideServerError) && (err.original !== null)) {
                     logger.debug(`Reason: ${err.original.message}`);
                     if (err.original.stack !== undefined) {
                         logger.debug(err.original.stack);
                     }
                 }
             } finally {
-                if (!(err instanceof SyntaxError) && (!(err instanceof ServerError) || (err.opts.is_fatal))) {
+                if (!(err instanceof SyntaxError) && (!(err instanceof ServerError) || (err.opts.is_fatal === true))) {
                     logger.end();
                     process.exitCode = 1;
                 }
@@ -78,7 +120,7 @@ class ErrorHandler {
 
     errorResponse(req, res) {
         let status;
-        if ((this.lastError instanceof ServerError) && (this.lastError.opts.http_code !== undefined)) {
+        if ((this.lastError instanceof ServerSideServerError) && (this.lastError.opts.http_code !== undefined)) {
             status = this.lastError.opts.http_code;
         } else {
             status = StatusCodes.INTERNAL_SERVER_ERROR;

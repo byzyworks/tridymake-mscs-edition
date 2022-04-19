@@ -7,8 +7,6 @@ import { Token }                 from './Token.js';
 import { global, isEmpty } from '../utility/common.js';
 import { SyntaxError }    from '../utility/error.js';
 
-export let interactive_exit = false;
-
 class SyntaxParser {
     constructor() { }
 
@@ -383,25 +381,18 @@ class SyntaxParser {
     }
 
     _handleStatement(token) {
-        // This tag is allowed at the beginning just so it can act as a file signature if the input is a script.
         if (this._tokens.peek().is('key', 'tridy')) {
+            // This tag is allowed at the beginning just so it can act as a file signature if the input is a script.
             this._tokens.next();
-        }
-        
-        if (this._tokens.peek().is('key', 'exit')) {
-            // This clause pertains only to the interactive CLI, and doesn't affect any other mode of operation.
-
-            // The inline and file inputs already exit on their own, making this pointless there.
-            // The REST API doesn't provide its own mapped equivalent, for obvious reasons that a user shouldn't be able to turn a server process off remotely via. the process itself.
-            interactive_exit = true;
+        } else if (this._tokens.peek().is('key', 'exit')) {
+            // As a control statement, the functionality for it is handled directly by the interpreter, and not here.
+            // This forces it to be handled from a client's perspective, thus having no effect on a server, other than being accepted.
 
             this._tokens.next();
         } else if (this._tokens.peek().is('key', 'clear')) {
-            // This clause pertains only to the interactive CLI, and doesn't affect any other mode of operation.
+            // As a control statement, the functionality for it is handled directly by the interpreter, and not here.
+            // This forces it to be handled from a client's perspective, thus having no effect on a server, other than being accepted.
 
-            // Note this only moves the viewport of the user down, not actually removing the output, but this is how most command terminals already work.
-            console.clear();
-            
             this._tokens.next();
         } else {
             if (this._tokens.peek().isAffectingOpToken()) {

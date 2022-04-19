@@ -4,7 +4,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Interactive CLI (Development)",
+            "name": "Launch Test Console (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
             "args": ["console", "--log-level", "debug", "--pretty"],
@@ -17,7 +17,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Interactive CLI (Production)",
+            "name": "Launch Test Console (Production)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
             "args": ["console"],
@@ -27,10 +27,10 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch REST API (Development)",
+            "name": "Launch REST Client (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["web", "--log-level", "debug"],
+            "args": ["console", "--host", "localhost", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -40,10 +40,33 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch REST API (Production)",
+            "name": "Launch REST Client (Production)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["web"],
+            "args": ["console", "--host", "localhost"],
+            "outputCapture": "std",
+            "console": "externalTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch REST Server (Development)",
+            "program": "${workspaceFolder}/tridydb-cli/src/app.js",
+            "cwd": "${workspaceFolder}/tridydb-cli",
+            "args": ["server", "--log-level", "debug"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch REST Server (Production)",
+            "program": "${workspaceFolder}/tridydb-cli/src/app.js",
+            "cwd": "${workspaceFolder}/tridydb-cli",
+            "args": ["server"],
             "outputCapture": "std",
             "console": "externalTerminal"
         }

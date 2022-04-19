@@ -4,12 +4,13 @@ import fs from 'fs';
 
 import { program } from 'commander';
 
-import { tridy }              from './include/Interpreter.js';
-import { global }              from './utility/common.js';
+import { tridy }  from './include/Interpreter.js';
+import { cli }    from './console.js';
+import { server } from './server.js';
+
+import { global }             from './utility/common.js';
 import { error_handler }      from './utility/error.js';
 import { transports, logger } from './utility/logger.js';
-import { cli }                from './console.js';
-import { server }             from './server.js';
 
 process.exitCode = 0;
 
@@ -24,10 +25,10 @@ process.on('unhandledRejection', (err) => {
 program
     .version('1.0.0')
     .description('Specialized tool for creating portable, tree-like data files.')
-    .option('-l, --log-level <level>', 'The log level used, as one of NPM\'s available log levels')
-    .option('--tags-key <key>', 'The key under which tags are imported and exported as', 'tags')
-    .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', 'free')
-    .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', 'tree')
+    .option('-L, --log-level <level>', 'The log level used, as one of NPM\'s available log levels',               global.log_level)
+    .option('--tags-key <key>',        'The key under which tags are imported and exported as',                   global.alias.tags)
+    .option('--free-key <key>',        'The key under which the free data structure is imported and exported as', global.alias.state)
+    .option('--tree-key <key>',        'The key under which the tree data structure is imported and exported as', global.alias.nested)
     .hook('preAction', (thisCommand) => {
         const opts = thisCommand.optsWithGlobals();
         
@@ -35,26 +36,22 @@ program
             transports.console.level = opts.logLevel;
             logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         }
-        
-        global.alias = { };
-        if (opts.tagsKey) {
-            global.alias.tags = opts.tagsKey;
-        }
-        if (opts.freeKey) {
-            global.alias.state = opts.freeKey;
-        }
-        if (opts.treeKey) {
-            global.alias.nested = opts.treeKey;
-        }
+
+        global.alias.tags   = opts.tagsKey  ?? global.alias.tags;
+        global.alias.state  = opts.freeKey  ?? global.alias.state;
+        global.alias.nested = opts.treeKey  ?? global.alias.nested;
+        global.log_level    = opts.logLevel ?? global.log_level;
     })
 ;
 
 program.command('inline')
     .description('Read Tridy commands as a string and exit.')
     .argument('<input>', 'Tridy commands to read.')
-    .option('-p, --pretty', 'Pretty-print output data.')
-    .action((input, opts) => {
-        const output = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
+    .option('-P, --pretty', 'Pretty-print the output data.', global.output.pretty)
+    .action(async (input, opts) => {
+        global.output.pretty = opts.pretty ?? global.output.pretty;
+
+        const output = await tridy.query(input, { accept_carry: false, stringify: true });
 
         console.log(output);
     })
@@ -63,11 +60,13 @@ program.command('inline')
 program.command('file')
     .description('Read Tridy commands from any number of files and exit.')
     .argument('<paths...>', 'Paths of Tridy scripts to read.')
-    .option('-p, --pretty', 'Pretty-print output data.')
+    .option('-P, --pretty', 'Pretty-print the output data.', global.output.pretty)
     .action(async (paths, opts) => {
+        global.output.pretty = opts.pretty ?? global.output.pretty;
+
         let input;
         let output;
-        
+
         for (const path of paths) {
             try {
                 input = await fs.promises.readFile(path);
@@ -75,7 +74,7 @@ program.command('file')
                 throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
             }
 
-            output = tridy.query(input, { accept_carry: false, stringify: true, pretty: opts.pretty });
+            output = await tridy.query(input, { accept_carry: false, stringify: true });
         }
 
         console.log(output);
@@ -84,18 +83,26 @@ program.command('file')
 
 program.command('console')
     .description('Start an interactive console session.')
-    .option('-p, --pretty', 'Pretty-print output data.')
+    .option('-h, --host <host>',       'Server to connect to. If not given, then a temporary local (not localhost) session is created.', global.remote.host)
+    .option('-p, --port <port>',       'Port to connect to, if a host is provided.',                                                     global.remote.port)
+    .option('-P, --pretty',            'Pretty-print the output data.',                                                                  global.output.pretty)
+    .option('-t, --timeout <timeout>', 'Timeout period (in milliseconds) to wait for responses, if a host is provided.',                 global.remote.timeout)
     .action(async (opts) => {
-        await cli(opts);
+        global.remote.host    = opts.host    ?? global.remote.host;
+        global.remote.port    = opts.port    ?? global.remote.port;
+        global.remote.timeout = opts.timeout ?? global.remote.timeout;
+        global.output.pretty  = opts.pretty  ?? global.output.pretty;
+
+        await cli({ });
     })
 ;
     
-program.command('web')
+program.command('server')
     .description('Start an interactive REST web API server.')
-    .option('-4, --ipv4-only', 'Disable binding on IPv6.')
-    .option('-6, --ipv6-only', 'Disable binding on IPv4.')
-    .option('-L, --localhost', 'Bind only on localhost; do not expose service to network.')
-    .option('-p, --port <port>', 'The port number to bind to')
+    .option('-4, --ipv4-only',   'Disable binding on IPv6.',                                      false)
+    .option('-6, --ipv6-only',   'Disable binding on IPv4.',                                      false)
+    .option('-l, --localhost',   'Bind only on localhost; do not expose service to the network.', true)
+    .option('-p, --port <port>', 'The port number to bind to',                                    global.remote.port)
     .action(async (opts) => {
         await server(opts);
     })

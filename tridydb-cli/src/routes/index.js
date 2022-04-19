@@ -3,7 +3,7 @@ import express from 'express';
 import { tridy } from '../include/Interpreter.js';
 
 import { global }       from '../utility/common.js';
-import { ServerError } from '../utility/error.js';
+import { ServerSideServerError } from '../utility/error.js';
 import { logger }      from '../utility/logger.js';
 
 const op_map = Object.freeze({
@@ -19,7 +19,7 @@ const toTridy = (op, opts = { }) => {
 
     let cmd;
 
-    if (opts.type === 'verb') {
+    if ((opts.type === 'verb') || (opts.type === 'astree')) {
         cmd = opts.data;
     } else {
         cmd = '';
@@ -64,7 +64,11 @@ const toTridy = (op, opts = { }) => {
         cmd += ';';
     }
 
-    logger.debug(`Generated Tridy command: ${cmd}`);
+    if (opts.type === 'astree') {
+        logger.debug(`Received Tridy syntax: ${cmd}`);
+    } else {
+        logger.debug(`Received Tridy statements: ${cmd}`);
+    }
 
     return cmd;
 }
@@ -92,7 +96,7 @@ const getOpts = (req, res) => {
     return opts;
 }
 
-const handleRoute = async (method, req, res) => {
+const handleRoute = async (method, req, res, next) => {
     const opts = getOpts(req, res);
 
     /**
@@ -101,21 +105,36 @@ const handleRoute = async (method, req, res) => {
      * Since a snippet of code like this can contain any number of statements, and thus, any number of operations in it, nested or otherwise, in the form of a script,
      * there is effectively no RESTful analog for the multiple commands enterable in verbatim mode, and as such, verbatim mode requires the PUT method.
      * PUT is used because it is generally accepted to be the most powerful, and also potentially the most dangerous of the available methods (thus likely to have access controls).
+     * 
+     * Abstract syntax tree ('astree') mode is effectively the same, except the code is sent directly in its a pre-processed form.
+     * This is the mode of operation used by the console when acting as a client.
+     * This way, tokenization and carry can be offloaded to the client, while the server can be left with implementing the AST.
+     * The point of this is so carry to be managed the same, intuitive way (locally) in both local and remote console sessions.
      */
-    if ((opts.type === 'verb') && (method !== 'put')) {
-        throw new ServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', { is_fatal: false });
+    if (((opts.type === 'verb') || (opts.type === 'astree')) && (method !== 'put')) {
+        throw new ServerSideServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', { is_fatal: false });
     }
 
     const cmd = toTridy(op_map[method], opts);
 
-    const out = tridy.query(cmd, { accept_carry: false });
+    let out;
+    try {
+        // We do not want to accept carry on the server-side since managing token carry is the client's job.
+        // However, it makes no difference if the client sends a syntax tree directly.
+        out = await tridy.query(cmd, {
+            tokenless:    opts.type === 'astree',
+            accept_carry: false
+        });
+    } catch (err) {
+        next(err);
+    }
 
     res.json(out);
 }
 
 export const routes = express.Router();
 
-routes.get('/',    async (req, res) => await handleRoute('get', req, res));
-routes.post('/',   async (req, res) => await handleRoute('post', req, res));
-routes.put('/',    async (req, res) => await handleRoute('put', req, res));
-routes.delete('/', async (req, res) => await handleRoute('delete', req, res));
+routes.get('/',    async (req, res, next) => await handleRoute('get', req, res, next));
+routes.post('/',   async (req, res, next) => await handleRoute('post', req, res, next));
+routes.put('/',    async (req, res, next) => await handleRoute('put', req, res, next));
+routes.delete('/', async (req, res, next) => await handleRoute('delete', req, res, next));
