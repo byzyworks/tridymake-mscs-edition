@@ -2,15 +2,15 @@
 
 import fs from 'fs';
 
-import { program } from 'commander';
+import { Option, program } from 'commander';
 
 import { tridy }  from './include/Interpreter.js';
 import { cli }    from './console.js';
 import { server } from './server.js';
 
-import { global }             from './utility/common.js';
-import { error_handler }      from './utility/error.js';
-import { transports, logger } from './utility/logger.js';
+import { global }                         from './utility/common.js';
+import { error_handler }                  from './utility/error.js';
+import { transports, logger, log_levels } from './utility/logger.js';
 
 process.exitCode = 0;
 
@@ -25,10 +25,10 @@ process.on('unhandledRejection', (err) => {
 program
     .version('1.0.0')
     .description('Specialized tool for creating portable, tree-like data files.')
-    .option('-L, --log-level <level>', 'The log level used, as one of NPM\'s available log levels',               global.defaults.log_level)
-    .option('--tags-key <key>',        'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
-    .option('--free-key <key>',        'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
-    .option('--tree-key <key>',        'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
+    .addOption(new Option('-L, --log-level <level>', 'The log level used, as one of NPM\'s available log levels')
+        .choices(Object.keys(log_levels))
+        .default(global.defaults.log_level)
+    )
     .hook('preAction', () => {
         const opts = program.opts();
         
@@ -47,7 +47,10 @@ program
 program.command('inline')
     .description('Read Tridy commands as a string and exit.')
     .argument('<input>', 'Tridy commands to read.')
-    .option('-P, --pretty', 'Pretty-print the output data.', global.defaults.output.pretty)
+    .option('-P, --pretty',     'Pretty-print the output data.',                                           global.defaults.output.pretty)
+    .option('--tags-key <key>', 'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
+    .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
+    .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
     .action(async (input, opts) => {
         let output;
         output = await tridy.query(input, { accept_carry: false });
@@ -59,8 +62,11 @@ program.command('inline')
 
 program.command('file')
     .description('Read Tridy commands from any number of files and exit.')
-    .argument('<paths...>', 'Paths of Tridy scripts to read.')
-    .option('-P, --pretty', 'Pretty-print the output data.', global.defaults.output.pretty)
+    .argument('<paths...>',     'Paths of Tridy scripts to read.')
+    .option('-P, --pretty',     'Pretty-print the output data.',                                           global.defaults.output.pretty)
+    .option('--tags-key <key>', 'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
+    .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
+    .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
     .action(async (paths, opts) => {
         let output = [ ];
 
@@ -86,23 +92,37 @@ program.command('file')
     })
 ;
 
-program.command('console')
-    .description('Start an interactive console session.')
+program.command('sandbox')
+    .description('Start an interactive, standalone console session.')
+    .option('-P, --pretty',     'Pretty-print the output data.',                                           global.defaults.output.pretty)
+    .option('--tags-key <key>', 'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
+    .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
+    .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
+    .action(async (opts) => {
+        await cli(false, opts);
+    })
+;
+
+program.command('client')
+    .description('Start an interactive console session that links to a server.')
     .option('-h, --host <host>',       'Server to connect to. If not given, then a temporary local (not localhost) session is created.', global.defaults.remote.host)
     .option('-p, --port <port>',       'Port to connect to, if a host is provided.',                                                     global.defaults.remote.port)
     .option('-P, --pretty',            'Pretty-print the output data.',                                                                  global.defaults.output.pretty)
     .option('-t, --timeout <timeout>', 'Timeout period (in milliseconds) to wait for responses, if a host is provided.',                 global.defaults.remote.timeout)
     .action(async (opts) => {
-        await cli(opts);
+        await cli(true, opts);
     })
 ;
     
 program.command('server')
     .description('Start an interactive REST web API server.')
-    .option('-4, --ipv4-only',   'Disable binding on IPv6.',                                      false)
-    .option('-6, --ipv6-only',   'Disable binding on IPv4.',                                      false)
-    .option('-l, --localhost',   'Bind only on localhost; do not expose service to the network.', true)
-    .option('-p, --port <port>', 'The port number to bind to',                                    global.defaults.remote.port)
+    .option('-4, --ipv4-only',   'Disable binding on IPv6.',                                                false)
+    .option('-6, --ipv6-only',   'Disable binding on IPv4.',                                                false)
+    .option('-l, --localhost',   'Bind only on localhost; do not expose service to the network.',           true)
+    .option('-p, --port <port>', 'The port number to bind to',                                              global.defaults.remote.port)
+    .option('--tags-key <key>',  'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
+    .option('--free-key <key>',  'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
+    .option('--tree-key <key>',  'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
     .action(async (opts) => {
         await server(opts);
     })

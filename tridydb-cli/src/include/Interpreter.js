@@ -69,9 +69,10 @@ class Interpreter {
      * @param   {String}  input             Tridy command(s)/statement(s).
      * @param   {Boolean} opts.tokenless    Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
      * @param   {Boolean} opts.accept_carry True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
-     * @param   {Boolean} opts.host         Server to connect to. If not given, then a temporary local (not localhost) session is created.
-     * @param   {Boolean} opts.port         Port to connect to, if a host is provided. Default is 21780.
-     * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses, if a host is provided. Default is 3000.
+     * @param   {Boolean} opts.client_mode  True to run as a client, false to run standalone / as a server. Default is false.
+     * @param   {Boolean} opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
+     * @param   {Boolean} opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
+     * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
      * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Default is 'tags'.
      * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Default is 'free'.
      * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Default is 'tree'.
@@ -82,6 +83,7 @@ class Interpreter {
     async query(input, opts = { }) {
         opts.tokenless    = opts.tokenless    ?? false;
         opts.accept_carry = opts.accept_carry ?? false;
+        opts.client_mode  = opts.client_mode  ?? false;
         opts.host         = opts.host         ?? global.defaults.remote.host;
         opts.port         = opts.port         ?? global.defaults.remote.port;
         opts.timeout      = opts.timeout      ?? global.defaults.remote.timeout;
@@ -101,10 +103,10 @@ class Interpreter {
         if (opts.tokenless) {
             code = new StateTree(JSON.parse(input));
 
-            if (opts.host === null) {
-                code = this._composer.compose(code);
-            } else {
+            if (opts.client_mode) {
                 code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
+            } else {
+                code = this._composer.compose(code);
             }
 
             for (const part of code) {
@@ -125,10 +127,10 @@ class Interpreter {
 
                 code = this._parser.parse(code);
 
-                if (opts.host === null) {
-                    code = this._composer.compose(code);
-                } else {
+                if (opts.client_mode) {
                     code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
+                } else {
+                    code = this._composer.compose(code);
                 }
 
                 for (const part of code) {

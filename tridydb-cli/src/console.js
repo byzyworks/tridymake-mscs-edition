@@ -7,7 +7,7 @@ import { parser as tokenizer } from './include/StatementParser.js';
 import { global, isEmpty }                                   from './utility/common.js';
 import { error_handler, SyntaxError, ClientSideServerError } from './utility/error.js';
 
-export const cli = async (opts = { }) => {
+export const cli = async (client_mode, opts = { }) => {
     let answers;
 
     while (global.exit !== true) {
@@ -34,6 +34,7 @@ export const cli = async (opts = { }) => {
         try {
             out = await tridy.query(answers.parsed, {
                 accept_carry: true,
+                client_mode:  client_mode,
                 host:         opts.host,
                 port:         opts.port,
                 timeout:      opts.timeout

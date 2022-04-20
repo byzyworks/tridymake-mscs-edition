@@ -106,7 +106,7 @@ const defaults = Object.freeze({
         nested: 'tree'
     },
     remote: {
-        host:    null,
+        host:    'localhost',
         port:    21780,
         timeout: 3000
     },

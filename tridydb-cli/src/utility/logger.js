@@ -9,8 +9,7 @@ import * as common from './common.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-export const log_levels     = winston.config.npm.levels;
-const        log_level_opts = Object.keys(log_levels);
+export const log_levels = winston.config.npm.levels;
 
 export const format = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),

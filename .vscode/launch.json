@@ -7,7 +7,7 @@
             "name": "Launch Test Console (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["console", "--log-level", "debug", "--pretty"],
+            "args": ["sandbox", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -20,7 +20,7 @@
             "name": "Launch Test Console (Production)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["console"],
+            "args": ["sandbox"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
@@ -30,7 +30,7 @@
             "name": "Launch REST Client (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["console", "--host", "localhost", "--log-level", "debug", "--pretty"],
+            "args": ["client", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -43,7 +43,7 @@
             "name": "Launch REST Client (Production)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["console", "--host", "localhost"],
+            "args": ["client"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
