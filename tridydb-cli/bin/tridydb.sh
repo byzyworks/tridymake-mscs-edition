@@ -1,5 +1,3 @@
 #!/bin/bash
 
-cd "$(dirname "$(realpath "$0")")"
-
-node ../src/app.js $@
+node "$(dirname "$(realpath "$0")")/../src/app.js" $@
