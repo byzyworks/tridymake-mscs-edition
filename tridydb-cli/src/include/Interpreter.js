@@ -11,10 +11,10 @@ import { parser }              from './SyntaxParser.js';
 import { parser as tokenizer } from './StatementParser.js';
 import { StateTree }           from './StateTree.js';
 
-import { global, deepOverlay, isEmpty }       from '../utility/common.js';
+import { global }                             from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
 
-const sendTridyRequest = async (data) => {
+const sendTridyRequest = async (data, host, port, timeout) => {
     try {
         const out = await axios({
             headers: {
@@ -22,12 +22,12 @@ const sendTridyRequest = async (data) => {
                 'Content-Type': 'application/json'
             },
             method: 'put',
-            url: 'http://' + global.remote.host + ':' + global.remote.port,
+            url: 'http://' + host + ':' + port,
             params: {
                 type: 'astree',
                 data: data
             },
-            timeout: global.remote.timeout
+            timeout: timeout
         });
 
         return out.data;
@@ -66,35 +66,30 @@ class Interpreter {
      * @async
      * @public
      * @method
-     * @param   {String}  input               Tridy command(s)/statement(s).
-     * @param   {Boolean} opts.tokenless      Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
-     * @param   {Boolean} opts.accept_carry   True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
-     * @param   {Boolean} opts.stringify      True to convert the JSON object to a string on output, false to output a JSON object directly (use this if you want to do your own transformations). Default is false.
-     * @param   {Boolean} opts.alias.tags     The key under which tags are imported and exported as. Default is 'tags'.
-     * @param   {Boolean} opts.alias.state    The key under which the free data structure is imported and exported as. Default is 'free'.
-     * @param   {Boolean} opts.alias.nested   The key under which the free data structure is imported and exported as. Default is 'tree'.
-     * @param   {Boolean} opts.remote.host    Server to connect to. If not given, then a temporary local (not localhost) session is created.
-     * @param   {Boolean} opts.remote.port    Port to connect to, if a host is provided. Default is 21780.
-     * @param   {Boolean} opts.remote.timeout Timeout period (in milliseconds) to wait for responses, if a host is provided. Default is 3000.
-     * @param   {Boolean} opts.output.pretty  True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Only works if opts.stringify is enabled. Default is false.
-     * @returns {(Array<Object> | String)}    The output of the statement(s).
-     * @throws  {SyntaxError}                 Thrown if the input isn't valid Tridy code.
-     * @throws  {ClientSideServerError}       Thrown if the server host (optional) sends back an error response.
+     * @param   {String}  input             Tridy command(s)/statement(s).
+     * @param   {Boolean} opts.tokenless    Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
+     * @param   {Boolean} opts.accept_carry True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
+     * @param   {Boolean} opts.host         Server to connect to. If not given, then a temporary local (not localhost) session is created.
+     * @param   {Boolean} opts.port         Port to connect to, if a host is provided. Default is 21780.
+     * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses, if a host is provided. Default is 3000.
+     * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Default is 'tags'.
+     * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Default is 'free'.
+     * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Default is 'tree'.
+     * @returns {Array<Object>}             The output of the statement(s).
+     * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
+     * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.
      */
     async query(input, opts = { }) {
         opts.tokenless    = opts.tokenless    ?? false;
         opts.accept_carry = opts.accept_carry ?? false;
-        opts.stringify    = opts.stringify    ?? false;
+        opts.host         = opts.host         ?? global.defaults.remote.host;
+        opts.port         = opts.port         ?? global.defaults.remote.port;
+        opts.timeout      = opts.timeout      ?? global.defaults.remote.timeout;
 
-        if (!isEmpty(opts.alias)) {
-            deepOverlay(global.alias, opts.alias);
-        }
-        if (!isEmpty(opts.remote)) {
-            deepOverlay(global.remote, opts.remote);
-        }
-        if (!isEmpty(opts.output)) {
-            deepOverlay(global.output, opts.output);
-        }
+        global.alias        = global.alias  ?? { };
+        global.alias.tags   = opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags;
+        global.alias.state  = opts.free_key ?? global.alias.state  ?? global.defaults.alias.state;
+        global.alias.nested = opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested;
 
         let output = [ ];
 
@@ -106,10 +101,10 @@ class Interpreter {
         if (opts.tokenless) {
             code = new StateTree(JSON.parse(input));
 
-            if (global.remote.host === null) {
+            if (opts.host === null) {
                 code = this._composer.compose(code);
             } else {
-                code = await sendTridyRequest(code.getRaw());
+                code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
             }
 
             for (const part of code) {
@@ -130,10 +125,10 @@ class Interpreter {
 
                 code = this._parser.parse(code);
 
-                if (global.remote.host === null) {
+                if (opts.host === null) {
                     code = this._composer.compose(code);
                 } else {
-                    code = await sendTridyRequest(code.getRaw());
+                    code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
                 }
 
                 for (const part of code) {
@@ -141,25 +136,39 @@ class Interpreter {
                 }
             }
         }
-        
-        /**
-         * The output is stringified even if "stringified" is false. That is done on purpose.
-         * We'd like to perform the replace() calls whether we return a string or not, but this function can only operate on strings.
-         * The replace calls are necessary for the output to contain odd-numbered literal backslashes.
-         * These are required to be escaped (i.e. doubled) in the input, but have to be mapped back on output.
-         * We can try to deep-modify the object alternatively, but both the keys and values need to be affected.
-         */
-        if (global.output.pretty) {
-            output = JSON.stringify(output, null, 4).replace(/\\\\/g, '\\');
+
+        return output;
+    }
+
+    /**
+     * Converts the JSON output of tridy.parse() or tridy.objectify() to a string (accounting for escaped backslashes).
+     * 
+     * @public
+     * @method
+     * @param   {Object}  input       Tridy JSON output.
+     * @param   {Boolean} opts.pretty True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Default is false.
+     * @returns {String}              Input object as a JSON string.
+     */
+    stringify(input, opts = { }) {
+        opts.pretty = opts.pretty ?? global.defaults.output.pretty;
+
+        if (opts.pretty) {
+            return JSON.stringify(input, null, 4).replace(/\\\\/g, '\\');
         } else {
-            output = JSON.stringify(output).replace(/\\\\/g, '\\');
+            return JSON.stringify(input).replace(/\\\\/g, '\\');
         }
-        
-        if (opts.stringify) {
-            return output;
-        } else {
-            return JSON.parse(output);
-        }
+    }
+
+    /**
+     * Converts the string output of tridy.stringify() back to a JSON (accounting for escaped backslashes).
+     * 
+     * @public
+     * @method
+     * @param   {String} input Tridy JSON string output.
+     * @returns {Object}       Input string as a JSON object.
+     */
+    objectify(input) {
+        return JSON.parse(input.replace(/\\/g, '\\\\'));
     }
 }
 

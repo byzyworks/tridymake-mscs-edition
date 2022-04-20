@@ -3,23 +3,6 @@ export const APP = Object.freeze({
     VERSION: '1.0.0'
 });
 
-export const global = {
-    alias: {
-        tags:   'tags',
-        state:  'free',
-        nested: 'tree'
-    },
-    remote: {
-        host:    null,
-        port:    21780,
-        timeout: 3000
-    },
-    output: {
-        pretty: false
-    },
-    log_level: 'info'
-};
-
 export const pushAll = (target, source) => {
     for (const part of source) {
         target.push(part);
@@ -115,3 +98,22 @@ export const hasDuplicates = (arr) => {
     }
     return false;
 }
+
+const defaults = Object.freeze({
+    alias: {
+        tags:   'tags',
+        state:  'free',
+        nested: 'tree'
+    },
+    remote: {
+        host:    null,
+        port:    21780,
+        timeout: 3000
+    },
+    output: {
+        pretty: false
+    },
+    log_level: 'info'
+});
+export const global = deepCopy(defaults);
+global.defaults     = Object.freeze(deepCopy(defaults));

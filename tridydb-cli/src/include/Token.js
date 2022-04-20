@@ -168,4 +168,12 @@ export class Token {
             this.is('key', 'yaml')
         ;
     }
+
+    isControlOpToken() {
+        return false ||
+            this.is('key', 'tridy') ||
+            this.is('key', 'clear') ||
+            this.is('key', 'exit')
+        ;
+    }
 }

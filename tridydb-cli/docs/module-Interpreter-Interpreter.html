@@ -253,7 +253,166 @@ Interacting with this class is all done through the query() method, which automa
     
 
     
-    <h4 class="name" id="query"><span class="type-signature">(async) </span>query<span class="signature">(input)</span><span class="type-signature"> &rarr; {Array.&lt;Object>|String}</span></h4>
+    <h4 class="name" id="objectify"><span class="type-signature"></span>objectify<span class="signature">(input)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Converts the string output of tridy.stringify() back to a JSON (accounting for escaped backslashes).
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>input</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Tridy JSON string output.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line170">line 170</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Input string as a JSON object.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="query"><span class="type-signature">(async) </span>query<span class="signature">(input)</span><span class="type-signature"> &rarr; {Array.&lt;Object>}</span></h4>
     
 
     
@@ -366,99 +525,7 @@ Interacting with this class is all done through the query() method, which automa
 
         <tr>
             
-                <td class="name"><code>opts.stringify</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Boolean</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">True to convert the JSON object to a string on output, false to output a JSON object directly (use this if you want to do your own transformations). Default is false.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>opts.alias.tags</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Boolean</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">The key under which tags are imported and exported as. Default is 'tags'.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>opts.alias.state</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Boolean</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">The key under which the free data structure is imported and exported as. Default is 'free'.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>opts.alias.nested</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Boolean</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">The key under which the free data structure is imported and exported as. Default is 'tree'.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>opts.remote.host</code></td>
+                <td class="name"><code>opts.host</code></td>
             
 
             <td class="type">
@@ -481,7 +548,7 @@ Interacting with this class is all done through the query() method, which automa
 
         <tr>
             
-                <td class="name"><code>opts.remote.port</code></td>
+                <td class="name"><code>opts.port</code></td>
             
 
             <td class="type">
@@ -504,7 +571,7 @@ Interacting with this class is all done through the query() method, which automa
 
         <tr>
             
-                <td class="name"><code>opts.remote.timeout</code></td>
+                <td class="name"><code>opts.timeout</code></td>
             
 
             <td class="type">
@@ -527,7 +594,7 @@ Interacting with this class is all done through the query() method, which automa
 
         <tr>
             
-                <td class="name"><code>opts.output.pretty</code></td>
+                <td class="name"><code>opts.tags_key</code></td>
             
 
             <td class="type">
@@ -543,7 +610,53 @@ Interacting with this class is all done through the query() method, which automa
 
             
 
-            <td class="description last">True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Only works if opts.stringify is enabled. Default is false.</td>
+            <td class="description last">The key under which tags are imported and exported as. Default is 'tags'.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.free_key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The key under which the free data structure is imported and exported as. Default is 'free'.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.tree_key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The key under which the free data structure is imported and exported as. Default is 'tree'.</td>
         </tr>
 
     
@@ -584,7 +697,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line84">line 84</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line82">line 82</a>
     </li></ul></dd>
     
 
@@ -681,8 +794,187 @@ Interacting with this class is all done through the query() method, which automa
     <dd>
         
 <span class="param-type">Array.&lt;Object></span>
-|
 
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="stringify"><span class="type-signature"></span>stringify<span class="signature">(input)</span><span class="type-signature"> &rarr; {String}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Converts the JSON output of tridy.parse() or tridy.objectify() to a string (accounting for escaped backslashes).
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>input</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Tridy JSON output.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.pretty</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Default is false.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line152">line 152</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Input object as a JSON string.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
 <span class="param-type">String</span>
 
 
@@ -717,7 +1009,7 @@ Interacting with this class is all done through the query() method, which automa
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Tue Apr 19 2022 17:37:03 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Wed Apr 20 2022 14:02:32 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

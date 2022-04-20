@@ -381,19 +381,11 @@ class SyntaxParser {
     }
 
     _handleStatement(token) {
-        if (this._tokens.peek().is('key', 'tridy')) {
-            // This tag is allowed at the beginning just so it can act as a file signature if the input is a script.
-            this._tokens.next();
-        } else if (this._tokens.peek().is('key', 'exit')) {
+        if (this._tokens.peek().isControlOpToken()) {
             // As a control statement, the functionality for it is handled directly by the interpreter, and not here.
-            // This forces it to be handled from a client's perspective, thus having no effect on a server, other than being accepted.
+            // This forces it to be handled from a client's perspective, thus having no effect on a server, other than it being accepted.
 
-            this._tokens.next();
-        } else if (this._tokens.peek().is('key', 'clear')) {
-            // As a control statement, the functionality for it is handled directly by the interpreter, and not here.
-            // This forces it to be handled from a client's perspective, thus having no effect on a server, other than being accepted.
-
-            this._tokens.next();
+            this._tokens.next();  
         } else {
             if (this._tokens.peek().isAffectingOpToken()) {
                 this._handleOperation();

@@ -1,14 +1,12 @@
 import express from 'express';
 
-import { routes }             from './routes/index.js';
-import { error_handler }      from './utility/error.js';
-import { logger, httpLogger } from './utility/logger.js';
+import { routes }                               from './routes/index.js';
+import { error_handler, ServerSideServerError } from './utility/error.js';
+import { logger, httpLogger }                   from './utility/logger.js';
 
 export const server = async (opts = { }) => {
-    // To limit redundancy, the opts defaults are defined in app.js using the Commander library.
-    
     if ((opts.ipv4Only === true) && (opts.ipv6Only === true)) {
-        logger.error(`--ipv4-only and --ipv6-only cannot both be set at the same time.`);
+        throw new ServerSideServerError(`--ipv4-only and --ipv6-only cannot both be set at the same time.`);
     }
 
     const app = express();
