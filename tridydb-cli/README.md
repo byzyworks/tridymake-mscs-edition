@@ -1,4 +1,4 @@
-<div id="tridy"/>
+ds<div id="tridy"/>
 
 # Tridy
 
@@ -75,9 +75,13 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
             4.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [Introduction](#running-intro)
-            2.  [Package](#package)
-            3.  [CLI](#cli)
-            4.  [REST API](#rest)
+            2.  [As a Package](#package)
+            3.  [As a Terminal Application](#cli)
+                1.  [Inline Mode](#cli-inline)
+                2.  [File Mode](#cli-file)
+                3.  [Sandbox Mode](#cli-sandbox)
+                4.  [Client Mode](#cli-client)
+            4.  [As a Server](#rest)
                 1.  [GET /](#rest-get-/)
                 2.  [POST /](#rest-post-/)
                 3.  [PUT /](#rest-put-/)
@@ -1291,11 +1295,11 @@ On the other hand, Tridy does not have a multi-line comment syntax.
 
 ### Definition / Control: `@tridy`
 
-The `@tridy` clause has a unique role to play, considering it is the only clause that can appear more than one place in a Tridy statement, and has a different effect depending on where it is placed.
+The `@tridy` clause has a different effect depending on where it is placed.
 
-The first place is at the very beginning of the statement. Placing it at the beginning is to allow the clause to be used like a file signature, so that any files that have it may immediately be recognized as Tridy scripts. It has no effect on the statement itself, being essentially a no-op.
+In the first circumstance, `@tridy` is both the first and only clause in a statement, making it one of the few so-called "control" clauses that can only exist on their own. However, as a control clause, it has no effect on the statement itself, being essentially a no-op. As for its actual purpose, the clause can be used as a file signature for Tridy scripts, assuming `@tridy;` is placed at the very start of a script, though it's entirely optional to use, considering a shebang (that has almost the same purpose) may be placed at the beginning instead.
 
-In the second location, it can be placed between the operation clause and the definition clause `@as`. This will make `@as` a requirement for specifying tags, however, the purpose there is only to explicitly exclude the use of raw input clauses like `@json`.
+In the second circumstance, it can be placed between the operation clause and the definition clause `@as`. This will make `@as` a requirement for specifying tags, however, the purpose here is more just to explicitly exclude the use of raw input clauses like `@json`.
 
 <br>
 
@@ -1303,9 +1307,11 @@ In the second location, it can be placed between the operation clause and the de
 
 ### Control: `@clear`
 
-The `@exit` clause is meant as a control command for the TridyDB interactive terminal, in which the terminal moves the screen down to where the previous output is made invisible.
+The `@clear` clause is meant as a control command for the TridyDB interactive terminal, in which the terminal moves the screen down to where the previous output is made invisible.
 
-`@clear` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
+In reality, the effect it has is a little more pronounced. While this does clear the screen away when used inside a console, if it is sent in a string where multiple statements are present, then it will also flush the output of all statements that precede it. As a result, `@get a; @clear; @get b;` is equivalent to just `@get b;`.
+
+As a control clause, `@clear` can only be given alone in a statement, disregarding the semicolon, and when used in a client-server environment only affects the client-side.
 
 <br>
 
@@ -1315,7 +1321,9 @@ The `@exit` clause is meant as a control command for the TridyDB interactive ter
 
 The `@exit` clause is meant as a control command for the TridyDB interactive terminal, causing the interactive terminal to close.
 
-`@exit` must be given in a statement alone, notwithstanding a `@tridy` signature clause.
+If it is sent in a string where multiple statements are present, then it will exit at the moment before the statements following it are processed. As a result, `@get a; @exit; @get b;` is equivalent to just `@get a;`.
+
+As a control clause, `@exit` can only be given alone in a statement, disregarding the semicolon, and when used in a client-server environment only affects the client-side.
 
 <br>
 
@@ -1961,7 +1969,7 @@ They will also optionally add TridyDB to the system's PATH variable, making it c
 
 <div id="package"/>
 
-## Package
+## As a Package
 
 The easiest method of using TridyDB, and the most preferrable if the application using it is another Node application, is to import it as a package into your project.
 
@@ -1972,22 +1980,31 @@ import { tridy } from 'tridydb-cli';
 
 const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
 
-tridy.query(input, { stringify: true });
-// Returns [{"free":{"foo":"bar"}}] as a string.
+tridy.query(input);
+// Returns [{"free":{"foo":"bar"}}] as an object.
 ```
 
-As can be seen, the query() method is the entry point to working with the package. The first argument can be sent as any string of valid Tridy code. Meanwhile, the second argument is where the user can specify options according to their needs.
+As can be seen, the `tridy.query(...)` method is the entry point to working with the package. The first argument can be sent as any string of valid Tridy code. Meanwhile, the second argument is where the user can specify options according to their needs.
 
-One option, stringify, was presented here, which meant the return of the statement was a string. Normally, without this option, the JSON object representing the output is returned as-is for users to make their own manipulations to before presenting the output, if so desired.
-
-If `stringify` is set as true, `pretty` will present it in a way that's indented / more human-readable. This is hard-coded to 4 spaces per indent, though getting around this is simply a matter of not outputting with `stringify` and working with `JSON.stringify(...)` (natively provided by NodeJS) and its own options on the output of `tridy.query(...)` directly.
+Another method, `tridy.stringify(...)`, can be used to convert the output of `tridy.query(...)` to a string. Notably, NodeJS's native `JSON.stringify(...)` can be used in place of it, and in fact, `tridy.stringify(...)` uses this method internally. However, using `JSON.stringify(...)` directly means potentially extra work to account for backslashes when `tridy.stringify(...)`, along with its reverse `tridy.objectify(...)`, were created as convenience methods to avoid this.
 
 ```javascript
 import { tridy } from 'tridydb-cli';
 
 const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
 
-tridy.query(input, { stringify: true, pretty: true });
+tridy.stringify(tridy.query(input));
+// Returns [{"free":{"foo":"bar"}}] as a string.
+```
+
+`tridy.stringify(...)` has one option named `pretty`. This will present the output in a way that's indented / more human-readable, though which is hard-coded to 4 spaces per indent.
+
+```javascript
+import { tridy } from 'tridydb-cli';
+
+const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
+
+tridy.stringify(tridy.query(input), { pretty: true });
 // [
 //     {
 //         "free": {
@@ -2030,18 +2047,20 @@ const input4 = 'nd; @get;';
 tridy.query(input1);
 ```
 
-Would still throw errors regardless.
+... would still throw errors regardless.
 
-It should be pointed out, however, that even though using TridyDB like this is *stateful*, it is not, at the same time, *persistent*. Whenever Tridy is used as a package, the first call to `tridy.query()` is always one that is working with a fresh object/root module, or in other words, one that is totally empty. Generally speaking, TridyDB as a package is not meant to directly deal with persistent data; instead, the application should be built to handle that on its own, or should alternatively try to interface with TridyDB using one of the available methods more suited to work with persistent data. As detailed below, Tridy provides a separate CLI application and REST API, which both allow TridyDB to act independently as a standalone instance, and have extra options for persistence.
+It should be pointed out, however, that even though using TridyDB like this is *stateful*, it is not, at the same time, *persistent*. Whenever Tridy is used as a package, the first call to `tridy.query(...)` is always one that is working with a fresh object/root module, or in other words, one that is totally empty. Generally speaking, TridyDB as a package is not meant to directly deal with persistent data; instead, the application should be built to handle that on its own, or should alternatively try to interface with TridyDB using one of the available methods more suited to work with persistent data. As detailed below, Tridy provides a separate CLI application/client and REST API, which both allow TridyDB to work independently as a separate process, and handle persistence to varying degrees.
 
-Finally, `tridy.parse()` has options to alias the keys associated to the various data structures that Tridy uses, which is as well provided with the standalone program versions.
+Speaking of this, if `tridy.query(...)` should attempt to contact a server for data storage and retrieval, it also has options for that. `host` controls the hostname to connect to (which is localhost by default), `port` controls the port number to connect to (21780 by default), and `timeout` controls the number of milliseconds to wait for the host to respond back when a request is sent to it (before assuming a 404). The default for this is 3 seconds. Last, `client_mode` controls whether to enable this network-based paradigm at all or not. If `client_mode` *isn't* enabled (as it is by default), then everything will be processed within the one method call, without trying to contact a server to perform the last step of executing and storing the results of the statements.
+
+Finally, `tridy.query(...)` has options to alias the keys associated to the various data structures that Tridy uses, which is as well provided with the independent program versions.
 
 ```javascript
 import { tridy } from 'tridydb-cli';
 
 const input = '@set @as tag @is @json { "key": "value" } @end; @get;';
 
-tridy.query(input1, { alias: { tags: foo, free: bar } });
+tridy.query(input1, { tags_key: foo, free_key: bar } });
 // Returns [{"foo":["tag"],"bar":{"key":"value"}}].
 ```
 
@@ -2049,19 +2068,27 @@ tridy.query(input1, { alias: { tags: foo, free: bar } });
 
 <div id="cli"/>
 
-## CLI
+## As a Terminal Application
 
-The standard way to run TridyDB as a standalone application is by running `src/app.js` from the project folder using NodeJS directly, or as `node src/app.js`, assuming your current working directory is the project folder. Clearly, this is unappealing, so just going into your favorite terminal and entering `tridydb` should be enough if the installer was run and the option to create this shortcut was marked.
+The standard way to run TridyDB as an independent application is by running `src/app.js` from the project folder using NodeJS directly, or as `node src/app.js`, assuming your current working directory is the project folder. Clearly, this is unappealing, so just going into your favorite terminal and entering `tridydb` should be enough if the installer was run and the option to create this shortcut was marked.
 
-This isn't totally sufficient, however, as there are three different sub-variants that the user is required to pick if and when they try to run standalone TridyDB, given as the first positional argument to `tridydb`. Otherwise, it will simply pop up with a help screen showing these options (the help screen is achievable also with `tridydb help`).
+This isn't totally sufficient, however, as there are multiple sub-variants that the user is required to pick one of if and when they try to run TridyDB independently, given as the first positional argument to `tridydb`. Otherwise, it will simply pop up with a help screen showing these options (the help screen is achievable also with `tridydb help`).
 
 <br>
 
+<div id="cli-inline"/>
+
 ### Inline Mode
 
-Inline mode is arguably the simplest of the four, and the one that is most similar to using `tridy.query()` directly, since it is effectively the same as this, but allocated to a separate process.
+Inline mode is arguably the simplest, and the one that is most similar to using `tridy.query(...)` directly, since it is effectively the same, but allocated to a separate process.
 
-Inline mode allows one to enter Tridy commands as a string, and pass that string as an argument to TridyDB. The string itself is given as the second positional argument in such a case.
+Inline mode allows one to enter Tridy commands as a string, and pass that string as an argument to TridyDB. The string itself is given as the first positional argument in such a case.
+
+Once the statements have executed, the output of them is generated and printed back to user where applicable (meaning where there are `@get` calls), to which TridyDB exits immediately after.
+
+Like file and sandbox mode, all statements inside this string are parsed relative to what is initially an empty database at the start. It is mainly intended where it would be optimal to use TridyDB more as like an executive utility, and without the expectation of persistence.
+
+Since it exits after and destroys the database, the string cannot finish on an incomplete statement, or it will generate a syntax error.
 
 Usage:
 
@@ -2078,13 +2105,19 @@ $ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;';
 
 <br>
 
+<div id="cli-file"/>
+
 ### File Mode
 
 With file mode, the user provides paths to any number of files, each of which is loaded sequentially following the order in which they are given.
 
-The paths are provided through the second positional argument onward. In other words, the second positional argument would be the path to the first file to load, the third positional argument would be the second file to load, and so on.
+The paths are provided through the first positional argument onward. In other words, the first positional argument would be the path to the first file to load, the second positional argument would be the second file to load, and so on.
 
-Every script should be made up of complete Tridy statements, so it's not possible to split a statement across two files token-wise without the possibility of generating syntax errors.
+Once the statements have executed, the output of them is generated and printed back to user where applicable (meaning where there are `@get` calls), to which TridyDB exits immediately after.
+
+Like inline and sandbox mode, all statements inside these files are parsed relative to what is initially an empty database at the start. It is mainly intended where it would be optimal to use TridyDB more as like an executive utility, and without the expectation of persistence.
+
+Every script should be made up of complete Tridy statements, so it's not possible to split a statement across two files token-wise without the possibility of it generating a syntax error
 
 Usage:
 
@@ -2122,29 +2155,69 @@ $ tridydb file '/path/to/example1.tri' '/path/to/example2.tri';
 
 <br>
 
-### Console Mode
+<div id="cli-sandbox"/>
 
-PLACEHOLDER
+### Sandbox Mode
+
+In sandbox mode, the user is provided with an interactive terminal in which Tridy statements can be entered continually with immediate feedback.
+
+The purpose of this mode is mainly experimentation. It isn't akin to acting as a client since the session is entirely standalone, whereby the terminal shares the same application with the database, and there is no networking involved.
+
+Needless to say as well, anything done to the database is effectively wiped once the session is closed or restarted.
 
 Usage:
 
 ```
-tridydb console [options]
+tridydb sandbox [options]
 ```
 
 Example:
 
 ```bash
-$ tridydb console;
+$ tridydb sandbox;
 ```
+
+![Example of the CLI interactive console](img/interactive1.png)
 
 <br>
 
+<div id="cli-client"/>
+
+### Client Mode
+
+In client mode, the user is provided with an interactive terminal in which Tridy statements can be entered continually with immediate feedback.
+
+Client mode is meant to provide a shell that decidedly does the tokenization and parsing of entered statements on its own, but otherwise offloads execution of these statements and storage of the resulting database to the server. This not only keeps some load away from the server (by leaving both tokenization and parsing to the client-side), but allows the client to pick up on incomplete statements and syntactical issues where they are most relevant to providing information. It is, in fact, necessary for incomplete statements to be detected to permit carry (multi-line input), but it would be impractical to manage carry server-side, especially in a multi-user environment where a server makes sense.
+
+Unsurprisingly, client mode requires a TridyDB server in which to send its output, and the user should give the details of this server through the `--host` and `--port` arguments to the program whenever it is started. Leaving this blank will lead it to use the defaults, which suggest it connects to a server running on the same system bound to the same default port 21780.
+
+Giving an incorrect server, port number - meaning to one that doesn't exist, is down, or goes down - doesn't generate errors initially, due to it being that requests to the server are effectively stateless, and every new set of commands sent is a new connection. Errors are only sent back once the client attempts to send parsed statement output to the server.
+
+Likewise, because the server can go up or down whenever, there are fewer exceptions that would cause the client to throw an error that might fatally force it to exit, as none of these errors can be sent back from the server. Hence, the client will try to stay up without regards to the state of the server.
+
+Finally, as also the only variant that doesn't store any data on its own, things which specifically only affect the user-interfacing application varaants, including control statements like `@exit`, or even simply exiting the program, wind up having no effect on the server, and the data remains persistent regardless of the state of the client. Thus, it's also the only variant you can close and restart, and at the same time see that the effects of statements executed prior to closing are still present.
+
+Usage:
+
+```
+tridydb client [options]
+```
+
+Example:
+
+```bash
+$ tridydb client;
+```
+
+![Example of an error message specific to client mode](img/interactive2.png)
+
+<br>
+
+<div id="cli-shared"/>
+
 ### Shared Features
 
-Unlike when using TridyDB as a package, all output from the CLI is transformed to a string in the end, though reparsing is usually as simple as running back `JSON.parse(...)` on the output.
-
-Pretty-printing is provided as the option `--pretty` or `-p` in all cases as well. Like when the equivalent option is used with `tridy.query()`, 4 spaces are used per indent.
+Pretty-printing is provided as the option `--pretty` or `-p` in all cases. Like when the equivalent option is used with `tridy.stringify(...)`, 4 spaces are used per indent.
 
 ```bash
 $ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty;
@@ -2161,7 +2234,7 @@ $ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;' --prett
 
 <div id="rest"/>
 
-## REST API
+## As a Server
 
 PLACEHOLDER
 
