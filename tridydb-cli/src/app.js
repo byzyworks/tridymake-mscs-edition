@@ -12,6 +12,15 @@ import { global }                         from './utility/common.js';
 import { error_handler }                  from './utility/error.js';
 import { transports, logger, log_levels } from './utility/logger.js';
 
+const setAliases = (command) => {
+    const opts = command.opts();
+
+    global.alias        = { };
+    global.alias.tags   = opts.tags_key;
+    global.alias.state  = opts.free_key;
+    global.alias.nested = opts.tree_key;
+}
+
 process.exitCode = 0;
 
 process.on('uncaughtException', (err) => {
@@ -36,11 +45,6 @@ program
             transports.console.level = opts.logLevel;
             logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         }
-
-        global.alias        = { };
-        global.alias.tags   = opts.tags_key;
-        global.alias.state  = opts.free_key;
-        global.alias.nested = opts.tree_key;
     })
 ;
 
@@ -51,6 +55,7 @@ program.command('inline')
     .option('--tags-key <key>', 'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
     .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
     .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
+    .hook('preAction', setAliases)
     .action(async (input, opts) => {
         let output;
         output = await tridy.query(input, { accept_carry: false });
@@ -67,6 +72,7 @@ program.command('file')
     .option('--tags-key <key>', 'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
     .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
     .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
+    .hook('preAction', setAliases)
     .action(async (paths, opts) => {
         let output = [ ];
 
@@ -98,6 +104,7 @@ program.command('sandbox')
     .option('--tags-key <key>', 'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
     .option('--free-key <key>', 'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
     .option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
+    .hook('preAction', setAliases)
     .action(async (opts) => {
         await cli(false, opts);
     })
@@ -123,6 +130,7 @@ program.command('server')
     .option('--tags-key <key>',  'The key under which tags are imported and exported as',                   global.defaults.alias.tags)
     .option('--free-key <key>',  'The key under which the free data structure is imported and exported as', global.defaults.alias.state)
     .option('--tree-key <key>',  'The key under which the tree data structure is imported and exported as', global.defaults.alias.nested)
+    .hook('preAction', setAliases)
     .action(async (opts) => {
         await server(opts);
     })
