@@ -5,10 +5,6 @@ import { error_handler, ServerSideServerError } from './utility/error.js';
 import { logger, httpLogger }                   from './utility/logger.js';
 
 export const server = async (opts = { }) => {
-    if ((opts.ipv4Only === true) && (opts.ipv6Only === true)) {
-        throw new ServerSideServerError(`--ipv4-only and --ipv6-only cannot both be set at the same time.`);
-    }
-
     const app = express();
     
     app.use((req, res, next) => {
@@ -27,15 +23,15 @@ export const server = async (opts = { }) => {
     
     if (opts.ipv6Only !== true) {
         let address = opts.localhost ? '127.0.0.1' : '0.0.0.0';
-        app.listen(opts.port, address, () => {
-            logger.info(`Server started listening on ${address}:${opts.port}.`);
+        app.listen(opts.serverPort, address, () => {
+            logger.info(`Server started listening on ${address}:${opts.serverPort}.`);
         });
     }
 
     if (opts.ipv4Only !== true) {
         let address = opts.localhost ? '::1' : '::';
-        app.listen(opts.port, address, () => {
-            logger.info(`Server started listening on ${address}:${opts.port}.`);
+        app.listen(opts.serverPort, address, () => {
+            logger.info(`Server started listening on ${address}:${opts.serverPort}.`);
         });
     }
 }

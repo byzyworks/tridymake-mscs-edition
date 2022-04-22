@@ -1903,8 +1903,9 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 The syntax rules are detailed below using Microsoft's command line syntax:
 
 ```
-[@tridy]
 {
+    @tridy
+|
     {
         {
             {@get | @del} [<context expression>]

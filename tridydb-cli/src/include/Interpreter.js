@@ -14,7 +14,7 @@ import { StateTree }           from './StateTree.js';
 import { global }                             from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
 
-const sendTridyRequest = async (data, host, port, timeout) => {
+const sendTridyRequest = async (data) => {
     try {
         const out = await axios({
             headers: {
@@ -22,12 +22,12 @@ const sendTridyRequest = async (data, host, port, timeout) => {
                 'Content-Type': 'application/json'
             },
             method: 'put',
-            url: 'http://' + host + ':' + port,
+            url: 'http://' + global.remote.host + ':' + global.remote.port,
             params: {
                 type: 'astree',
                 data: data
             },
-            timeout: timeout
+            timeout: global.remote.timeout
         });
 
         return out.data;
@@ -83,15 +83,17 @@ class Interpreter {
     async query(input, opts = { }) {
         opts.tokenless    = opts.tokenless    ?? false;
         opts.accept_carry = opts.accept_carry ?? false;
-        opts.client_mode  = opts.client_mode  ?? false;
-        opts.host         = opts.host         ?? global.defaults.remote.host;
-        opts.port         = opts.port         ?? global.defaults.remote.port;
-        opts.timeout      = opts.timeout      ?? global.defaults.remote.timeout;
 
         global.alias        = global.alias  ?? { };
         global.alias.tags   = opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags;
         global.alias.state  = opts.free_key ?? global.alias.state  ?? global.defaults.alias.state;
         global.alias.nested = opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested;
+
+        global.remote         = global.remote    ?? { };
+        global.remote.enable  = opts.client_mode ?? global.remote.enable  ?? global.defaults.remote.enable;
+        global.remote.host    = opts.host        ?? global.remote.host    ?? global.defaults.remote.host;
+        global.remote.port    = opts.port        ?? global.remote.port    ?? global.defaults.remote.port;
+        global.remote.timeout = opts.timeout     ?? global.remote.timeout ?? global.defaults.remote.timeout;
 
         let output = [ ];
 
@@ -103,8 +105,8 @@ class Interpreter {
         if (opts.tokenless) {
             code = new StateTree(JSON.parse(input));
 
-            if (opts.client_mode) {
-                code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
+            if (global.remote.enable) {
+                code = await sendTridyRequest(code.getRaw());
             } else {
                 code = this._composer.compose(code);
             }
@@ -127,8 +129,8 @@ class Interpreter {
 
                 code = this._parser.parse(code);
 
-                if (opts.client_mode) {
-                    code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
+                if (global.remote.enable) {
+                    code = await sendTridyRequest(code.getRaw());
                 } else {
                     code = this._composer.compose(code);
                 }

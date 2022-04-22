@@ -2,7 +2,7 @@ param (
     [string] $Test
 )
 
-$invoke = "node $PSScriptRoot/app.js file";
+$invoke = "node $PSScriptRoot/app.js inline";
 
 if (!$Test) {
     $total_tests                                = 0;
@@ -42,7 +42,7 @@ if (!$Test) {
 
         if ($Test -like 'error-*') {
             if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
-                $out = Invoke-Expression "$invoke $test_file.tri --log-level info" 2>&1;
+                $out = Invoke-Expression "$invoke --file $test_file.tri --log-level info" 2>&1;
             } else {
                 $out = Invoke-Expression "$test_file.ps1" 2>&1;
             }
@@ -59,7 +59,7 @@ if (!$Test) {
             }
         } else {
             if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
-                $out = Invoke-Expression "$invoke $test_file.tri --log-level info --pretty";
+                $out = Invoke-Expression "$invoke --file $test_file.tri --log-level info --pretty";
             } else {
                 $out = Invoke-Expression "$test_file.ps1";
             }
