@@ -114,7 +114,7 @@ To support its use for that, though, TridyDB is provided with three possible int
 
 ### Format
 
-TridyDB supports importing JSON-formatted as well as YAML-formatted data. As output, export to JSON is supposed, and support for exporting as XML is planned.
+TridyDB supports importing JSON-formatted as well as YAML-formatted data. As output, export to JSON is supported, and support for exporting as XML is planned.
 
 <br>
 
