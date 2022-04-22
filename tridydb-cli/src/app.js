@@ -32,26 +32,26 @@ program
             .conflicts('file')
     )
     .addOption(
-        new Option('-C, --client', 'Let the server given by --remote-host do all or most of the work.')
+        new Option('-C, --client', 'Let the server given by --remote-host do most of the work.')
     )
     .addOption(
         new Option('-f, --file <files...>', 'Pre-load a Tridy database from one or several files.')
             .conflicts('command')
     )
     .addOption(
-        new Option('--free-key <key>', 'The key under which the free data structure is imported and exported as')
+        new Option('--free-key <key>', 'The key under which the free data structure is imported and exported as.')
             .default(global.defaults.alias.state)
     )
     .addOption(
-        new Option('-4, --ipv4-only', 'Disable binding on IPv6, if running a server.')
+        new Option('-4, --ipv4-only', 'Disable binding on IPv6 when in server mode.')
             .conflicts('ipv6Only')
     )
     .addOption(
-        new Option('-6, --ipv6-only', 'Disable binding on IPv4, if running a server.')
+        new Option('-6, --ipv6-only', 'Disable binding on IPv4 when in server mode.')
             .conflicts('ipv4Only')
     )
     .addOption(
-        new Option('-L, --localhost', 'Bind only to localhost if running a server; do not expose service to the network.')
+        new Option('-L, --localhost', 'Bind only to localhost when in server mode; do not expose service to the network.')
     )
     .addOption(
         new Option('-l, --log-level <level>', 'The log level used, as one of NPM\'s available log levels')
@@ -62,27 +62,27 @@ program
         new Option('--pretty', 'Pretty-print the output data.')
     )
     .addOption(
-        new Option('-h, --remote-host <host>', 'Server to connect to. If not given, then a temporary local (not localhost) session is created.')
+        new Option('-h, --remote-host <host>', 'Destination server to connect to when in client mode.')
             .default(global.defaults.remote.host)
     )
     .addOption(
-        new Option('-p, --remote-port <port>', 'Port to connect to, if a host is provided.')
+        new Option('-p, --remote-port <port>', 'Destination port to connect to when in client mode.')
             .default(global.defaults.remote.port)
     )
     .addOption(
-        new Option('-t, --remote-timeout <timeout>', 'Timeout period (in milliseconds) to wait for responses, if a host is provided.')
+        new Option('-t, --remote-timeout <timeout>', 'Timeout period (in milliseconds) to wait for responses when in client mode.')
             .default(global.defaults.remote.timeout)
     )
     .addOption(
-        new Option('-P, --server-port <port>', 'The port number to bind to if running a server.')
+        new Option('-P, --server-port <port>', 'The port number to bind to when in server mode.')
             .default(global.defaults.remote.port)
     )
     .addOption(
-        new Option('--tags-key <key>', 'The key under which tags are imported and exported as')
+        new Option('--tags-key <key>', 'The key under which tags are imported and exported as.')
             .default(global.defaults.alias.tags)
     )
     .addOption(
-        new Option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as')
+        new Option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as.')
             .default(global.defaults.alias.nested)
     )
     .hook('preAction', async (thisCommand, actionCommand) => {
@@ -99,10 +99,9 @@ program
         global.remote.port    = opts.remotePort;
         global.remote.timeout = opts.remoteTimeout;
         
-        if (opts.logLevel) {
-            transports.console.level = opts.logLevel;
-            logger.verbose(`Console log level set to '${opts.logLevel}'.`);
-        }
+        global.log_level = opts.logLevel;
+        transports.console.level = opts.logLevel;
+        logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         
         if (opts.command) {
             preset = await tridy.query(opts.command, { accept_carry: false });
