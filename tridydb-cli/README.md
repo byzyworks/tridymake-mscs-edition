@@ -1,4 +1,4 @@
-ds<div id="tridy"/>
+<div id="tridy"/>
 
 # Tridy
 
@@ -29,15 +29,14 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
     3. [Tridy (the Language)](#tridylang)
         1. [Modules](#modules)
         2. [Context](#context)
-            1. [Introduction](#context-intro)
-            2. [Empty Expressions](#context-empty)
-            3. [Context Terminals](#context-terminals)
+            1. [Empty Expressions](#context-empty)
+            2. [Context Terminals](#context-terminals)
                 1. [Tags](#context-tags)
                 2. [@any](#context-any)
                 3. [@root](#context-root)
                 4. [@leaf](#context-leaf)
                 5. [@random](#context-random)
-            4. [Context Operators](#context-operators)
+            3. [Context Operators](#context-operators)
                 1. [@not](#context-not)
                 2.  [@and](#context-and)
                 3.  [@xor](#context-xor)
@@ -49,11 +48,10 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 9.  [@to](#context-to)
                 10. [@toward](#context-toward)
                 11. [Parentheses](#context-parenth)
-            5. [Summary](#context-summary)
+            4. [Summary](#context-summary)
         3.  [Syntax](#syntax)
-            1.  [Introduction](#syntax-intro)
-            2.  [Comments](#syntax-comments)
-            3.  [Clauses](#syntax-clauses)
+            1.  [Comments](#syntax-comments)
+            2.  [Clauses](#syntax-clauses)
                 1.  [@tridy](#syntax-tridy)
                 2.  [@clear](#syntax-clear)
                 3.  [@exit](#syntax-exit)
@@ -72,20 +70,24 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 16. [@none](#syntax-none)
                 17. [@once](#syntax-once)
                 18. [@many](#syntax-many)
-            4.  [Summary](#syntax-summary)
+            3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
-            1.  [Introduction](#running-intro)
-            2.  [As a Package](#package)
-            3.  [As a Terminal Application](#cli)
-                1.  [Inline Mode](#cli-inline)
-                2.  [File Mode](#cli-file)
-                3.  [Sandbox Mode](#cli-sandbox)
-                4.  [Client Mode](#cli-client)
-            4.  [As a Server](#rest)
-                1.  [GET /](#rest-get-/)
-                2.  [POST /](#rest-post-/)
-                3.  [PUT /](#rest-put-/)
-                4.  [DELETE /](#rest-delete-/)
+            1.  [As a Package](#package)
+            2.  [As a Terminal Application](#cli)
+                1.  [Common Options](#cli-common)
+                2.  [Inline Mode](#cli-inline)
+                3.  [File Mode](#cli-file)
+                4.  [Sandbox Mode](#cli-sandbox)
+                5.  [Client Mode](#cli-client)
+            3.  [As a Server](#server)
+                1.  [Common Options](#server-common)
+                2.  [REST Mode](#server-rest)
+                3.  [REST Mode GET /](#server-rest-get-/)
+                4.  [REST Mode POST /](#server-rest-post-/)
+                5.  [REST Mode PUT /](#server-rest-put-/)
+                6.  [REST Mode DELETE /](#server-rest-delete-/)
+                7.  [Verbatim Mode](#server-verb)
+                8.  [Syntax Tree Mode](#server-astree)
     4.  [Glossary](#glossary)
 
 <br>
@@ -96,17 +98,15 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
 
 ---
 
-Tridy is a compiled data format, meaning that the data files aren't immediately useful for being read by an application. Instead, a Tridy **composer** needs to read the data files, parse the contained statements, and output in a common data format such as JSON first. This is because the output of a single statement in Tridy can appear in multiple places in the final output, relative to the output of previously-executed statements. To permit this, Tridy uses a system of *tagged modules* where a statement may be matched to an existing module so long as a boolean expression that a Tridy statement is addressed with is satisfied. In particular, the terminals of this expression are the tags themselves, and are either true if a tag is shared between both the expression and the given module, or false if not shared with the given module. This is explained in greater detail below where the Tridy language is explained.
+Tridy is a compiled data format, meaning that the data files aren't immediately useful for being read by an application. Instead, a Tridy **composer** needs to read the data files, parse the contained statements, and output in a common data format such as JSON first. This is because the output of a single statement in Tridy can appear in multiple places in the final output, relative to the output of previously-executed statements. To permit this, Tridy uses a system of *tagged modules* where a statement may be matched to an existing module so long as a boolean expression that a Tridy statement is addressed with is satisfied. In particular, the terminals of this expression are the tags themselves, and are either true if a tag is shared between both the expression and the given module, or false if not shared with the given module. This is explained in greater detail below where the Tridy language itself is.
 
-By design, as there is no specialized output format or storage management, TridyDB is meant to be able to output to anywhere directly, whereby applications can read or write to the same storage files without ever touching TridyDB itself again more than once (albeit at a disadvantage). The database part of TridyDB is meant more as an option rather than a necessity.
+By design, as there is no specialized output format or storage management, TridyDB is meant to be able to output to anywhere directly, whereby applications can read or write to the same storage files without ever touching TridyDB itself again more than once (albeit at a disadvantage). The database part of TridyDB is meant more as an option rather than a necessity, since despite the name, TridyDB is a scripting language interpreter first, and a general data storage solution second. The naming implies that it is, at least to some degree, a scripting language interpreter *for* managing data.
 
-To support its use for that, though, TridyDB is provided with three possible output paradigms.
+To support its use for that, though, TridyDB is provided with three possible interaction paradigms that each provide for varying degrees of integration.
 
-<!-- Note about option 1 below: option 1 is currently not implemented, but the similarity of a Tridy module to a filesystem makes it easy to add an extra bit of middleware that will simply map one to the other. -->
-
-1. For applications not interacting with TridyDB at all, there's the **filesystem**. Notably, when TridyDB imports existing data, it does so recursively with respect to the import folder's filesystem such that the structure of it gets placed with the data itself. This is then used to export the data in place.
-2. For applications interacting with TridyDB locally, there's **standard output**, for which there are three possible modes under this setup. TridyDB supports use as an interactive terminal application, running commands inline, or by file import.
-3. For applications interacting with TridyDB remotely (or persistently), there's a **RESTful web API**, though this expects a slightly different syntax as a result of working over an HTTP URI format. However, this API is extremely basic still if one already understands Tridy syntax at all, considering it has only four API endpoints and one route, and that is because Tridy's operational design is already highly analogous to the four commonly-used HTTP methods of RESTful APIs (GET, POST, PUT, and DELETE).
+1. At the highest degree of integration, TridyDB is useable as a [**Node.js package**](#package). This means that at least if another application or script is written for Node as well, it can interface with TridyDB like it would any other NPM module and use that to its advantage for increased flexibility and performance. However, this makes it more the responsibility of the application to manage the database on its own, how it saves and interacts with it, etc. since TridyDB in this form doesn't provide any persistence, and neither exists as a separate application to begin with. Another obvious issue is that if the application isn't also a Node application on its own, then this isn't really an available option.
+2. For applications interacting with TridyDB locally as a separate process, but without the need for networking, TridyDB can be utilized as a [**terminal application**](#cli). This is especially useful for compiling Tridy data files/scripts to another format where it only needs to be done once during the runtime of a particular program, as is often done with configuration files, where TridyDB is most strongly-suited. The other half of its usefulness comes from providing an interface for both applications and users alike to interact directly with TridyDB, considering a possible way to use TridyDB, when launched this way, is as an interactive console.
+3. For applications interacting with TridyDB remotely, or where networking is a requirement, TridyDB (the application) can be launched as a [**RESTful HTTP server**](#rest), though it requires some additional knowledge to know how to work with. To summarize, however, commands can either be sent to a server directly (as a string of Tridy code), pre-parsed (ideal for Tridy-parsing clients), or in a special form that takes advantage of query parameters and HTTP methods (hence a RESTful architecture), though while having some limits of its own. Even in this form, the API is extremely basic if one happens to understand Tridy syntax at all, considering its just a single route (the root `/`) mapped to multiple HTTP methods. That is because Tridy's operational design is already highly analogous to the four commonly-used HTTP methods of RESTful APIs (GET, POST, PUT, and DELETE).
 
 <br>
 
@@ -114,9 +114,7 @@ To support its use for that, though, TridyDB is provided with three possible out
 
 ### Format
 
-<!-- Note about XML: not yet. -->
-
-TridyDB supports importing JSON-formatted as well as YAML-formatted data. As output, export to JSON and XML is supported.
+TridyDB supports importing JSON-formatted as well as YAML-formatted data. As output, export to JSON is supposed, and support for exporting as XML is planned.
 
 <br>
 
@@ -245,10 +243,6 @@ Every module in an instance of Tridy is also a descendant of the **root module**
 ## Context
 
 ---
-
-<div id="context-intro"/>
-
-### Introduction
 
 In Tridy, **context** refers to the pathing situation of a module. In particular, it denotes what the tags of the module are, as well as the tags of its parent and all of its ascendents in order, also denoting where the module may be nested and how deeply it happens to also be nested. Assuming a database like the following:
 
@@ -1259,10 +1253,6 @@ Note: if first in an expression, LHS = 0. Additionally, the LHS, unless both the
 
 ---
 
-<div id="syntax-intro"/>
-
-### Introduction
-
 Understanding how modules are addressed using context expressions, we now look into what actually composes a statement in the Tridy language, and what it actually means for a statement to "affect" a Tridy module.
 
 Tridy is composed of **clauses**, which are keywords that are used to control the behavior of the Tridy interpreter. Every clause begins with the `@` symbol.
@@ -1955,10 +1945,6 @@ The syntax rules are detailed below using Microsoft's command line syntax:
 
 ---
 
-<div id="running-intro"/>
-
-## Introduction
-
 TridyDB, at least in its current form, is a NodeJS application. Therefore, it requires NodeJS to be installed along with its package manager NPM. Additionally, there are a number of libraries expected with it, but this is, of course, easily managed using NPM. It is required that NodeJS and NPM are installed first before attempting to install or run TridyDB, however, NPM is responsible for the libraries surrounding TridyDB.
 
 Install scripts are provided with TridyDB as "install.ps1" (PowerShell) and "install.sh", which are tested as functional on both Windows and Linux, respectively. Compatibility with MacOS is not yet guaranteed, and the install scripts do not have guaranteed intercompatibility either (using PowerShell for Linux or Bash for Windows via. WSL/Cygwin). The install scripts will automatically install the required libraries if needed.
@@ -2213,9 +2199,9 @@ $ tridydb client;
 
 <br>
 
-<div id="cli-shared"/>
+<div id="cli-common"/>
 
-### Shared Features
+### Common Options
 
 Pretty-printing is provided as the option `--pretty` or `-p` in all cases. Like when the equivalent option is used with `tridy.stringify(...)`, 4 spaces are used per indent.
 
@@ -2232,43 +2218,151 @@ $ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;' --prett
 
 <br>
 
-<div id="rest"/>
+<div id="server"/>
 
 ## As a Server
 
-PLACEHOLDER
+TridyDB has the ability to be run like a server, which has a couple of its own advantages. The main detail is that running a server is what it takes to actually have at least some persistence automatically, though this is partly a misnomer. In reality, the server provides the illusion of persistence by making it possible to offload the database to some other host that may or may not be able to have greater uptime (as a server normally would). To put it another way, adopting a client-server model does well to keep the user interface and the database separate without one necessarily affecting the other, but keep in mind that this **doesn't** necessarily mean the database is written back to a persistent storage device in the end. Doing so will most likely be made a possibility in the future, though as stated once before, TridyDB is more akin to a scripting language interpreter than a general data storage solution.
+
+To start TridyDB as a server is a process highly similar to starting it as a non-server application. In fact, it's still the same application, but the positional argument the user provides is specifically `server` this time.
+
+```
+tridydb server [options]
+```
+
+![TridyDB server instance](img/server1.png)
+
+As seen above, TridyDB, when started this way, starts as a daemon process. By default, this will bind the server to the host's outward-facing network interface, but in the instance above was bound to localhost instead by using the `--localhost` option. As stated above, if security is a concern, it's a good idea to look at exposing this port from the same perspective that one would have to exposing a port to any other database system directly, and possibly with even greater caution, as TridyDB is single-user and at least the server application does not have a built-in user system of its own yet. It is also currently possible to inject Tridy commands **even** if using the RESTful command variants.
 
 <br>
 
-<div id="rest-get-/"/>
+<div id="server-common"/>
 
-### Endpoint: `GET /`
+### Common Options:
 
-PLACEHOLDER
+As one mentioned above, `--localhost` can be used to bind the server only to the localhost address of the machine, preventing it from being accessible outside the machine without something like SSH port-forwarding. Security-wise, it is a good idea to do this if it can be done.
 
-<br>
-
-<div id="rest-post-/"/>
-
-### Endpoint: `POST /`
-
-PLACEHOLDER
+Other options specific to the server variant include `--port`, `--ipv4-only`, and `--ipv6-only`. `--port` is by default the number 21780, just like when (not) setting a client port, ensuring that at least two instances, a client and a server, will work directly with each other given no options at all when started up together on the same host. `--ipv4-only` and `--ipv6-only` are rather self-obvious, seeing as they prevent the server from binding on one or the other protocol, and can't both at the same time be given.
 
 <br>
 
-<div id="rest-put-/"/>
+<div id="server-rest"/>
 
-### Endpoint: `PUT /`
+### REST Mode:
 
-PLACEHOLDER
+REST mode is used to describe the server when utilized in a way that makes particular use of HTTP methods and query parameters. Like the other server "modes", it is not anything needing to be entered that causes this mode, or that causes it to be exited from, as it isn't a state, and merely a style of sending Tridy data to the TridyDB server.
+
+In REST mode, each of the four HTTP methods `GET`, `POST`, `PUT`, and `DELETE` are mapped to the four Tridy operations `@get`, `@new`, `@set`, and `@del` respectively. Meanwhile, most of the other clauses are mapped as query parameters respective of the method used. As a result, just as some of these operations don't use some of the clauses, neither are all of the query parameters that match them applicable to every HTTP method. Definition clauses only get mapped to query parameters where the method creates a new module, and so on. Most of this is explained with the Tridy language itself.
+
+The only clause with a unique effect on the data that doesn't have a mapped equivalent in any of the methods is the definition clause `@has`, used to create nested statements. There's a special reason for this, since it is difficult to map something that is infinitely-nestable to a query parameter where the syntax for the nested statements are all themselves managed using query parameters, given as there are going to be conflicting keys in this circumstance. Alternatively, if such a query parameter existed, one could pass Tridy code to a `@has` query parameter directly, but it would be especially awkward to do this while the root statement still has to abide by the conventions of REST mode (thus using query parameters in the first place). Luckily, `@has` not necessary in most cases, and can almost always be factored into multiple statements where `@has` can be removed, so at least with REST mode (not with verbatim or syntax tree mode), it can be left out.
 
 <br>
 
-<div id="rest-delete-/"/>
+<div id="server-rest-get-/"/>
 
-### Endpoint: `DELETE /`
+### REST Mode Endpoint: `GET /`
 
-PLACEHOLDER
+In REST mode, the `GET` HTTP method is synonymous with `@get` in Tridy.
+
+Both are read-only, as one should expect, and are useful for printing out parts of the database when no other method/operation does.
+
+Just like `@get` on its own, `GET` retrieves the data and sends it back in a JSON format similar to how it's already stored.
+
+As it only affects existing modules, the possible query parameters (like clauses relevant to `@get` and `@del`) are few.
+
+| Query | Value Type | Description | Equivalent to |
+| --- | --- | --- | --- |
+| `context` | context expression | The modules to acquire. | `@in <?context>` |
+| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+
+<br>
+
+<div id="server-rest-post-/"/>
+
+### REST Mode Endpoint: `POST /`
+
+In REST mode, the `POST` HTTP method is synonymous with `@new` in Tridy.
+
+As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@new` is a non-idempotent operation, meaning it always creates something new and doesn't attempt to alter a module that's already placed (besides by appending its tree). In addition, `@new` is more essential to Tridy than `@set` is, making it easier to block `PUT`, which is generally considered an unsafe method.
+
+| Query | Value Type | Description | Equivalent to |
+| --- | --- | --- | --- |
+| `type` | { `json`, `yaml` } | The new module's import data type. | `@new <?type> <?data> @end` |
+| `data` | pre-formatted data | The new module's import data. | `@new <?type> <?data> @end` |
+| `context` | context expression | The modules to append. | `@in <?context>` |
+| `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
+| `statetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?statetype> <?state> @end` |
+| `state` | pre-formatted data | The new module's free data structure import data. | `@is <?statetype> <?state> @end` |
+| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+
+<br>
+
+<div id="server-rest-put-/"/>
+
+### REST Mode Endpoint: `PUT /`
+
+In REST mode, the `PUT` HTTP method is synonymous with `@set` in Tridy.
+
+As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@set` is an idempotent operation, meaning it attempts to change something that might already exist, and can wind up causing no changes if the sent module data is the same as that which is already there. Despite the sound of this, it's more powerful than `@new` since, with the given context, the scope of modification extends from the tail of the module's tree to the entire body of the module. Likewise, as the most powerful operation, it makes the most sense to allocate `PUT` to it.
+
+| Query | Value Type | Description | Equivalent to |
+| --- | --- | --- | --- |
+| `type` | { `json`, `yaml` } | The new module's import data type. | `@new <?type> <?data> @end` |
+| `data` | pre-formatted data | The new module's import data. | `@new <?type> <?data> @end` |
+| `context` | context expression | The modules to modify. | `@in <?context>` |
+| `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
+| `statetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?statetype> <?state> @end` |
+| `state` | pre-formatted data | The new module's free data structure import data. | `@is <?statetype> <?state> @end` |
+| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+
+<br>
+
+<div id="server-rest-delete-/"/>
+
+### REST Mode Endpoint: `DELETE /`
+
+In REST mode, the `DELETE` HTTP method is synonymous with `@del` in Tridy.
+
+As it only affects existing modules, the possible query parameters (like clauses relevant to `@get` and `@del`) are few.
+
+| Query | Value Type | Description | Equivalent to |
+| --- | --- | --- | --- |
+| `context` | context expression | The modules to delete. | `@in <?context>` |
+| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+
+<br>
+
+<div id="server-verb"/>
+
+### Verbatim Mode Endpoint: `PUT /`
+
+Verbatim mode largely breaks the REST paradigm since it acts as a kind of 'passthrough' mode for passing Tridy code directly to the server. Since a multi-query string might contain any number of operations used, it's difficult to determine what HTTP method a query in verbatim mode should map to, since there are no clear demarcations anymore. Therefore, as a safety precaution, verbatim Tridy queries are required to be sent using `PUT`, which can at least on its own encompass all of the different Tridy operations.
+
+While it is possible, verbatim mode is less recommended in most cases over syntax tree mode. The reason has to do with the fact that verbatim mode makes the server do *everything*, from tokenization and parsing of the Tridy code, to composition and storage of the output. This is not only needlessly expensive since it puts load on the server that isn't really necessary, but also limits feedback and token-carry as a result of making it especially the server's job to manage these, which usually precludes managing or permitting these concepts at all.
+
+| Query | Value Type | Description |
+| --- | --- | --- |
+| `type` | { `verb` } | Enables verbatim mode for the query. |
+| `data` | Tridy statements | Any verbatim queries to be sent to the server. |
+
+<br>
+
+<div id="server-astree"/>
+
+### Syntax Tree Mode Endpoint: `PUT /`
+
+Syntax tree mode has a lot in common with verbatim mode. Like verbatim mode, it is just as powerful by allowing Tridy code to be directly received by the server and, like it again, `PUT` is the only available method in this mode due to the abundance of possible operations that can be sent through a query in this mode.
+
+The difference is that, whereby Tridy code is received in verbatim mode, the Tridy code sent in syntax tree mode is not what one would normally think of as Tridy "code". Rather, it is the JSON-formatted abstract syntax tree that is generated by TridyDB following the steps of tokenization and parsing, but prior to the process of composition that would create or affect any database.
+
+While this tree is always 1:1 with any amount of (verbatim) Tridy code (considering all Tridy code gets turned to this before it actually executes), it also solves the problem that verbatim mode has, which is caused by it expecting the server to handle tokenization and parsing of Tridy code. Having the server receive the abstract syntax tree directly means that a client can continue performing the the tasks of tokenization and parsing to offload these tasks from the server, permit token carry, and permit feedback related to syntax errors. Meanwhile, the server would only have to deal with composition and storage of the results.
+
+Note that this is the same paradigm that TridyDB in client mode uses to communicate with its server.
+
+| Query | Value Type | Description |
+| --- | --- | --- |
+| `type` | { `astree` } | Enables syntax tree mode for the query. |
+| `data` | Tridy syntax tree | Any query syntax trees to be sent to the server. |
 
 <br>
 
@@ -2280,6 +2374,9 @@ PLACEHOLDER
 
 ### **Ascendant Module**
 The module in which another module (the subject) is nested under, either in which the subject module is a direct child of the ascendant, or that is recursively a child of the ascendant.
+
+### **Carry**
+See "**Token Carry**".
 
 ### **Child Module**
 A module which is placed or located in the tree data structure of another module (the subject). In other words, that is "nested" under another module (the subject).
@@ -2355,6 +2452,9 @@ An unique or non-unique alphanumeric identifier that is used to identify a modul
 
 ### **Tagset**:
 The array/list of tags that a particular module has, not including the tags of modules that are nested under it, and of which all tags are unique within this same array.
+
+### **Token Carry**:
+A mechanism invoked in some modes of interfacing with TridyDB, where the user enters a statement that is incomplete, or forms only part of a statement, often because it is being streamed in over multiple lines. With token carry, leftover tokens not part of a complete statement are continually "carried over" until the statement is finished, and can be further processed.
 
 ### **Tree Data Structure**:
 A particular array that is sometimes present in modules as the place in which other modules nested under the given module are contained.

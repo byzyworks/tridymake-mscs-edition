@@ -33,7 +33,7 @@ const toTridy = (op, opts = { }) => {
         if ((op !== 'get') && (op !== 'del')) {
             if (opts.type === 'mod') {
                 if (opts.tags) {
-                    cmd += ` @as ${opts.tags}`;
+                    cmd += ` @as ${opts.tags.replace(/,/g, ' ')}`;
                 }
             
                 if (opts.state) {
