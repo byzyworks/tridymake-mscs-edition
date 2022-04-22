@@ -1,10 +1,10 @@
-import path from 'path';
+import path              from 'path';
 import { fileURLToPath } from 'url';
 
 import winston from 'winston';
 import morgan  from 'morgan';
 
-import * as common from './common.js';
+import { APP } from './common.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -15,7 +15,7 @@ export const format = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
     winston.format.colorize({ all: true }),
     winston.format.printf(
-        (info) => `[${info.timestamp}] [${common.APP.NAME}] [${info.level}] ${info.message}`
+        (info) => `[${info.timestamp}] [${APP.NAME}] [${info.level}] ${info.message}`
     )
 );
 
@@ -37,7 +37,9 @@ export const transports = {
         )
     }),
     console: new winston.transports.Console({
-        level: 'info'
+        level: 'info',
+        consoleWarnLevels: ['warn'],
+        stderrLevels: ['error', 'debug']
     })
 };
 
