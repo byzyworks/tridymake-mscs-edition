@@ -53,7 +53,7 @@
             "name": "Launch REST Server (Development)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["server", "--log-level", "debug"],
+            "args": ["server", "--localhost", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -66,7 +66,7 @@
             "name": "Launch REST Server (Production)",
             "program": "${workspaceFolder}/tridydb-cli/src/app.js",
             "cwd": "${workspaceFolder}/tridydb-cli",
-            "args": ["server"],
+            "args": ["server", "--localhost"],
             "outputCapture": "std",
             "console": "externalTerminal"
         }
