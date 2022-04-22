@@ -85,7 +85,7 @@ program
         new Option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as')
             .default(global.defaults.alias.nested)
     )
-    .hook('preAction', async () => {
+    .hook('preAction', async (thisCommand, actionCommand) => {
         const opts = program.opts();
 
         global.alias        = { };
@@ -132,6 +132,11 @@ program
     .description('Print the output of --command or --file and exit.')
     .action((opts, command) => {
         opts = command.optsWithGlobals();
+
+        if (!opts.command && !opts.file) {
+            program.error('error: either --command or --file need to be given inside of inline mode.');
+        }
+
         console.log(tridy.stringify(preset, { pretty: opts.pretty }));
     })
 ;
