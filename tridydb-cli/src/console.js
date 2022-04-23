@@ -61,4 +61,6 @@ export const cli = async (opts = { }) => {
             console.log(out);
         }
     }
+
+    rl.close();
 }
