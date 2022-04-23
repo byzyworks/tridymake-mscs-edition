@@ -74,20 +74,21 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
             2.  [As a Terminal Application](#cli)
-                1.  [Common Options](#cli-common)
-                2.  [Inline Mode](#cli-inline)
-                3.  [File Mode](#cli-file)
-                4.  [Sandbox Mode](#cli-sandbox)
-                5.  [Client Mode](#cli-client)
+                1.  [Inline Mode](#cli-inline)
+                2.  [Console Mode](#cli-console)
+                3.  [Common Options: Input](#cli-common-input)
+                4.  [Common Options: Client Mode](#cli-common-client)
+                5.  [Common Options: Output](#cli-common-output)
+                6.  [Common Options: Logging](#cli-common-logs)
             3.  [As a Server](#server)
-                1.  [Common Options](#server-common)
-                2.  [REST Mode](#server-rest)
-                3.  [REST Mode GET /](#server-rest-get-/)
-                4.  [REST Mode POST /](#server-rest-post-/)
-                5.  [REST Mode PUT /](#server-rest-put-/)
-                6.  [REST Mode DELETE /](#server-rest-delete-/)
-                7.  [Verbatim Mode](#server-verb)
-                8.  [Syntax Tree Mode](#server-astree)
+                1.  [REST Mode](#server-rest)
+                2.  [REST Mode: GET /](#server-rest-get-/)
+                3.  [REST Mode: POST /](#server-rest-post-/)
+                4.  [REST Mode: PUT /](#server-rest-put-/)
+                5.  [REST Mode: DELETE /](#server-rest-delete-/)
+                6.  [Verbatim Mode](#server-verb)
+                7.  [Syntax Tree Mode](#server-astree)
+                8.  [Common Options](#server-common)
     4.  [Glossary](#glossary)
 
 <br>
@@ -2038,7 +2039,7 @@ tridy.query(input1);
 
 It should be pointed out, however, that even though using TridyDB like this is *stateful*, it is not, at the same time, *persistent*. Whenever Tridy is used as a package, the first call to `tridy.query(...)` is always one that is working with a fresh object/root module, or in other words, one that is totally empty. Generally speaking, TridyDB as a package is not meant to directly deal with persistent data; instead, the application should be built to handle that on its own, or should alternatively try to interface with TridyDB using one of the available methods more suited to work with persistent data. As detailed below, Tridy provides a separate CLI application/client and REST API, which both allow TridyDB to work independently as a separate process, and handle persistence to varying degrees.
 
-Speaking of this, if `tridy.query(...)` should attempt to contact a server for data storage and retrieval, it also has options for that. `host` controls the hostname to connect to (which is localhost by default), `port` controls the port number to connect to (21780 by default), and `timeout` controls the number of milliseconds to wait for the host to respond back when a request is sent to it (before assuming a 404). The default for this is 3 seconds. Last, `client_mode` controls whether to enable this network-based paradigm at all or not. If `client_mode` *isn't* enabled (as it is by default), then everything will be processed within the one method call, without trying to contact a server to perform the last step of executing and storing the results of the statements.
+Speaking of this, if `tridy.query(...)` should attempt to contact a server for data storage and retrieval, it also has options for that. `host` controls the hostname to connect to (which is localhost by default), `port` controls the port number to connect to (21780 by default), and `timeout` controls the number of milliseconds to wait for the host to respond back when a request is sent to it (before assuming a 404). The default for this is 3 seconds. Last, `client_mode` controls whether to enable this network-based paradigm at all or not. If `client_mode` *isn't* enabled (as it is by default), then everything will be processed within the one method call, without trying to contact a server to perform the last step of executing and storing the results of the statements. More information surrounding client mode [here](#cli-common-client).
 
 Finally, `tridy.query(...)` has options to alias the keys associated to the various data structures that Tridy uses, which is as well provided with the independent program versions.
 
@@ -2067,52 +2068,67 @@ This isn't totally sufficient, however, as there are multiple sub-variants that 
 
 ### Inline Mode
 
-Inline mode is arguably the simplest, and the one that is most similar to using `tridy.query(...)` directly, since it is effectively the same, but allocated to a separate process.
+Inline mode is arguably the simplest, and the one that is most similar to using `tridy.query(...)` directly, since it acts in many ways the same as this when paired with an `exec(...)` call (language-agnostic), but of course, as something that is allocated to a separate process, unlike when being used as a package.
 
-Inline mode allows one to enter Tridy commands as a string, and pass that string as an argument to TridyDB. The string itself is given as the first positional argument in such a case.
+Inline mode relies on and even requires the user to call either `--command` or `--file` (but not both) as arguments to the program when it is started, since it would have no other means of grabbing input. Of course, both `--command` and `--file` require inputs of their own, as either Tridy code passed in the form of a string, or inside of script files whose pathnames are given variadically to `--file`. More details about this specifically can be found under "**Common Options**" below.
 
 Once the statements have executed, the output of them is generated and printed back to user where applicable (meaning where there are `@get` calls), to which TridyDB exits immediately after.
-
-Like file and sandbox mode, all statements inside this string are parsed relative to what is initially an empty database at the start. It is mainly intended where it would be optimal to use TridyDB more as like an executive utility, and without the expectation of persistence.
-
-Since it exits after and destroys the database, the string cannot finish on an incomplete statement, or it will generate a syntax error.
 
 Usage:
 
 ```
-tridydb inline [options] <input>
+tridydb inline { --command <commands> | --file <files...> } [options]
 ```
 
 Example:
 
 ```bash
-$ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;';
+$ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get;';
 # [{"free":{"foo":"bar"}}].
 ```
 
 <br>
 
-<div id="cli-file"/>
+<div id="cli-console"/>
 
-### File Mode
+### Console Mode
 
-With file mode, the user provides paths to any number of files, each of which is loaded sequentially following the order in which they are given.
+In console mode, the user is provided with an interactive terminal in which Tridy statements can be entered continually with immediate feedback.
 
-The paths are provided through the first positional argument onward. In other words, the first positional argument would be the path to the first file to load, the second positional argument would be the second file to load, and so on.
+Notably, console mode by default enables multi-line input with the mechanism of carry, whereby statements can be split across multiple lines such that TridyDB will retain previously-entered code and "carry" it until input is received that completes the statement.
 
-Once the statements have executed, the output of them is generated and printed back to user where applicable (meaning where there are `@get` calls), to which TridyDB exits immediately after.
+Console mode also features a couple of other things normally taken for granted in interactive terminal applications. The keypress Ctrl + C, for instance, is caught by the program, and can be used as a way to cancel the current input and start over on a new line. Console mode also keeps track of history, allowing the user to use the up and down arrows to scroll through their previous inputs. All of this is to give it a better user experience.
 
-Like inline and sandbox mode, all statements inside these files are parsed relative to what is initially an empty database at the start. It is mainly intended where it would be optimal to use TridyDB more as like an executive utility, and without the expectation of persistence.
-
-Every script should be made up of complete Tridy statements, so it's not possible to split a statement across two files token-wise without the possibility of it generating a syntax error
+Finally, though while `@clear` and `@exit` do not specifically affect the application when started in console mode (they can affect inline mode as well), they are of particular use here, and perform just as one would expect.
 
 Usage:
 
 ```
-tridydb file [options] <paths...>
+tridydb console [options]
 ```
 
 Example:
+
+```bash
+$ tridydb console;
+```
+
+![Example of the CLI interactive console](img/interactive1.png)
+
+<br>
+
+<div id="cli-common-input"/>
+
+### Common Options: `--command`, `--file`
+
+`--command` allows one to enter Tridy commands as a string, and pass that string as an argument to TridyDB. That argument to this is always that string of commands.
+
+```bash
+$ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get;';
+# [{"free":{"foo":"bar"}}].
+```
+
+`--file`, on the other hand, uses file input instead to import Tridy code, whereby the user is expected to provide the paths of these files as its argument. Uniquely, `--file` can actually take in multiple files at a time as an array of paths, and from doing so, it will attempt to process them in the same order in which they were given.
 
 `/path/to/example1.tri`
 ```
@@ -2136,78 +2152,56 @@ Example:
 ```
 
 ```bash
-$ tridydb file '/path/to/example1.tri' '/path/to/example2.tri';
+$ tridydb inline --file '/path/to/example1.tri' '/path/to/example2.tri';
 # [{"free":{"foo":"bar"},"tree":[{"tags":["baz"]}]}].
 ```
 
-<br>
+As with both `--command` and `--file`, there are some additional properties that both share.
 
-<div id="cli-sandbox"/>
+FIrst, they are mutually-exclusive. Thus, one cannot provide `--command` as an argument while also providing `--file`, and vice versa. Mostly, this is due to parsing limitations, and not wanting to arbitrarily decide which should have 'superiority' in terms of ordering.
 
-### Sandbox Mode
+Second, token carry is forbidden when providing input through `--command` or `--file`, effectively barring the user from issuing an incomplete statement through `--command`, or ending a script on one in the case of `--file`, since there is effectively no reason one should.
 
-In sandbox mode, the user is provided with an interactive terminal in which Tridy statements can be entered continually with immediate feedback.
-
-The purpose of this mode is mainly experimentation. It isn't akin to acting as a client since the session is entirely standalone, whereby the terminal shares the same application with the database, and there is no networking involved.
-
-Needless to say as well, anything done to the database is effectively wiped once the session is closed or restarted.
-
-Usage:
-
-```
-tridydb sandbox [options]
-```
-
-Example:
-
-```bash
-$ tridydb sandbox;
-```
-
-![Example of the CLI interactive console](img/interactive1.png)
+Third, though it's mentioned as a requirement for inline mode, it's also optional to have one for console or server mode, which allows one to effectively 'preset' what the database looks like at the start, before any commands are issued by other means. However, important to keep in mind is that, outside of inline mode, `@get;` statements will become ineffective when used inside `--command` or `--file`, as no initial output will be displayed.
 
 <br>
 
-<div id="cli-client"/>
+<div id="cli-common-client"/>
 
-### Client Mode
+### Common Options: `--client`, `--remote-host`, `--remote-port`, `--remote-timeout`
 
-In client mode, the user is provided with an interactive terminal in which Tridy statements can be entered continually with immediate feedback.
+`--client` is an option that activates client mode, which as an option (as opposed to a subcommand) is significantly unlike the other modes in that it doesn't have to be exclusive to these other modes. In fact, even calling TridyDB with `tridydb server --client` is allowed; it just creates what is effectively a proxy server. The behavior when combined with inline or console mode is more obvious.
 
-Client mode is meant to provide a shell that decidedly does the tokenization and parsing of entered statements on its own, but otherwise offloads execution of these statements and storage of the resulting database to the server. This not only keeps some load away from the server (by leaving both tokenization and parsing to the client-side), but allows the client to pick up on incomplete statements and syntactical issues where they are most relevant to providing information. It is, in fact, necessary for incomplete statements to be detected to permit carry (multi-line input), but it would be impractical to manage carry server-side, especially in a multi-user environment where a server makes sense.
+An instance of TridyDB launched in client mode will perform the tokenization and parsing of entered statements on its own, but later will offload the execution of these statements and storage of the resulting database to the server specified by `--remote-host` (or localhost, if ommitted). This not only subtracts some load from the server (by leaving both tokenization and parsing to the client-side), but also allows the client to pick up on incomplete statements and syntactical issues where it would be at its most capable and also most reasonable to provide feedback. In fact, it would be necessary for multi-line input to detect incomplete statements, but impractical to manage this server-side, especially in a multi-user environment where a server might make more sense.
 
-Unsurprisingly, client mode requires a TridyDB server in which to send its output, and the user should give the details of this server through the `--host` and `--port` arguments to the program whenever it is started. Leaving this blank will lead it to use the defaults, which suggest it connects to a server running on the same system bound to the same default port 21780.
+Unsurprisingly, client mode requires a TridyDB server in which to send its output, and the user should give the details of this server through the `--remote-host` and `--remote-port` arguments to the program whenever it is started. Leaving these blank will lead it to use the defaults, which suggest it connects to a server running on the same system (localhost) bound to the same default port 21780.
+
+Additionally, `--remote-timeout` can be be used to give a maximum period in milliseconds that the client should be expected to wait for its server to respond, where TridyDB will respond with an error after this period if the server does not respond.
 
 Giving an incorrect server, port number - meaning to one that doesn't exist, is down, or goes down - doesn't generate errors initially, due to it being that requests to the server are effectively stateless, and every new set of commands sent is a new connection. Errors are only sent back once the client attempts to send parsed statement output to the server.
 
 Likewise, because the server can go up or down whenever, there are fewer exceptions that would cause the client to throw an error that might fatally force it to exit, as none of these errors can be sent back from the server. Hence, the client will try to stay up without regards to the state of the server.
 
-Finally, as also the only variant that doesn't store any data on its own, things which specifically only affect the user-interfacing application varaants, including control statements like `@exit`, or even simply exiting the program, wind up having no effect on the server, and the data remains persistent regardless of the state of the client. Thus, it's also the only variant you can close and restart, and at the same time see that the effects of statements executed prior to closing are still present.
-
-Usage:
-
-```
-tridydb client [options]
-```
+Finally, as also the only mode that disables storing any database of its own, things which specifically only affect the user-interfacing application varaants, including control statements like `@exit`, or even simply exiting the program, wind up having no effect on the server, and the data remains persistent regardless of the state of the client. Thus, it's also the only mode in which you can close and restart the application, only for the database to remain as it was prior to closing.
 
 Example:
 
 ```bash
-$ tridydb client;
+$ tridydb console --client -h localhost -p 8080 -t 3000
 ```
 
-![Example of an error message specific to client mode](img/interactive2.png)
+![Console mode run with client mode as well, with error specific to client mode.](img/interactive2.png)
 
 <br>
 
-<div id="cli-common"/>
+<div id="cli-common-output"/>
 
-### Common Options
+### Common Options: `--pretty`
 
 Pretty-printing is provided as the option `--pretty` or `-p` in all cases. Like when the equivalent option is used with `tridy.stringify(...)`, 4 spaces are used per indent.
 
 ```bash
-$ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty;
+$ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty;
 # [
 #     {
 #         "free": {
@@ -2216,6 +2210,20 @@ $ tridydb inline '@set @as @none @is @json { "foo": "bar" } @end; @get;' --prett
 #     }
 # ]
 ```
+
+<br>
+
+<div id="cli-common-logs"/>
+
+### Common Options: `--log-level`
+
+`--log-level`, simply put, controls the logging level of TridyDB, though outside of server mode, TridyDB intentionally doesn't log very much to avoid polluting the standard output with output not generated by deliberate Tridy commands such as `@get`. Therefore, it purpose is knowfully limited.
+
+TridyDB also logs to two text files, which are `logs/errors.log` and `logs/combined.log`, inside TridyDB's root folder.
+
+`--log-level` notably is one of few options that expect one of only a couple possible string arguments (an enumeration, in other words). The possible values to give match NPM's own log levels, which are `error`, `warn`, `info`, `verbose`, `debug`, and `silly`, where each displays messages at its own level, along with that of all the levels before it. For instance, the default value, which is `info`, will display errors, warnings, and info-level notifications.
+
+For logging from the console, `error`, `warn`, and `debug` are logged to standard error. `debug`-level message are and should only be used for error traces, hence why it is logged to standard error as well, while `verbose`-level messages should be used for anything that would go to standard output. `info`-level messages are intentionally unused outside of server mode to avoid polluting standard output since it is the default mode. `silly` is not used at all.
 
 <br>
 
@@ -2237,16 +2245,6 @@ As seen above, TridyDB, when started this way, starts as a daemon process. By de
 
 <br>
 
-<div id="server-common"/>
-
-### Common Options:
-
-As one mentioned above, `--localhost` can be used to bind the server only to the localhost address of the machine, preventing it from being accessible outside the machine without something like SSH port-forwarding. Security-wise, it is a good idea to do this if it can be done.
-
-Other options specific to the server variant include `--port`, `--ipv4-only`, and `--ipv6-only`. `--port` is by default the number 21780, just like when (not) setting a client port, ensuring that at least two instances, a client and a server, will work directly with each other given no options at all when started up together on the same host. `--ipv4-only` and `--ipv6-only` are rather self-obvious, seeing as they prevent the server from binding on one or the other protocol, and can't both at the same time be given.
-
-<br>
-
 <div id="server-rest"/>
 
 ### REST Mode:
@@ -2255,7 +2253,7 @@ REST mode is used to describe the server when utilized in a way that makes parti
 
 In REST mode, each of the four HTTP methods `GET`, `POST`, `PUT`, and `DELETE` are mapped to the four Tridy operations `@get`, `@new`, `@set`, and `@del` respectively. Meanwhile, most of the other clauses are mapped as query parameters respective of the method used. As a result, just as some of these operations don't use some of the clauses, neither are all of the query parameters that match them applicable to every HTTP method. Definition clauses only get mapped to query parameters where the method creates a new module, and so on. Most of this is explained with the Tridy language itself.
 
-The only clause with a unique effect on the data that doesn't have a mapped equivalent in any of the methods is the definition clause `@has`, used to create nested statements. There's a special reason for this, since it is difficult to map something that is infinitely-nestable to a query parameter where the syntax for the nested statements are all themselves managed using query parameters, given as there are going to be conflicting keys in this circumstance. Alternatively, if such a query parameter existed, one could pass Tridy code to a `@has` query parameter directly, but it would be especially awkward to do this while the root statement still has to abide by the conventions of REST mode (thus using query parameters in the first place). Luckily, `@has` not necessary in most cases, and can almost always be factored into multiple statements where `@has` can be removed, so at least with REST mode (not with verbatim or syntax tree mode), it can be left out.
+The only clause with a unique effect on the data that doesn't have a mapped equivalent in any of the methods is the definition clause `@has`, used to create nested statements. There's a special reason for this, since it is difficult to map something that is infinitely-nestable to a query parameter where the syntax for the nested statements are all themselves managed using query parameters, given as there are going to be conflicting keys in this circumstance. Alternatively, if such a query parameter existed, one could pass Tridy code to a `@has` query parameter directly, but it would be especially awkward to do this while the root statement still has to abide by the conventions of REST mode (thus using query parameters in the first place). Luckily, `@has` is not necessary in most cases, and can almost always be factored into multiple statements where `@has` can be removed, so at least with REST mode (not with verbatim or syntax tree mode), it can be left out.
 
 <br>
 
@@ -2367,11 +2365,31 @@ Note that this is the same paradigm that TridyDB in client mode uses to communic
 
 <br>
 
+<div id="server-common"/>
+
+### Common Options: `--localhost`, `--server-port`, `ipv4-only`, `ipv6-only`
+
+As one mentioned above, `--localhost` can be used to bind the server only to the localhost address of the machine, preventing it from being accessible outside the machine without something like SSH port-forwarding. Security-wise, it is a good idea to do this if it can be done.
+
+Other options specific to the server variant include `--server-port`, `--ipv4-only`, and `--ipv6-only`.
+
+`--server-port` is by default the number 21780, just like when (not) setting a client port, ensuring that at least two instances, a client and a server, will work directly with each other given no options at all when started up together on the same host.
+
+`--ipv4-only` and `--ipv6-only` are rather self-obvious, seeing as they prevent the server from binding on one or the other protocol (IPv4 vs. IPv6), and can't both at the same time be given.
+
+<br>
+
 <div id="glossary"/>
 
 ## Glossary
 
 ---
+
+### **Abstract Syntax Tree**:
+A special, intermediate format in which Tridy statements are translated into JSON objects after the statement has been tokenized and parsed, but before the statement is composed over an existing database.
+
+### **Alias**
+The name given to one of the different parts of a module internally within the database, used as a key with which to identify and modify it.
 
 ### **Ascendant Module**
 The module in which another module (the subject) is nested under, either in which the subject module is a direct child of the ascendant, or that is recursively a child of the ascendant.
@@ -2385,8 +2403,17 @@ A module which is placed or located in the tree data structure of another module
 ### **Clause**
 Any word beginning with an `@` symbol in a Tridy statement; used as keywords to direct the behavior and syntax of the Tridy language.
 
+### **Client Mode**:
+A non-exclusive mode of running the TridyDB application that, using syntax tree mode, offloads the task of composing Tridy input and storage of the database to a separate server.
+
 ### **Comment**
 Strings starting with `#` and ending with a line feed, which are entirely ignored by the Tridy interpreter, and can be used for providing developer commentary.
+
+### **Composition**
+The process of evaluating context expressions against the contexts of different modules, and then executing specific operations of interpreted statements on the modules that are matched by the context expression.
+
+### **Console Mode**:
+A mode of running the TridyDB application exclusive from inline or server mode, whereby the user is presented with an interactive terminal for giving and receiving input asynchronously.
 
 ### **Context**:
 The context of a module is a module's tagset, along with the tagset of all its ascendants in the order in which they are nested (from the root downward), acting as a location specifier for the module which the Tridy composer uses to evaluate against context expressions.
@@ -2424,8 +2451,14 @@ The module which is nested under another module (the subject), either in which t
 ### **Free Data Structure**:
 A module section for storing information about the module that is organized arbitrarily, usually for use in an application-specific context, and that is always provided as raw input.
 
+### **Inline Mode**:
+A mode of running the TridyDB application exclusive from console or server mode, whereby the application presents the output of its argument(s) and immediately exits after that.
+
 ### **Meta-Operation Clause**:
 A clause controlling the behavior of the Tridy composer with respect to which modules a statement ends up being applied to.
+
+### **Mode**:
+A manner of running or using the TridyDB application that affects its general behavior.
 
 ### **Module**:
 A self-contained unit of information that is individually-addressable by the Tridy composer, and organized in Tridy's particular format consisting of three sections: a tagset, a free data structure, and a tree data structure.
@@ -2436,6 +2469,9 @@ A clause which determines the type of action taken by a Tridy statement towards 
 ### **Parent Module**:
 A module in which another module (the subject) is placed or located in the tree data structure of. In other words, that is "nesting" another module (the subject).
 
+### **Parsing**:
+The process of using tokens extracted from a Tridy statement to create an abstract syntax tree, and at the same time attempt to filter out Tridy code that is not syntactically-correct.
+
 ### **Raw Definition Clause**:
 A clause used as control flow for passing raw input through the Tridy interpreter.
 
@@ -2445,8 +2481,17 @@ A string of data that is passed through the Tridy interpreter in a common, estab
 ### **Root Module**:
 The module in which all other modules are nested under, that is not nested under any other modules itself, and that is addressed whenever a context expression is not provided in a statement.
 
+### **REST Mode**:
+A special way of sending input to a TridyDB server where Tridy's operation clauses are mapped to the different HTTP methods used in RESTful architectures, and Tridy's other clauses that have a particular use, namely meta-operation and definition clauses, are mapped as query parameters.
+
+### **Server Mode**:
+A mode of running the TridyDB application exclusive from inline or console mode, whereby the application launches as an HTTP server daemon to retrieve and interpret Tridy code given through the HTTP protocol in one of several possible ways (as other sub-modes).
+
 ### **Statement**:
 A string of Tridy code that is "complete" (according to the Tridy interpreter), part of which means being ended with a semicolon, and that can be interpreted individually separate from other statements.
+
+### **Syntax Tree Mode**:
+A special way of sending input to a TridyDB server that involves sending a JSON syntax tree pre-generated by the client to the server through the `PUT` method, acting as a compromise between REST mode and verbatim mode.
 
 ### **Tag**:
 An unique or non-unique alphanumeric identifier that is used to identify a module, and form a part of its tagset/context.
@@ -2454,8 +2499,14 @@ An unique or non-unique alphanumeric identifier that is used to identify a modul
 ### **Tagset**:
 The array/list of tags that a particular module has, not including the tags of modules that are nested under it, and of which all tags are unique within this same array.
 
+### **Token**:
+Any string of characters that is interpreted by TridyDB to have a special, non-divisable meaning. That can be a clause, a tag, or any number of characters tied to raw input.
+
 ### **Token Carry**:
 A mechanism invoked in some modes of interfacing with TridyDB, where the user enters a statement that is incomplete, or forms only part of a statement, often because it is being streamed in over multiple lines. With token carry, leftover tokens not part of a complete statement are continually "carried over" until the statement is finished, and can be further processed.
+
+### **Tokenization**:
+The process of reading characters from a string of Tridy code, and extracting an ordered list of tokens from it.
 
 ### **Tree Data Structure**:
 A particular array that is sometimes present in modules as the place in which other modules nested under the given module are contained.
@@ -2464,13 +2515,22 @@ A particular array that is sometimes present in modules as the place in which ot
 A "data programming" language with a syntax designed for creating modules of data that can be copied and composed in various ways using boolean expressions without necessitating re-definition of the same data.
 
 ### **Tridy Composer**:
-A sub-component of the Tridy interpreter that is tasked specifically with evaluating context expressions against the contexts of different modules, and then executing specific operations of the interpreted statement on the modules that are matched by the context expression.
+A sub-component of the Tridy interpreter that is tasked specifically with the process of composition.
 
 ### **Tridy Interpreter**:
 A sub-component of TridyDB that is tasked with reading in Tridy statements and performing the correct actions that those statements describe in accordance with the Tridy language specifications.
 
 ### **TridyDB**:
-A middleware application consisting of an object storage engine (the database), a Tridy interpreter that reads and processes statements written in the Tridy language against the database, and presents the affected object or sub-objects as output, thus providing both the database and the main interface for it.
+This project; a Node-based implementation for a Tridy interpreter, consisting of an object storage engine (the database), an actual interpreter that reads and processes statements written in the Tridy language against the database, and on the user-interfacing side, a Node package/module with all of this, and a separate middleware application.
+
+### **TridyDB Application**:
+A standalone installation of TridyDB that turns it into a userland terminal utility, and which can be run through various modes determining its general behavior.
+
+### **TridyDB CLI**:
+See "**TridyDB Application**"
+
+### **Verbatim Mode**:
+A special way of sending input to a TridyDB server that involves sending Tridy code to the server directly through the `PUT` method, where the server does everything from tokenization to composition.
 
 ### **Variable**:
 Special tags or parts of tags starting with `$` that are used to associate the tag as a key to a corresponding value that be called by this key to result in the value of the key being placed with the final output.
