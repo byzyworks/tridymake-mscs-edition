@@ -2301,8 +2301,8 @@ As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `type` | { `json`, `yaml` } | The new module's import data type. | `@new <?type> <?data> @end` |
-| `data` | pre-formatted data | The new module's import data. | `@new <?type> <?data> @end` |
+| `type` | { `json`, `yaml` } | The new module's import data type. | `@set <?type> <?data> @end` |
+| `data` | pre-formatted data | The new module's import data. | `@set <?type> <?data> @end` |
 | `context` | context expression | The modules to modify. | `@in <?context>` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
 | `statetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?statetype> <?state> @end` |
