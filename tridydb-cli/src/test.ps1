@@ -42,9 +42,9 @@ if (!$Test) {
 
         if ($Test -like 'error-*') {
             if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
-                $out = Invoke-Expression "$invoke --file $test_file.tri --log-level info" 2>&1;
+                $out = Invoke-Expression "$invoke --file $test_file.tri --log-level info 2>&1";
             } else {
-                $out = Invoke-Expression "$test_file.ps1" 2>&1;
+                $out = Invoke-Expression "$test_file.ps1 2>&1";
             }
             Write-Output $out;
             
