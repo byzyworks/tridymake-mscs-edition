@@ -2267,7 +2267,7 @@ As it only affects existing modules, the possible query parameters (like clauses
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
 | `context` | context expression | The modules to acquire. | `@in <?context>` |
-| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
 
 <br>
 
@@ -2285,9 +2285,9 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 | `data` | pre-formatted data | The new module's import data. | `@new <?type> <?data> @end` |
 | `context` | context expression | The modules to append. | `@in <?context>` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `statetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?statetype> <?state> @end` |
-| `state` | pre-formatted data | The new module's free data structure import data. | `@is <?statetype> <?state> @end` |
-| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `freetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?freetype> <?free> @end` |
+| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freetype> <?free> @end` |
+| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
 
 <br>
 
@@ -2305,9 +2305,9 @@ As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@
 | `data` | pre-formatted data | The new module's import data. | `@set <?type> <?data> @end` |
 | `context` | context expression | The modules to modify. | `@in <?context>` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `statetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?statetype> <?state> @end` |
-| `state` | pre-formatted data | The new module's free data structure import data. | `@is <?statetype> <?state> @end` |
-| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `freetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?freetype> <?free> @end` |
+| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freetype> <?free> @end` |
+| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
 
 <br>
 
@@ -2322,7 +2322,7 @@ As it only affects existing modules, the possible query parameters (like clauses
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
 | `context` | context expression | The modules to delete. | `@in <?context>` |
-| `once` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
 
 <br>
 

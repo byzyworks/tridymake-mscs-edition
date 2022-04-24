@@ -1,10 +1,10 @@
-import express from 'express';
+import express         from 'express';
+import { StatusCodes } from 'http-status-codes';
 
 import { tridy } from '../include/Interpreter.js';
 
-import { global }       from '../utility/common.js';
-import { ServerSideServerError } from '../utility/error.js';
-import { logger }      from '../utility/logger.js';
+import { SyntaxError, ServerSideServerError } from '../utility/error.js';
+import { logger }                             from '../utility/logger.js';
 
 const op_map = Object.freeze({
     get:    'get',
@@ -88,9 +88,9 @@ const getOpts = (req, res) => {
         opts.data = req.query.data;
     } else {
         opts.type      = 'mod';
-        opts.tags      = req.query[global.alias.tags];
-        opts.statetype = req.query[global.alias.state + 'type'];
-        opts.state     = req.query[global.alias.state];
+        opts.tags      = req.query.tags;
+        opts.statetype = req.query.freetype;
+        opts.state     = req.query.free;
     }
 
     return opts;
@@ -112,7 +112,7 @@ const handleRoute = async (method, req, res, next) => {
      * The point of this is so carry to be managed the same, intuitive way (locally) in both local and remote console sessions.
      */
     if (((opts.type === 'verb') || (opts.type === 'astree')) && (method !== 'put')) {
-        throw new ServerSideServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', { is_fatal: false });
+        return next(new ServerSideServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
     }
 
     const cmd = toTridy(op_map[method], opts);
@@ -126,7 +126,11 @@ const handleRoute = async (method, req, res, next) => {
             accept_carry: false
         });
     } catch (err) {
-        next(err);
+        if (err instanceof SyntaxError) {
+            return next(new ServerSideServerError('The previous request contains unusable input.', err, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false, is_wrapper: true }));
+        } else {
+            throw err;
+        }
     }
 
     res.json(out);
@@ -134,7 +138,7 @@ const handleRoute = async (method, req, res, next) => {
 
 export const routes = express.Router();
 
-routes.get('/',    async (req, res, next) => await handleRoute('get', req, res, next));
-routes.post('/',   async (req, res, next) => await handleRoute('post', req, res, next));
-routes.put('/',    async (req, res, next) => await handleRoute('put', req, res, next));
+routes.get(   '/', async (req, res, next) => await handleRoute('get', req, res, next));
+routes.post(  '/', async (req, res, next) => await handleRoute('post', req, res, next));
+routes.put(   '/', async (req, res, next) => await handleRoute('put', req, res, next));
 routes.delete('/', async (req, res, next) => await handleRoute('delete', req, res, next));

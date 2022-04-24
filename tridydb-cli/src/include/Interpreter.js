@@ -103,7 +103,12 @@ class Interpreter {
 
         let code;
         if (opts.tokenless) {
-            code = new StateTree(JSON.parse(input));
+            try {
+                input = JSON.parse(input);
+            } catch (err) {
+                throw new SyntaxError(err.message);
+            }
+            code = new StateTree(input);
 
             if (global.remote.enable) {
                 code = await sendTridyRequest(code.getRaw());
@@ -170,9 +175,14 @@ class Interpreter {
      * @method
      * @param   {String} input Tridy JSON string output.
      * @returns {Object}       Input string as a JSON object.
+     * @throws  {SyntaxError}  Thrown if the input isn't valid JSON.
      */
     objectify(input) {
-        return JSON.parse(input.replace(/\\/g, '\\\\'));
+        try {
+            return JSON.parse(input.replace(/\\/g, '\\\\'));
+        } catch (err) {
+            throw new SyntaxError(err.message);
+        }
     }
 }
 

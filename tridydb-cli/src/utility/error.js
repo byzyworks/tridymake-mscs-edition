@@ -2,7 +2,8 @@ import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
 import { parser as tokenizer } from '../include/StatementParser.js';
 
-import { logger } from './logger.js';
+import { isNullish } from './common.js';
+import { logger }    from './logger.js';
 
 export class SyntaxError extends Error {
     constructor(description) {
@@ -53,16 +54,18 @@ export class ClientSideServerError extends ServerError {
         this.opts = {
             http_code:  http_code,
             is_warning: false,
-            is_fatal:   false
+            is_fatal:   false,
+            is_wrapper: false
         };
     }
 }
 
 export class ServerSideServerError extends ServerError {
     constructor(description, original, opts = { }) {
-        opts.http_code  = opts.http_code  ?? StatusCodes.INTERNAL_SERVER_ERROR,
-        opts.is_warning = opts.is_warning ?? false,
-        opts.is_fatal   = opts.is_fatal   ?? true
+        opts.http_code  = opts.http_code  ?? StatusCodes.INTERNAL_SERVER_ERROR;
+        opts.is_warning = opts.is_warning ?? false;
+        opts.is_fatal   = opts.is_fatal   ?? true;
+        opts.is_wrapper = opts.is_wrapper ?? false;
 
         super(description);
         Object.setPrototypeOf(this, new.target.prototype);
@@ -81,7 +84,8 @@ export class ServerSideServerError extends ServerError {
         this.opts = {
             http_code:  opts.http_code,
             is_warning: opts.is_warning,
-            is_fatal:   opts.is_fatal
+            is_fatal:   opts.is_fatal,
+            is_wrapper: opts.is_wrapper
         };
     }
 }
@@ -90,6 +94,12 @@ class ErrorHandler {
     constructor() { }
 
     handle(err) {
+        if ((err instanceof ServerSideServerError) && !isNullish(err.original) && (err.opts.is_wrapper)) {
+            err.message  = err.original.message;
+            err.stack    = err.original.stack;
+            err.original = err.original.original;
+        }
+
         if (process.exitCode === 0) {
             this.lastError = err;
 
@@ -103,7 +113,7 @@ class ErrorHandler {
                     logger.debug(err.stack);
                 }
 
-                if ((err instanceof ServerSideServerError) && (err.original !== null)) {
+                if ((err instanceof ServerSideServerError) && !isNullish(err.original)) {
                     logger.debug(`Reason: ${err.original.message}`);
                     if (err.original.stack !== undefined) {
                         logger.debug(err.original.stack);
@@ -122,6 +132,8 @@ class ErrorHandler {
         let status;
         if ((this.lastError instanceof ServerSideServerError) && (this.lastError.opts.http_code !== undefined)) {
             status = this.lastError.opts.http_code;
+        } else if (this.lastError instanceof SyntaxError) {
+            status = StatusCodes.BAD_REQUEST;
         } else {
             status = StatusCodes.INTERNAL_SERVER_ERROR;
         }

@@ -1,0 +1,24 @@
+[
+    {
+        "baz": [
+            {
+                "bar": [
+                    "easy",
+                    "medium",
+                    "hard",
+                    "impossible"
+                ],
+                "foo": [
+                    "a"
+                ],
+                "baz": [
+                    {
+                        "foo": [
+                            "b"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

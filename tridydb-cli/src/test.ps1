@@ -1,8 +1,18 @@
 param (
-    [string] $Test
+    [string] $Test,
+    [switch] $Invoked
 )
 
 $invoke = "node $PSScriptRoot/app.js inline";
+
+$port = 54321;
+if (!$Test -or (!$Invoked -and ($Test -match '(?:^|-)server-'))) {
+    Write-Host 'Starting server...';
+    Write-Host;
+    
+    $server_job = Start-Process -FilePath node -ArgumentList "$PSScriptRoot/app.js",'server','--server-port',"$port","--log-level","debug" -WorkingDirectory "$PSScriptRoot" -PassThru;
+    Start-Sleep -Seconds 2;
+}
 
 if (!$Test) {
     $total_tests                                = 0;
@@ -14,7 +24,7 @@ if (!$Test) {
         $test_file = "$($_.FullName)/test";
         
         if ((Test-Path -Path "$test_file.tri" -PathType Leaf) -or (Test-Path -Path "$test_file.ps1" -PathType Leaf)) {
-            Invoke-Expression -Command ($PSCommandPath + ' -Test $test_name');
+            Invoke-Expression -Command ($PSCommandPath + ' -Test $test_name -Invoked');
             
             $total_tests++;
             if ($LastExitCode -eq 0) {
@@ -39,58 +49,66 @@ if (!$Test) {
         
     if ((Test-Path -Path "$test_file.tri" -PathType Leaf) -or (Test-Path -Path "$test_file.ps1" -PathType Leaf)) {
         Write-Host "Running $test_name...";
-
-        if ($Test -like 'error-*') {
-            if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
-                $out = Invoke-Expression "$invoke --file $test_file.tri --log-level info 2>&1";
-            } else {
-                $out = Invoke-Expression "$test_file.ps1 2>&1";
+        
+        if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
+            $invoke = "$invoke --file $test_file.tri --log-level info --pretty";
+            if ($Test -match '(?:^|-)server-') {
+                $invoke += " --client --remote-port $port";
             }
-            Write-Output $out;
-            
+        } else {
+            $invoke = "$test_file.ps1";
+        }
+        if ($Test -match '(?:^|-)error-') {
+            $invoke += " 2>&1";
+        }
+        
+        $out = Invoke-Expression $invoke;
+        Write-Output $out;
+
+        if ($Test -match '(?:^|-)error-') {
             if ($out -like "*Syntax Error*") {
                 Write-Host 'Test successful.';
                 Write-Host;
                 exit 0;
-            } else {
-                Write-Host 'Test failed.';
-                Write-Host;
-                exit 1;
             }
-        } else {
-            if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
-                $out = Invoke-Expression "$invoke --file $test_file.tri --log-level info --pretty";
-            } else {
-                $out = Invoke-Expression "$test_file.ps1";
-            }
-            Write-Output $out;
             
-            if ($LastExitCode -eq 0) {
-                $test_outfile = "$PSScriptRoot/tests/$test_name/out.json"
-                
-                if (Test-Path -Path "$test_outfile" -PathType Leaf) {
-                    $expected = (Get-Content -Path "$test_outfile") -Replace '\s+','' -Join '';
-                    $actual   = $out -Replace '\s+','' -Join '';
-
-                    if ($actual -eq $expected) {
-                        Write-Host 'Test successful.';
-                        Write-Host;
-                        exit 0;
-                    } else {
-                        Write-Host 'Test failed.';
-                        Write-Host;
-                        exit 1;
-                    }
-                } else {
+            if ($Test -match '(?:^|-)server-') {
+                $status = (Write-Output $out | ConvertFrom-Json).status;
+                if (($status -ge 400) -and ($status -lt 500)) {
                     Write-Host 'Test successful.';
                     Write-Host;
                     exit 0;
                 }
-            } else {
+            }
+            
+            Write-Host 'Test failed.';
+            Write-Host;
+            exit 1;
+        } elseif ($LastExitCode -eq 0) {
+            $test_outfile = "$PSScriptRoot/tests/$test_name/out.json"
+            
+            if (Test-Path -Path "$test_outfile" -PathType Leaf) {
+                $expected = (Get-Content -Path "$test_outfile") -Replace '\s+','' -Join '';
+                $actual   = $out -Replace '\s+','' -Join '';
+                
+                if ($actual -eq $expected) {
+                    Write-Host 'Test successful.';
+                    Write-Host;
+                    exit 0;
+                }
+                
                 Write-Host 'Test failed.';
                 Write-Host;
                 exit 1;
             }
+            
+            Write-Host 'Test successful.';
+            Write-Host;
+            exit 0;
         }
+        
+        Write-Host 'Test failed.';
+        Write-Host;
+        exit 1;
     }
 }

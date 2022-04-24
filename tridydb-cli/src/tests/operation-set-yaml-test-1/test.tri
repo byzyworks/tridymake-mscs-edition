@@ -14,18 +14,15 @@
 
 @in a @new c;
 
-@in a/c @set @json {
-    "tags": [
-        "d"
-    ],
-    "free": { },
-    "tree": [
-        {
-            "tags": [
-                "e"
-            ]
-        }
-    ]
-} @end;
+@in a/c @set @yaml
+---
+tags:
+  - d
+free: { }
+tree:
+-
+    tags:
+      - e
+@end;
 
 @get;
