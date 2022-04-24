@@ -42,7 +42,7 @@ import { StateTree }           from './StateTree.js';
 import { global }                             from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
 
-const sendTridyRequest = async (data, host, port, timeout) => {
+const sendTridyRequest = async (data) => {
     try {
         const out = await axios({
             headers: {
@@ -50,12 +50,12 @@ const sendTridyRequest = async (data, host, port, timeout) => {
                 'Content-Type': 'application/json'
             },
             method: 'put',
-            url: 'http://' + host + ':' + port,
+            url: 'http://' + global.remote.host + ':' + global.remote.port,
             params: {
                 type: 'astree',
                 data: data
             },
-            timeout: timeout
+            timeout: global.remote.timeout
         });
 
         return out.data;
@@ -101,9 +101,9 @@ class Interpreter {
      * @param   {Boolean} opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
      * @param   {Boolean} opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
      * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
-     * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Default is 'tags'.
-     * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Default is 'free'.
-     * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Default is 'tree'.
+     * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
+     * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
+     * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
      * @returns {Array&lt;Object>}             The output of the statement(s).
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.
@@ -111,15 +111,17 @@ class Interpreter {
     async query(input, opts = { }) {
         opts.tokenless    = opts.tokenless    ?? false;
         opts.accept_carry = opts.accept_carry ?? false;
-        opts.client_mode  = opts.client_mode  ?? false;
-        opts.host         = opts.host         ?? global.defaults.remote.host;
-        opts.port         = opts.port         ?? global.defaults.remote.port;
-        opts.timeout      = opts.timeout      ?? global.defaults.remote.timeout;
 
         global.alias        = global.alias  ?? { };
         global.alias.tags   = opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags;
         global.alias.state  = opts.free_key ?? global.alias.state  ?? global.defaults.alias.state;
         global.alias.nested = opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested;
+
+        global.remote         = global.remote    ?? { };
+        global.remote.enable  = opts.client_mode ?? global.remote.enable  ?? global.defaults.remote.enable;
+        global.remote.host    = opts.host        ?? global.remote.host    ?? global.defaults.remote.host;
+        global.remote.port    = opts.port        ?? global.remote.port    ?? global.defaults.remote.port;
+        global.remote.timeout = opts.timeout     ?? global.remote.timeout ?? global.defaults.remote.timeout;
 
         let output = [ ];
 
@@ -129,10 +131,15 @@ class Interpreter {
 
         let code;
         if (opts.tokenless) {
-            code = new StateTree(JSON.parse(input));
+            try {
+                input = JSON.parse(input);
+            } catch (err) {
+                throw new SyntaxError(err.message);
+            }
+            code = new StateTree(input);
 
-            if (opts.client_mode) {
-                code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
+            if (global.remote.enable) {
+                code = await sendTridyRequest(code.getRaw());
             } else {
                 code = this._composer.compose(code);
             }
@@ -155,8 +162,8 @@ class Interpreter {
 
                 code = this._parser.parse(code);
 
-                if (opts.client_mode) {
-                    code = await sendTridyRequest(code.getRaw(), opts.host, opts.port, opts.timeout);
+                if (global.remote.enable) {
+                    code = await sendTridyRequest(code.getRaw());
                 } else {
                     code = this._composer.compose(code);
                 }
@@ -196,9 +203,14 @@ class Interpreter {
      * @method
      * @param   {String} input Tridy JSON string output.
      * @returns {Object}       Input string as a JSON object.
+     * @throws  {SyntaxError}  Thrown if the input isn't valid JSON.
      */
     objectify(input) {
-        return JSON.parse(input.replace(/\\/g, '\\\\'));
+        try {
+            return JSON.parse(input.replace(/\\/g, '\\\\'));
+        } catch (err) {
+            throw new SyntaxError(err.message);
+        }
     }
 }
 
@@ -227,7 +239,7 @@ export const tridy = new Interpreter();
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Wed Apr 20 2022 16:12:20 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Apr 24 2022 14:55:35 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>
