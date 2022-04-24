@@ -2,14 +2,14 @@
     {
         "baz": [
             {
+                "foo": [
+                    "a"
+                ],
                 "bar": [
                     "easy",
                     "medium",
                     "hard",
                     "impossible"
-                ],
-                "foo": [
-                    "a"
                 ],
                 "baz": [
                     {

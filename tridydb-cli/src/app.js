@@ -33,6 +33,7 @@ program
     )
     .addOption(
         new Option('-C, --client', 'Let the server given by --remote-host do most of the work.')
+            .conflicts(['tagsKey', 'freeKey', 'treeKey'])
     )
     .addOption(
         new Option('-f, --file <files...>', 'Pre-load a Tridy database from one or several files.')

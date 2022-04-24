@@ -73,9 +73,9 @@ class Interpreter {
      * @param   {Boolean} opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
      * @param   {Boolean} opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
      * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
-     * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Default is 'tags'.
-     * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Default is 'free'.
-     * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Default is 'tree'.
+     * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
+     * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
+     * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
      * @returns {Array<Object>}             The output of the statement(s).
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.

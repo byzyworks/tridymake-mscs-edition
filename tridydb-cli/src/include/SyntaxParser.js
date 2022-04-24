@@ -5,7 +5,7 @@ import { StateTree }             from './StateTree.js';
 import { Token }                 from './Token.js';
 
 import { global, isEmpty } from '../utility/common.js';
-import { SyntaxError }    from '../utility/error.js';
+import { SyntaxError }     from '../utility/error.js';
 
 class SyntaxParser {
     constructor() { }
@@ -193,16 +193,21 @@ class SyntaxParser {
             this._tokens.next();
             
             /**
-             * The JSON parser does its own escaping using the backslash characters.
-             * Thus, the backslash characters have to themselves be escaped before they are put through the JSON parser.
+             * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
+             * Thus, the backslash characters have to themselves be escaped before they are put them.
              * Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
              */
-            data = this._readWhileRaw({ multiline: false }).replace(/\\/g, '\\\\');
+            data = this._readWhileRaw({ multiline: false }).replace(/\\/g, '\\\\').replace(/^\s+/, '').replace(/\s+$/, '');
         } else if (current.is('key', 'yaml')) {
             type = 'yaml';
             this._tokens.next();
 
-            data = this._readWhileRaw({ multiline: true }).replace(/^\s*/, '');
+            /**
+             * Note for YAML, removing the whitespace at the very beginning is at least an important consideration.
+             * Otherwise, if starting on a new line, it may cause the parser to pick up on the initial line feed unexpectedly.
+             * Since YAML is whitespace-sensitive, that can end up throwing errors as a result.
+             */
+            data = this._readWhileRaw({ multiline: true }).replace(/\\/g, '\\\\').replace(/^\s+/, '').replace(/\s+$/gm, '');
         } else {
             return null;
         }
@@ -230,7 +235,7 @@ class SyntaxParser {
     
     _handleOperation() {
         if (this._tokens.peek().is('key', 'set')) {
-            this._astree.enterSetAndLeave(['operation'], 'edit');
+            this._astree.enterSetAndLeave('operation', 'edit');
             this._tokens.next();
 
             if (this._tokens.peek().isRawInputToken()) {
@@ -239,7 +244,7 @@ class SyntaxParser {
                 this._astree.enterPos('definition');
             }
         } else if (this._tokens.peek().is('key', 'new')) {
-            this._astree.enterSetAndLeave(['operation'], 'module');
+            this._astree.enterSetAndLeave('operation', 'module');
             this._tokens.next();
 
             if (this._tokens.peek().isRawInputToken()) {
@@ -248,10 +253,10 @@ class SyntaxParser {
                 this._astree.enterPos('definition');
             }
         } else if (this._tokens.peek().is('key', 'get')) {
-            this._astree.enterSetAndLeave(['operation'], 'print');
+            this._astree.enterSetAndLeave('operation', 'print');
             this._tokens.next();
         } else if (this._tokens.peek().is('key', 'del')) {
-            this._astree.enterSetAndLeave(['operation'], 'delete');
+            this._astree.enterSetAndLeave('operation', 'delete');
             this._tokens.next();
         } else {
             this._handleUnexpected();
@@ -302,7 +307,7 @@ class SyntaxParser {
         } else {
             const tags = this._readWhileTag();
             if (!isEmpty(tags)) {
-                this._astree.enterSetAndLeave([global.alias.tags], tags);
+                this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
             } else if (opts.require) {
                 this._handleUnexpected();
             }
@@ -317,7 +322,7 @@ class SyntaxParser {
             if (free === null) {
                 this._handleUnexpected();
             } else {
-                this._astree.enterSetAndLeave([global.alias.state], free);
+                this._astree.enterSetAndLeave(global.defaults.alias.state, free);
             }
         }
     }

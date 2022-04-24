@@ -1,4 +1,4 @@
-import { global, isObject } from '../utility/common.js';
+import { global, isArray, isObject } from '../utility/common.js';
 
 /**
  * A generalized class that is basically an iterable n-ary tree, used as both a skeleton for the Tridy database, and for the abstract syntax tree used to prepare it.
@@ -14,12 +14,10 @@ import { global, isObject } from '../utility/common.js';
  * When it no longer serves to access the tree through an iterable, getRaw() can be used to acquire the underlying object.
  */
 export class StateTree {
-    _pos  = [ ];
-    _tree = null;
-    _ptr  = null;
-    _changed_pos = true;
+    constructor(imported = null, alias = { }) {
+        this._pos         = [ ];
+        this._changed_pos = false;
 
-    constructor(imported = null) {
         if (imported) {
             this._tree = imported;
         } else {
@@ -27,6 +25,23 @@ export class StateTree {
         }
 
         this._ptr = this._tree;
+
+        /**
+         * Mind that this doesn't pay attention to what the user-given values for alias are.
+         * As one such state tree, it matters with how the database is stored.
+         * However, this same class is used for the abstract syntax tree as well.
+         * As the user doesn't interface with the AST, there is no reason to have it depend on user-given aliases.
+         * In fact, involving user aliases before setting up the database is detrimental.
+         * That can lead to an unneeded situation where a client and server are forced to agree on these aliases in order to work together.
+         * That is because the client might handle the AST solely, while the server handles the database and only receives the AST.
+         * Therefore, the program defaults are always used up until composition.
+         * That is, where a StateTree with "alias" filled by user values is constructed.
+         */
+        this._alias = {
+            tags:   alias.tags   ?? global.defaults.alias.tags,
+            state:  alias.state  ?? global.defaults.alias.state,
+            nested: alias.nested ?? global.defaults.alias.nested
+        };
     }
 
     /**
@@ -152,6 +167,8 @@ export class StateTree {
     }
 
     enterGetAndLeave(pos) {
+        pos = isArray(pos) ? pos : [ pos ];
+
         for (const part of pos) {
             this.enterPos(part);
         }
@@ -164,6 +181,8 @@ export class StateTree {
     }
 
     enterSetAndLeave(pos, value) {
+        pos = isArray(pos) ? pos : [ pos ];
+
         for (const part of pos) {
             this.enterPos(part);
         }
@@ -174,6 +193,8 @@ export class StateTree {
     }
 
     enterPutAndLeave(pos, value) {
+        pos = isArray(pos) ? pos : [ pos ];
+
         for (const part of pos) {
             this.enterPos(part);
         }
@@ -184,6 +205,8 @@ export class StateTree {
     }
 
     enterCopyAndLeave(target, pos) {
+        pos = isArray(pos) ? pos : [ pos ];
+
         for (const part of pos) {
             this.enterPos(part);
             target.enterPos(part);
@@ -218,8 +241,8 @@ export class StateTree {
     enterNested(opts = { }) {
         opts.append_mode = opts.append_mode ?? true;
 
-        if (this.getTopPos() != global.alias.nested) {
-            this.enterPos(global.alias.nested);
+        if (this.getTopPos() !== this._alias.nested) {
+            this.enterPos(this._alias.nested);
         }
 
         if (opts.append_mode) {
@@ -231,11 +254,11 @@ export class StateTree {
     }
 
     leaveNested() {
-        while (this.leavePos() != global.alias.nested);
+        while (this.leavePos() !== this._alias.nested);
     }
 
     nextItem() {
-        while (this._pos[this._pos.length - 2] != global.alias.nested) {
+        while (this._pos[this._pos.length - 2] !== this._alias.nested) {
             this.leavePos();
         }
 
@@ -246,7 +269,7 @@ export class StateTree {
     }
 
     traverse(callback) {
-        this.enterPos(global.alias.nested);
+        this.enterPos(this._alias.nested);
         if (!this.isPosEmpty()) {
             this.enterPos(0);
             while (!this.isPosEmpty()) {

@@ -2,12 +2,12 @@
     {
         "tree": [
             {
-                "free": {
-                    "$var-key": "$var-val"
-                },
                 "tags": [
                     "$var-tag"
-                ]
+                ],
+                "free": {
+                    "$var-key": "$var-val"
+                }
             },
             {
                 "tags": [

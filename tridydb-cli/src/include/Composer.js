@@ -3,16 +3,15 @@ import uuid from 'uuid-random';
 import { StateTree } from './StateTree.js';
 
 import { isArray, global, deepCopy, isEmpty } from '../utility/common.js';
-import { Stack }                             from '../utility/Stack.js';
+import { Stack }                              from '../utility/Stack.js';
 
 class Composer {
     constructor() {
         this._target = new Stack();
-        this._target.push(new StateTree());
     }
     
     _createModule(command) {
-        const module = new StateTree();
+        const module = new StateTree(null, global.alias);
 
         this._astree.enterPos('raw');
         if (!this._astree.isPosEmpty()) {
@@ -22,7 +21,22 @@ class Composer {
 
         this._astree.enterPos('definition');
         if (!this._astree.isPosEmpty()) {
-            this._astree.enterPos(global.alias.nested);
+            // The order of assignment below affects the final output.
+            // Don't switch it up unless you're prepared to change the expected test case outputs, too.
+
+            module.enterPos(global.alias.tags);
+            this._astree.enterPos(global.defaults.alias.tags);
+            this._astree.copyPosValue(module);
+            this._astree.leavePos();
+            module.leavePos();
+
+            module.enterPos(global.alias.state);
+            this._astree.enterPos(global.defaults.alias.state);
+            this._astree.copyPosValue(module);
+            this._astree.leavePos();
+            module.leavePos();
+
+            this._astree.enterPos(global.defaults.alias.nested);
             if (!this._astree.isPosEmpty()) {
                 this._astree.leavePos();
 
@@ -32,11 +46,6 @@ class Composer {
             } else {
                 this._astree.leavePos();
             }
-
-            this._astree.enterCopyAndLeave(module, [global.alias.state]);
-            this._astree.enterCopyAndLeave(module, [global.alias.tags]);
-
-            module.leavePos();
         }
         this._astree.leavePos();
 
@@ -82,7 +91,7 @@ class Composer {
                 answers.value = lvl === 0;
                 break;
             case '%': // from @leaf
-                answers.value = isEmpty(this._target.peek().enterGetAndLeave([global.alias.nested]));
+                answers.value = isEmpty(this._target.peek().enterGetAndLeave(global.alias.nested));
                 break;
             case '?': // from @random
                 answers.value = (Math.random() >= 0.5);
@@ -358,7 +367,7 @@ class Composer {
                 target.setPosValue(this._uniqueCopy(opts.template));
                 break;
             case 'module':
-                target.enterPutAndLeave([global.alias.nested], this._uniqueCopy(opts.template));
+                target.enterPutAndLeave(global.alias.nested, this._uniqueCopy(opts.template));
                 break;
             case 'print':
                 this._output.push(deepCopy(target.getPosValue()));
@@ -420,7 +429,7 @@ class Composer {
 
     _traverseModule(test, command, depth, max_depth, opts = { }) {
         opts.template = opts.template ?? null;
-        opts.greedy   = opts.greedy ?? false;
+        opts.greedy   = opts.greedy   ?? false;
 
         const answers = this._matchingExpression(test, this._getContext(), 0);
 
@@ -461,11 +470,11 @@ class Composer {
     }
 
     _parseStatement() {
-        const context    = this._astree.enterGetAndLeave(['context']);
+        const context    = this._astree.enterGetAndLeave('context');
         const expression = context ? context.expression : [ ];
         const greedy     = context ? context.greedy ?? false : false;
 
-        const command = this._astree.enterGetAndLeave(['operation']);
+        const command = this._astree.enterGetAndLeave('operation');
 
         let template;
         if (this._isReadOp(command)) {
@@ -478,7 +487,7 @@ class Composer {
     }
 
     _parse() {
-        this._astree.enterPos(global.alias.nested);
+        this._astree.enterPos(global.defaults.alias.nested);
         if (!this._astree.isPosEmpty()) {
             this._astree.enterPos(0);
             while (!this._astree.isPosEmpty()) {
@@ -493,8 +502,15 @@ class Composer {
 
     compose(input, opts = { }) {
         this._astree = input;
+
+        if (this._target.isEmpty()) {
+            this._target.push(new StateTree(null, global.alias));
+        }
+        
         this._output = [ ];
+
         this._parse();
+
         return this._output;
     }
 }

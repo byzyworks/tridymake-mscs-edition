@@ -1,17 +1,23 @@
-@tridy;           # This is a comment.
-                  # This is a comment.
-@new              # This is a comment.
-@as @none         # This is a comment.
-@is @json {       # This is a comment.
-    "esc": "\#"   # This is a comment.
-} @end            # This is a comment.
-@has {            # This is a comment.
-    @new          # This is a comment.
-    @as @none     # This is a comment.
-    @is @yaml     # This is a comment.
-    ---           # This is a comment.
-        esc: "\#" # This is a comment.
-    @end;         # This is a comment.
-};                # This is a comment.
-                  # This is a comment.
-@get;             # This is a comment.
+@tridy;              # This is a comment.
+                     # This is a comment.
+@new                 # This is a comment.
+@as @none            # This is a comment.
+@is @json {          # This is a comment.
+    "esc1": "\#",    # This is a comment.
+    "esc2": "\@",    # This is a comment.
+    "esc3": "\\\#",  # This is a comment.
+    "esc4": "\\\@"   # This is a comment.
+} @end               # This is a comment.
+@has {               # This is a comment.
+    @new             # This is a comment.
+    @as @none        # This is a comment.
+    @is @yaml        # This is a comment.
+    ---              # This is a comment.
+        esc1: "\#"   # This is a comment.
+        esc2: "\@"   # This is a comment.
+        esc3: "\\\#" # This is a comment.
+        esc4: "\\\@" # This is a comment.
+    @end;            # This is a comment.
+};                   # This is a comment.
+                     # This is a comment.
+@get;                # This is a comment.
