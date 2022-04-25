@@ -126,6 +126,7 @@ class Interpreter {
                     if (code.peek().is('key', 'clear')) {
                         output = [ ];
                         console.clear();
+                        continue;
                     } else if (code.peek().is('key', 'exit')) {
                         global.exit = true;
                         break;
