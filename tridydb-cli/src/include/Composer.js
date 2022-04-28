@@ -4,6 +4,7 @@ import { StateTree } from './StateTree.js';
 
 import { isArray, global, deepCopy, isEmpty } from '../utility/common.js';
 import { Stack }                              from '../utility/Stack.js';
+import { Queue }                              from '../utility/Queue.js';
 
 class Composer {
     constructor() {
@@ -174,9 +175,20 @@ class Composer {
     _testParentMain(b, tested, lvl, opts = { }) {
         opts.recurse = opts.recurse ?? false;
 
+        const target = this._target.peek();
+
+        const child_subcontext = [ ];
+        
+        // Needed if @parent/@ascend is used with @to/@toward and is in the LHS of the @to/@toward expression.
+        // The target's context needs to be aligned with that of the parent that's supposed to be evaluated.
+        const parent_diff = tested.length - lvl;
+        for (let i = 0; i < parent_diff; i++) {
+            child_subcontext.push(target.leavePos());
+            child_subcontext.push(target.leavePos());
+        }
+
         let answers = { value: false, ended: true };
 
-        const target = this._target.peek();
         target.enterPos(global.alias.nested);
         if (!target.isPosEmpty()) {
             target.enterPos(0);
@@ -195,6 +207,10 @@ class Composer {
             target.leavePos();
         }
         target.leavePos();
+
+        while (child_subcontext.length > 0) {
+            target.enterPos(child_subcontext.pop());
+        }
 
         return answers;
     }

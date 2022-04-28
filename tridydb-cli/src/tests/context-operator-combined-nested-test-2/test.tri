@@ -1,0 +1,15 @@
+@tridy;
+
+@new a;
+
+@in a @new b;
+
+@new c ignored;
+
+@in ignored @new b;
+
+@in */b @new d;
+
+@in */b<a/d @new non-transitory-test;
+
+@get;

@@ -1,0 +1,57 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "c"
+                                ]
+                            },
+                            {
+                                "tags": [
+                                    "d"
+                                ],
+                                "tree": [
+                                    {
+                                        "tags": [
+                                            "non-transitory-test"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    "a",
+                    "ignored"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ],
+                        "tree": [
+                            {
+                                "tags": [
+                                    "d"
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
