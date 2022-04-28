@@ -264,12 +264,12 @@ class TokenParser {
     }
 
     _isIdentifier(ch) {
-        return /[-A-Za-z0-9_]/g.test(ch);
+        return /[-A-Za-z0-9_.]/g.test(ch);
     }
 
     // Not all of these punctuation symbols are used, but they are included in case one day they are (avoids having to change this bit of code in the future).
     _isPunc(ch) {
-        return /[~%^&*()+=\[\]{}|:;,.?]/g.test(ch);
+        return /[~%^&*()+=\[\]{}|:;,?]/g.test(ch);
     }
 
     _isMultiPunc(ch) {
