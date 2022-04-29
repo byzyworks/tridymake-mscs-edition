@@ -4,7 +4,6 @@ import { StateTree } from './StateTree.js';
 
 import { isArray, global, deepCopy, isEmpty } from '../utility/common.js';
 import { Stack }                              from '../utility/Stack.js';
-import { Queue }                              from '../utility/Queue.js';
 
 class Composer {
     constructor() {
