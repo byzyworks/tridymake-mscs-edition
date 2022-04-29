@@ -1,0 +1,18 @@
+@tridy;
+
+@new a locked
+@has {
+    @new b;
+    
+    @in b < a
+    @new c;
+};
+
+@new a unlocked
+@has {
+    @new b;
+};
+
+@in unlocked / b < a @new c;
+
+@get;

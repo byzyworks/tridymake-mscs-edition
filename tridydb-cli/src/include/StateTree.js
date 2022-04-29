@@ -1,4 +1,4 @@
-import { global, isArray, isObject } from '../utility/common.js';
+import { global, isArray, isEmpty, isObject } from '../utility/common.js';
 
 /**
  * A generalized class that is basically an iterable n-ary tree, used as both a skeleton for the Tridy database, and for the abstract syntax tree used to prepare it.
@@ -110,17 +110,19 @@ export class StateTree {
     }
 
     getPosValue() {
-        if (this.isPosEmpty()) {
-            return undefined;
-        } else {
-            this._updatePtrs();
-
-            const pos = this.getTopPos();
-            if (pos === null) {
-                return this._tree;
-            } else {
-                return this._ptr[pos];
+        let ptr = this._tree;
+        for (let i = 0; i < this._pos.length - 1; i++) {
+            if (!isObject(ptr[this._pos[i]])) {
+                return undefined;
             }
+            ptr = ptr[this._pos[i]];
+        }
+
+        const pos = this.getTopPos();
+        if (pos === null) {
+            return ptr;
+        } else {
+            return ptr[pos];
         }
     }
 
@@ -161,9 +163,7 @@ export class StateTree {
     }
 
     copyPosValue(target) {
-        if (!this.isPosEmpty()) {
-            target.setPosValue(this.getPosValue());
-        }
+        target.setPosValue(this.getPosValue());
     }
 
     enterGetAndLeave(pos) {
@@ -226,12 +226,17 @@ export class StateTree {
             }
             ptr = ptr[this._pos[i]];
         }
+
         const pos = this.getTopPos();
-        if ((pos !== null) && (ptr[pos] === undefined)) {
-            return true;
+        if (pos === null) {
+            return isEmpty(ptr);
         } else {
-            return false;
+            return isEmpty(ptr[pos]);
         }
+    }
+
+    isPosUndefined() {
+        return this.getPosValue() === undefined;
     }
 
     isPosRoot() {
@@ -262,7 +267,10 @@ export class StateTree {
             this.leavePos();
         }
 
-        if (!this.isPosEmpty()) {
+        if (this.getTopPos() < 0) {
+            this.leavePos();
+            this.enterPos(0);
+        } else {
             const idx = this.leavePos();
             this.enterPos(idx + 1);
         }
@@ -272,7 +280,7 @@ export class StateTree {
         this.enterPos(this._alias.nested);
         if (!this.isPosEmpty()) {
             this.enterPos(0);
-            while (!this.isPosEmpty()) {
+            while (!this.isPosUndefined()) {
                 callback();
                 this.nextItem();
             }

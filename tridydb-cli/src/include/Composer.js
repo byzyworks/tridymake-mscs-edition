@@ -192,7 +192,7 @@ class Composer {
         target.enterPos(global.alias.nested);
         if (!target.isPosEmpty()) {
             target.enterPos(0);
-            while (!target.isPosEmpty()) {
+            while (!target.isPosUndefined()) {
                 tested  = this._getContext();
                 answers = this._matchingExpression(b, tested, lvl);
                 if (opts.recurse && (answers.value === false)) {
@@ -393,16 +393,22 @@ class Composer {
                 if (spliced === null) {
                     // then this module is the root module.
                     target.setPosValue({ });
-                } else if (spliced === 0) {
-                    // then this module is the last module in the parent's tree.
-                    target.leavePos();
-                    target.setPosValue(undefined);
-                    target.enterPos(0);
                 } else {
-                    // then this module is still one of many modules in the parent's tree.
                     target.leavePos();
                     target.getPosValue().splice(spliced, 1);
-                    target.enterPos(spliced - 1);
+                    
+                    if ((spliced === 0) && target.isPosEmpty()) {
+                        target.leavePos();
+                        target.setPosValue(undefined);
+                        target.enterPos(0);
+                    } else {
+                        /**
+                         * If spliced is 0 and target.isPosEmpty() is false, this should still happen.
+                         * When target.nextItem() is called, it will automatically reset the index to 0, anyway.
+                         * However, if this isn't called, it won't know to retry index 0 when it gets there, as the difference between iterating over 0 vs. deleting it.
+                         */
+                        target.enterPos(spliced - 1);
+                    }
                 }
                 break;
         }
@@ -456,7 +462,7 @@ class Composer {
             target.enterPos(global.alias.nested);
             if (!target.isPosEmpty()) {
                 target.enterPos(0);
-                while (!target.isPosEmpty()) {
+                while (!target.isPosUndefined()) {
                     matched = this._traverseModule(test, command, depth + 1, max_depth, opts);
                     if (opts.greedy && matched) {
                         break;
@@ -506,7 +512,7 @@ class Composer {
         this._astree.enterPos(global.defaults.alias.nested);
         if (!this._astree.isPosEmpty()) {
             this._astree.enterPos(0);
-            while (!this._astree.isPosEmpty()) {
+            while (!this._astree.isPosUndefined()) {
                 this._parseStatement();
 
                 this._astree.nextItem();

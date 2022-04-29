@@ -8,7 +8,7 @@ import { tridy }  from './include/Interpreter.js';
 import { cli }    from './console.js';
 import { server } from './server.js';
 
-import { global }                         from './utility/common.js';
+import { APP, global }                    from './utility/common.js';
 import { error_handler }                  from './utility/error.js';
 import { transports, logger, log_levels } from './utility/logger.js';
 
@@ -25,7 +25,7 @@ process.on('unhandledRejection', (err) => {
 let preset;
 
 program
-    .version('1.0.0')
+    .version(APP.VERSION)
     .description('Specialized database management for portable, hierarchical, tree-like data files.')
     .addOption(
         new Option('-c, --command <commands>', 'Pre-load a Tridy database from a string of Tridy commands.')
