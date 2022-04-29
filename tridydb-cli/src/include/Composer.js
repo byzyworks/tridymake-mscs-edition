@@ -398,17 +398,15 @@ class Composer {
                     target.getPosValue().splice(spliced, 1);
                     
                     if ((spliced === 0) && target.isPosEmpty()) {
-                        target.leavePos();
                         target.setPosValue(undefined);
-                        target.enterPos(0);
-                    } else {
-                        /**
-                         * If spliced is 0 and target.isPosEmpty() is false, this should still happen.
-                         * When target.nextItem() is called, it will automatically reset the index to 0, anyway.
-                         * However, if this isn't called, it won't know to retry index 0 when it gets there, as the difference between iterating over 0 vs. deleting it.
-                         */
-                        target.enterPos(spliced - 1);
                     }
+
+                    /**
+                     * When target.nextItem() is called, the negative index will auto-reset to 0.
+                     * The negative index is used so the composer knows to retry 0 after the array has shifted.
+                     * This is the easiest way to tell that the tree array has already shifted back because of a @del statement.
+                     */
+                    target.enterPos(spliced - 1);
                 }
                 break;
         }

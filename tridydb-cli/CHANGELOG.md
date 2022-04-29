@@ -20,4 +20,3 @@ Remember also to set the version number inside package.json and utility/common.
 ## Version 1.0.1
 
 * Fixed a bug that would cause `@del` to delete the entire tree an element is inside of if matched as also the first module in its the tree.
-* Added test for `@has`'s context-locking feature, bringing the grand total number of tests to 100.
