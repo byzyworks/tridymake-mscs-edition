@@ -1,5 +1,3 @@
-import { Token } from '../include/Token.js';
-
 import { Stack } from '../utility/Stack.js';
 import { Queue } from '../utility/Queue.js';
 

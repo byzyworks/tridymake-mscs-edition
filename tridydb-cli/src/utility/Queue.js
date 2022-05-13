@@ -1,39 +1,39 @@
 export class Queue {
     constructor() {
-        this.arr = [ ];
+        this._arr = [ ];
     }
 
     toArray() {
-        return this.arr;
+        return this._arr;
     }
     
     enqueue(item) {
-        this.arr.push(item);
+        this._arr.push(item);
     }
     
     dequeue() {
         if (this.isEmpty()) {
             throw new Error('Queue underflow');
         }
-        return this.arr.shift();
+        return this._arr.shift();
     }
 
     length() {
-        return this.arr.length;
+        return this._arr.length;
     }
 
     isEmpty() {
-        return this.arr.length == 0;
+        return this._arr.length == 0;
     }
     
     peek() {
         if (this.isEmpty()) {
             return null;
         }
-        return this.arr[0];
+        return this._arr[0];
     }
     
     clear() {
-        this.arr = [ ];
+        this._arr = [ ];
     }
 }

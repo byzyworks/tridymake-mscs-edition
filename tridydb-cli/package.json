@@ -1,6 +1,6 @@
 {
   "name": "tridydb-cli",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Interpreter for composing general tree-like data objects using boolean expressions and a specially-built data language.",
   "main": "src/app.js",
   "scripts": {

@@ -163,7 +163,9 @@ class SyntaxParser {
     _readWhileRaw(opts = { }) {
         opts.multiline = opts.multiline ?? false;
 
+        let line = 0;
         let data = '';
+
         while (this._tokens.peek().is('part')) {
             /**
              * With certain formats like YAML that are whitespace-sensitive, the line feed needs to be respected so the indentation is as well.
@@ -171,13 +173,15 @@ class SyntaxParser {
              * This is because if the user is entering the a multi-line string in a special format, the tokenizer will produce a new "part" token for every line until it receives a token with the clause "@end".
              * There are no other circumstances where two or more consecutive "part" tokens are produced.
              */ 
-            if (opts.multiline) {
+            if (opts.multiline && (line > 0)) {
                 data += "\n";
             }
 
             data += this._tokens.peek().val;
 
             this._tokens.next();
+
+            line++;
         }
     
         return data;
@@ -314,6 +318,21 @@ class SyntaxParser {
         }
     }
 
+    _handleTypeDefinition() {
+        if (this._tokens.peek().is('key', 'none')) {
+            this._tokens.next();
+
+            this._astree.enterSetAndLeave(global.defaults.alias.type, null);
+        } else {
+            const type = this._readWhileRaw({ multiline: true });
+            if (type === null) {
+                this._handleUnexpected();
+            } else {
+                this._astree.enterSetAndLeave(global.defaults.alias.type, type);
+            }
+        }
+    }
+
     _handleStateDefinition() {
         if (this._tokens.peek().is('key', 'none')) {
             this._tokens.next();
@@ -351,6 +370,22 @@ class SyntaxParser {
         // The first option, for instance, is just an optional way to distinguish it from the raw input (e.g. "@json ... @end") options that specify a format first.
         if (this._tokens.peek().is('key', 'tridy')) {
             this._tokens.next();
+
+            if (this._tokens.peek().is('key', 'of')) {
+                this._tokens.next();
+    
+                this._handleTypeDefinition();
+            }
+
+            if (this._tokens.peek().is('key', 'as')) {
+                this._tokens.next();
+
+                this._handleTagsDefinition({ require: true });
+            }
+        } else if (this._tokens.peek().is('key', 'of')) {
+            this._tokens.next();
+    
+            this._handleTypeDefinition();
 
             if (this._tokens.peek().is('key', 'as')) {
                 this._tokens.next();
@@ -393,10 +428,34 @@ class SyntaxParser {
             this._tokens.next();  
         } else {
             if (this._tokens.peek().isAffectingOpToken()) {
+                const op = this._tokens.peek().val;
+
                 this._handleOperation();
-    
-                if (!this._tokens.peek().is('punc', ';')) {
+
+                if (!this._tokens.peek().is('punc', ';') && !this._tokens.peek().isGetParameterToken()) {
                     this._handleContext();
+                }
+
+                switch (op) {
+                    case 'get':
+                        if (this._tokens.peek().is('key', 'raw')) {
+                            this._tokens.next();
+                        
+                            this._astree.enterSetAndLeave(['other', 'compression'], 'none');
+                        } else if (this._tokens.peek().is('key', 'strip')) {
+                            this._tokens.next();
+                        
+                            this._astree.enterSetAndLeave(['other', 'compression'], 'low');
+                        } else if (this._tokens.peek().is('key', 'merge')) {
+                            this._tokens.next();
+                        
+                            this._astree.enterSetAndLeave(['other', 'compression'], 'medium');
+                        } else if (this._tokens.peek().is('key', 'final')) {
+                            this._tokens.next();
+                        
+                            this._astree.enterSetAndLeave(['other', 'compression'], 'high');
+                        }
+                        break;
                 }
             } else if (this._tokens.peek().isDefiningOpToken() || this._tokens.peek().is('key', 'in')) {
                 /**

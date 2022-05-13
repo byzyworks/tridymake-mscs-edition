@@ -176,4 +176,13 @@ export class Token {
             this.is('key', 'exit')
         ;
     }
+
+    isGetParameterToken() {
+        return false ||
+            this.is('key', 'raw') ||
+            this.is('key', 'strip') ||
+            this.is('key', 'merge') ||
+            this.is('key', 'final')
+        ;
+    }
 }

@@ -1,39 +1,39 @@
 export class Stack {
     constructor() {
-        this.arr = [ ];
+        this._arr = [ ];
     }
 
     toArray() {
-        return this.arr;
+        return this._arr;
     }
     
     push(item) {
-        this.arr.push(item);
+        this._arr.push(item);
     }
     
     pop() {
         if (this.isEmpty()) {
             throw new Error('Stack underflow');
         }
-        return this.arr.pop();
+        return this._arr.pop();
     }
 
     length() {
-        return this.arr.length;
+        return this._arr.length;
     }
 
     isEmpty() {
-        return this.arr.length == 0;
+        return this._arr.length == 0;
     }
     
     peek() {
         if (this.isEmpty()) {
             return null;
         }
-        return this.arr[this.arr.length - 1];
+        return this._arr[this._arr.length - 1];
     }
     
     clear() {
-        this.arr = [ ];
+        this._arr = [ ];
     }
 }

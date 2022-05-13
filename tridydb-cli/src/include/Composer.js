@@ -2,8 +2,8 @@ import uuid from 'uuid-random';
 
 import { StateTree } from './StateTree.js';
 
-import { isArray, global, deepCopy, isEmpty } from '../utility/common.js';
-import { Stack }                              from '../utility/Stack.js';
+import * as common from '../utility/common.js';
+import { Stack }   from '../utility/Stack.js';
 
 class Composer {
     constructor() {
@@ -11,7 +11,7 @@ class Composer {
     }
     
     _createModule(command) {
-        const module = new StateTree(null, global.alias);
+        const module = new StateTree(null, common.global.alias);
 
         this._astree.enterPos('raw');
         if (!this._astree.isPosEmpty()) {
@@ -24,19 +24,25 @@ class Composer {
             // The order of assignment below affects the final output.
             // Don't switch it up unless you're prepared to change the expected test case outputs, too.
 
-            module.enterPos(global.alias.tags);
-            this._astree.enterPos(global.defaults.alias.tags);
+            module.enterPos(common.global.alias.type);
+            this._astree.enterPos(common.global.defaults.alias.type);
             this._astree.copyPosValue(module);
             this._astree.leavePos();
             module.leavePos();
 
-            module.enterPos(global.alias.state);
-            this._astree.enterPos(global.defaults.alias.state);
+            module.enterPos(common.global.alias.tags);
+            this._astree.enterPos(common.global.defaults.alias.tags);
             this._astree.copyPosValue(module);
             this._astree.leavePos();
             module.leavePos();
 
-            this._astree.enterPos(global.defaults.alias.nested);
+            module.enterPos(common.global.alias.state);
+            this._astree.enterPos(common.global.defaults.alias.state);
+            this._astree.copyPosValue(module);
+            this._astree.leavePos();
+            module.leavePos();
+
+            this._astree.enterPos(common.global.defaults.alias.nested);
             if (!this._astree.isPosEmpty()) {
                 this._astree.leavePos();
 
@@ -66,10 +72,10 @@ class Composer {
          */
         for (let i = 0; i < indices.length; i += 2) {
             ptr = ptr[indices[i]][indices[i + 1]];
-            if (isEmpty(ptr[global.alias.tags])) {
+            if (common.isEmpty(ptr[common.global.alias.tags])) {
                 current.push([ ]);
             } else {
-                current.push(ptr[global.alias.tags]);
+                current.push(ptr[common.global.alias.tags]);
             }
         }
 
@@ -91,7 +97,7 @@ class Composer {
                 answers.value = lvl === 0;
                 break;
             case '%': // from @leaf
-                answers.value = isEmpty(this._target.peek().enterGetAndLeave(global.alias.nested));
+                answers.value = common.isEmpty(this._target.peek().enterGetAndLeave(common.global.alias.nested));
                 break;
             case '?': // from @random
                 answers.value = (Math.random() >= 0.5);
@@ -188,7 +194,7 @@ class Composer {
 
         let answers = { value: false, ended: true };
 
-        target.enterPos(global.alias.nested);
+        target.enterPos(common.global.alias.nested);
         if (!target.isPosEmpty()) {
             target.enterPos(0);
             while (!target.isPosUndefined()) {
@@ -309,11 +315,11 @@ class Composer {
     _matchingExpression(test, tested, lvl) {
         let answers;
 
-        if (isEmpty(test)) {
+        if (common.isEmpty(test)) {
             answers       = { };
-            answers.value = isEmpty(tested);
+            answers.value = common.isEmpty(tested);
             answers.ended = answers.value;
-        } else if (isEmpty(tested) || (lvl < 0) || (lvl >= tested.length)) {
+        } else if (common.isEmpty(tested) || (lvl < 0) || (lvl >= tested.length)) {
             answers       = { };
             answers.value = false;
             answers.ended = true;
@@ -358,11 +364,11 @@ class Composer {
     }
 
     _uniqueCopy(template) {
-        const copy = deepCopy(template);
+        const copy = common.deepCopy(template);
 
         // A UUID needs to be unique for every copy of a module, even if generated in the same statement.
-        const tags = copy[global.alias.tags];
-        if (isArray(tags)) {
+        const tags = copy[common.global.alias.tags];
+        if (common.isArray(tags)) {
             for (const i in tags) {
                 if (tags[i] === '@uuid') {
                     tags[i] = uuid();
@@ -371,6 +377,90 @@ class Composer {
         }
 
         return copy;
+    }
+
+    _lossyCompressModuleLite(target) {
+        target.enterSetAndLeave(common.global.alias.type, undefined);
+        target.enterSetAndLeave(common.global.alias.tags, undefined);
+
+        target.enterPos(common.global.alias.nested);
+        if (!target.isPosEmpty()) {
+            target.enterPos(0);
+            while (!target.isPosUndefined()) {
+                this._lossyCompressModuleLite(target);
+                target.nextItem();
+            }
+            target.leavePos();
+        }
+        target.leavePos();
+    }
+    
+    _lossyCompressModuleHeavy(target, opts = { }) {
+        opts.strict = opts.strict ?? false;
+
+        let   type;
+        let   tags;
+        const free = common.toDictionary(target[common.global.alias.state]);
+        const tree = common.toArray(target[common.global.alias.nested]);
+
+        target = new StateTree(free);
+
+        for (let sub of tree) {
+            sub  = common.toDictionary(sub);
+
+            type = sub[common.global.alias.type];
+            tags = common.toArray(sub[common.global.alias.tags]);
+            if ((type === undefined) && !common.isEmpty(tags)) {
+                type = tags[tags.length - 1];
+            }
+
+            sub = this._lossyCompressModuleHeavy(sub, opts);
+
+            sub = new StateTree(sub);
+            
+            if (common.isPrimitive(type)) {
+                target.enterPos(type);
+                if (opts.strict) {
+                    if (common.isArray(target.getPosValue()) || target.isPosUndefined()) {
+                        target.putPosValue(sub.getRaw());
+                    } else {
+                        target.leavePos();
+                        target.enterPos(0);
+                        while (!target.isPosUndefined()) {
+                            target.nextItem();
+                        }
+                        target.setPosValue(sub.getRaw());
+                        target.leavePos();
+                        target.enterPos(type);
+                    }
+                } else if (target.isPosUndefined()) {
+                    target.setPosValue(sub.getRaw());
+                } else {
+                    target.putPosValue(sub.getRaw());
+                }
+                target.leavePos();
+            } else {
+                target.enterPos(0);
+                while (!target.isPosUndefined()) {
+                    target.nextItem();
+                }
+                target.setPosValue(sub.getRaw());
+                target.leavePos();
+            }
+        }
+
+        target = target.getRaw();
+
+        if (!opts.strict && !common.isEmpty(target) && common.isArrayableObject(target)) {
+            const arr = [ ];
+            for (const part of Object.values(target)) {
+                arr.push(part);
+            }
+
+            target = arr;
+        }
+
+        return target;
     }
 
     _composeModule(command, opts = { }) {
@@ -382,10 +472,27 @@ class Composer {
                 target.setPosValue(this._uniqueCopy(opts.template));
                 break;
             case 'module':
-                target.enterPutAndLeave(global.alias.nested, this._uniqueCopy(opts.template));
+                target.enterPutAndLeave(common.global.alias.nested, this._uniqueCopy(opts.template));
                 break;
             case 'print':
-                this._output.push(deepCopy(target.getPosValue()));
+                let copy = common.deepCopy(target.getPosValue());
+
+                switch (this._astree.enterGetAndLeave(['other', 'compression'])) {
+                    case 'low':
+                        copy = new StateTree(copy);
+                        this._lossyCompressModuleLite(copy);
+                        copy = copy.getRaw();
+                        break;
+                    case 'medium':
+                        copy = this._lossyCompressModuleHeavy(copy, { strict: true });
+                        break;
+                    case 'high':
+                        copy = this._lossyCompressModuleHeavy(copy, { strict: false });
+                        break;
+                }
+
+                this._output.push(copy);
+
                 break;
             case 'delete':
                 const spliced = target.getTopPos();
@@ -414,7 +521,7 @@ class Composer {
     // The purpose of this is strictly for optimizing how Tridy handles very large trees.
     // Without it, all modules in the database will be tested needlessly by a context expression.
     _getMaximumDepth(test) {
-        if (isEmpty(test)) {
+        if (common.isEmpty(test)) {
             return 0;
         } else if (this._isTag(test)) {
             return 1;
@@ -456,7 +563,7 @@ class Composer {
         const matched_this = matched;
         if (((max_depth === null) || (depth < max_depth)) && (!opts.greedy || !matched)) {
             const target = this._target.peek();
-            target.enterPos(global.alias.nested);
+            target.enterPos(common.global.alias.nested);
             if (!target.isPosEmpty()) {
                 target.enterPos(0);
                 while (!target.isPosUndefined()) {
@@ -506,7 +613,7 @@ class Composer {
     }
 
     _parse() {
-        this._astree.enterPos(global.defaults.alias.nested);
+        this._astree.enterPos(common.global.defaults.alias.nested);
         if (!this._astree.isPosEmpty()) {
             this._astree.enterPos(0);
             while (!this._astree.isPosUndefined()) {
@@ -523,7 +630,7 @@ class Composer {
         this._astree = input;
 
         if (this._target.isEmpty()) {
-            this._target.push(new StateTree(null, global.alias));
+            this._target.push(new StateTree(null, common.global.alias));
         }
         
         this._output = [ ];

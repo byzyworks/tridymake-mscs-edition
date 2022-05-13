@@ -1,6 +1,6 @@
 export const APP = Object.freeze({
     NAME:    'TridyDB CLI',
-    VERSION: '1.0.1'
+    VERSION: '1.1.0'
 });
 
 export const pushAll = (target, source) => {
@@ -23,6 +23,69 @@ export const isArray = (obj) => {
 
 export const isDictionary = (obj) => {
     return (isObject(obj) && !isArray(obj));
+}
+
+/**
+ * This function is used to refer to an object that can be converted directly to an array without a loss of information.
+ * More specifically, that means it's a complex object with an ordered, integer-only set of keys starting at 0 that may or may not be an array, internally.
+ */
+export const isArrayableObject = (obj) => {
+    if (isArray(obj)) {
+        return true;
+    }
+
+    /**
+     * This is to return false on receiving a primitive type.
+     * It does this because, even though we could simply make a primitive the first element of a new array "without losing information",
+     * we could do the same to any primitive or complex type, making this function pretty pointless since that means everything can be made an array in some sense.
+     * Thus, it more accurately means "could I change the value of this variable in-place to be an array without a loss of information, and without changing how it's accessed?"
+     */
+    if (!isDictionary(obj)) {
+        return false;
+    }
+
+    let order = 0;
+    for (const key in obj) {
+        if (isNaN(key) || key != order) {
+            return false;
+        }
+        order++;
+    }
+
+    return true;
+}
+
+export const isPrimitive = (obj) => {
+    return !isObject(obj) && !isNullish(obj);
+}
+
+export const toArray = (obj) => {
+    if (isArray(obj)) {
+        return obj;
+    } else if (isDictionary(obj)) {
+        return Object.values(obj);
+    } else if (obj === undefined) {
+        return [ ];
+    } else {
+        return [ obj ];
+    }
+}
+
+export const toDictionary = (obj) => {
+    if (isDictionary(obj)) {
+        return obj;
+    } else if (isArray(obj)) {
+        const dict = { };
+        let   idx  = 0;
+        for (const elem of obj) {
+            dict[idx] = elem;
+        }
+        return dict;
+    } else if (obj === undefined) {
+        return { };
+    } else {
+        return { 0: obj };
+    }
 }
 
 export const deepCopy = (source) => {
@@ -103,7 +166,8 @@ const defaults = Object.freeze({
     alias: {
         tags:   'tags',
         state:  'free',
-        nested: 'tree'
+        nested: 'tree',
+        type:   'type'
     },
     remote: {
         enable:  false,
@@ -112,7 +176,8 @@ const defaults = Object.freeze({
         timeout: 3000
     },
     output: {
-        pretty: false
+        pretty:   false,
+        compress: false
     },
     log_level: 'info'
 });

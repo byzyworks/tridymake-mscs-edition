@@ -1,4 +1,4 @@
-import { global, isArray, isEmpty, isObject } from '../utility/common.js';
+import * as common from '../utility/common.js';
 
 /**
  * A generalized class that is basically an iterable n-ary tree, used as both a skeleton for the Tridy database, and for the abstract syntax tree used to prepare it.
@@ -38,9 +38,10 @@ export class StateTree {
          * That is, where a StateTree with "alias" filled by user values is constructed.
          */
         this._alias = {
-            tags:   alias.tags   ?? global.defaults.alias.tags,
-            state:  alias.state  ?? global.defaults.alias.state,
-            nested: alias.nested ?? global.defaults.alias.nested
+            type:   alias.type   ?? common.global.defaults.alias.type,
+            tags:   alias.tags   ?? common.global.defaults.alias.tags,
+            state:  alias.state  ?? common.global.defaults.alias.state,
+            nested: alias.nested ?? common.global.defaults.alias.nested
         };
     }
 
@@ -112,7 +113,7 @@ export class StateTree {
     getPosValue() {
         let ptr = this._tree;
         for (let i = 0; i < this._pos.length - 1; i++) {
-            if (!isObject(ptr[this._pos[i]])) {
+            if (!common.isObject(ptr[this._pos[i]])) {
                 return undefined;
             }
             ptr = ptr[this._pos[i]];
@@ -167,7 +168,7 @@ export class StateTree {
     }
 
     enterGetAndLeave(pos) {
-        pos = isArray(pos) ? pos : [ pos ];
+        pos = common.isArray(pos) ? pos : [ pos ];
 
         for (const part of pos) {
             this.enterPos(part);
@@ -181,7 +182,7 @@ export class StateTree {
     }
 
     enterSetAndLeave(pos, value) {
-        pos = isArray(pos) ? pos : [ pos ];
+        pos = common.isArray(pos) ? pos : [ pos ];
 
         for (const part of pos) {
             this.enterPos(part);
@@ -193,7 +194,7 @@ export class StateTree {
     }
 
     enterPutAndLeave(pos, value) {
-        pos = isArray(pos) ? pos : [ pos ];
+        pos = common.isArray(pos) ? pos : [ pos ];
 
         for (const part of pos) {
             this.enterPos(part);
@@ -205,7 +206,7 @@ export class StateTree {
     }
 
     enterCopyAndLeave(target, pos) {
-        pos = isArray(pos) ? pos : [ pos ];
+        pos = common.isArray(pos) ? pos : [ pos ];
 
         for (const part of pos) {
             this.enterPos(part);
@@ -221,7 +222,7 @@ export class StateTree {
     isPosEmpty() {
         let ptr = this._tree;
         for (let i = 0; i < this._pos.length - 1; i++) {
-            if (!isObject(ptr[this._pos[i]])) {
+            if (!common.isObject(ptr[this._pos[i]])) {
                 return true;
             }
             ptr = ptr[this._pos[i]];
@@ -229,9 +230,9 @@ export class StateTree {
 
         const pos = this.getTopPos();
         if (pos === null) {
-            return isEmpty(ptr);
+            return common.isEmpty(ptr);
         } else {
-            return isEmpty(ptr[pos]);
+            return common.isEmpty(ptr[pos]);
         }
     }
 
@@ -263,16 +264,21 @@ export class StateTree {
     }
 
     nextItem() {
-        while (this._pos[this._pos.length - 2] !== this._alias.nested) {
-            this.leavePos();
-        }
-
-        if (this.getTopPos() < 0) {
-            this.leavePos();
-            this.enterPos(0);
-        } else {
+        if (this._pos.length === 1) {
             const idx = this.leavePos();
             this.enterPos(idx + 1);
+        } else if (this._pos.length > 1) {
+            while (this._pos[this._pos.length - 2] !== this._alias.nested) {
+                this.leavePos();
+            }
+    
+            if (this.getTopPos() < 0) {
+                this.leavePos();
+                this.enterPos(0);
+            } else {
+                const idx = this.leavePos();
+                this.enterPos(idx + 1);
+            }
         }
     }
 

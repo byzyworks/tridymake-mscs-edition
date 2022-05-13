@@ -4,15 +4,15 @@ export class List extends Stack {
     constructor() {
         super();
 
-        this.it = 0;
+        this._it = 0;
     }
 
     prev() {
-        if (this.it > 0) {
-            this.it--;
+        if (this._it > 0) {
+            this._it--;
 
-            if (this.it >= 0) {
-                return this.arr[this.it];
+            if (this._it >= 0) {
+                return this._arr[this._it];
             } else {
                 return null;
             }
@@ -22,11 +22,11 @@ export class List extends Stack {
     }
 
     next() {
-        if (this.it < this.arr.length) {
-            this.it++;
+        if (this._it < this._arr.length) {
+            this._it++;
 
-            if (this.it < this.arr.length) {
-                return this.arr[this.it];
+            if (this._it < this._arr.length) {
+                return this._arr[this._it];
             } else {
                 return null;
             }
@@ -36,10 +36,10 @@ export class List extends Stack {
     }
 
     peek() {
-        return this.arr[this.it];
+        return this._arr[this._it];
     }
 
     isEnd() {
-        return this.it >= this.arr.length;
+        return this._it >= this._arr.length;
     }
 }

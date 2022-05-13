@@ -20,3 +20,9 @@ Remember also to set the version number inside package.json and utility/common.
 ## Version 1.0.1
 
 * Fixed a bug that would cause `@del` to delete the entire tree an element is inside of if matched as also the first module in its the tree.
+
+## Version 1.1.0
+
+* Added clauses `@raw`, `@strip`, `@merge`, and `@final` as ending parameters to `@get` as a way to remove TridyDB metadata from the output (as a side effect making the output one-way / non-reusable by Tridy as input), and compress the remaining output down to varying degrees (`@raw` means no compression / the default behavior while `@final` has the greatest compression).
+* Added clause `@of` to specify a module's type in the form of a double-quoted string, used by `@merge` and `@final`'s reduced output as the module's key. If not given, the final tag in the module's tagset will be used.
+* Added `--type-key` program argument (and argument to `tridy.query(...)`) to control the name of the type key's key.

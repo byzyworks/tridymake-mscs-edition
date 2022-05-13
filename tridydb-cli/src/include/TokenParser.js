@@ -65,6 +65,9 @@ class TokenParser {
             } else if (ch === '@') {
                 this._mode.push('key');
                 break;
+            } else if ((ch === '"') && (this._mode.peek() === 'string')) {
+                this._mode.pop();
+                break;
             } else {
                 str += ch;
             }
@@ -74,8 +77,12 @@ class TokenParser {
     }
 
     _readNext() {
-        if (this._mode.peek() !== 'yaml') {
-            this._readWhilePred(this._isWhitespace);
+        switch (this._mode.peek()) {
+            case 'string':
+            case 'yaml':
+                break;
+            default:
+                this._readWhilePred(this._isWhitespace);
         }
 
         if (this._parser.isEOF()) {
@@ -106,11 +113,16 @@ class TokenParser {
             return keyword;
         }
 
-        const mode = this._mode.peek();
-        switch (mode) {
+        switch (this._mode.peek()) {
             case 'json':
             case 'yaml':
                 return this._readRaw();
+            default:
+                if ((ch === '"') && (this._mode.peek() !== 'string')) {
+                    this._mode.push('string');
+                    this._parser.next();
+                    return this._readRaw();
+                }
         }
 
         if (this._isIdentifier(ch) || this._isVariableStart(ch)) {
@@ -156,12 +168,12 @@ class TokenParser {
 
         switch (keyword) {
             case 'json':
-                if (this._mode.peek() != 'json') {
+                if (this._mode.peek() !== 'json') {
                     this._mode.push('json');
                 }
                 break;
             case 'yaml':
-                if (this._mode.peek() != 'yaml') {
+                if (this._mode.peek() !== 'yaml') {
                     this._mode.push('yaml');
                 }
                 break;

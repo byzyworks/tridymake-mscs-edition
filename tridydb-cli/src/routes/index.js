@@ -19,7 +19,7 @@ const toTridy = (op, opts = { }) => {
 
     let cmd;
 
-    if ((opts.type === 'verb') || (opts.type === 'astree')) {
+    if ((opts.format === 'verb') || (opts.format === 'astree')) {
         cmd = opts.data;
     } else {
         cmd = '';
@@ -31,13 +31,17 @@ const toTridy = (op, opts = { }) => {
         cmd += `@${op}`;
     
         if ((op !== 'get') && (op !== 'del')) {
-            if (opts.type === 'mod') {
+            if (opts.format === 'mod') {
+                if (opts.type) {
+                    cmd += ` @of "${opts.type}"`;
+                }
+
                 if (opts.tags) {
                     cmd += ` @as ${opts.tags.replace(/,/g, ' ')}`;
                 }
             
                 if (opts.state) {
-                    cmd += ` @is @${opts.statetype} ${opts.state} @end`;
+                    cmd += ` @is @${opts.stateformat} ${opts.state} @end`;
                 }
 
                 /**
@@ -53,7 +57,22 @@ const toTridy = (op, opts = { }) => {
                  * However, most of the time, '@has' is not necessary to use to begin with, and can be completely avoided with effective tagging.
                  */
             } else {
-                cmd += ` @${opts.type} ${opts.data} @end`;
+                cmd += ` @${opts.format} ${opts.data} @end`;
+            }
+        } else if (op === 'get') {
+            switch (opts.compression) {
+                case 0:
+                    cmd += ` @raw`;
+                    break;
+                case 1:
+                    cmd += ` @strip`;
+                    break;
+                case 2:
+                    cmd += ` @merge`;
+                    break;
+                case 3:
+                    cmd += ` @final`;
+                    break;
             }
         }
 
@@ -64,7 +83,7 @@ const toTridy = (op, opts = { }) => {
         cmd += ';';
     }
 
-    if (opts.type === 'astree') {
+    if (opts.format === 'astree') {
         logger.debug(`Received Tridy syntax: ${cmd}`);
     } else {
         logger.debug(`Received Tridy statements: ${cmd}`);
@@ -82,15 +101,19 @@ const getOpts = (req, res) => {
     if (req.query.greedy) {
         opts.greedy = req.query.greedy;
     }
+    if (req.query.compression) {
+        opts.compression = req.query.compression;
+    }
 
     if (req.query.type && (req.query.type !== 'mod')) {
-        opts.type = req.query.type;
-        opts.data = req.query.data;
+        opts.format = req.query.format;
+        opts.data   = req.query.data;
     } else {
-        opts.type      = 'mod';
-        opts.tags      = req.query.tags;
-        opts.statetype = req.query.freetype;
-        opts.state     = req.query.free;
+        opts.format      = 'mod';
+        opts.type        = req.query.type;
+        opts.tags        = req.query.tags;
+        opts.stateformat = req.query.freeformat;
+        opts.state       = req.query.free;
     }
 
     return opts;
@@ -111,7 +134,7 @@ const handleRoute = async (method, req, res, next) => {
      * This way, tokenization and carry can be offloaded to the client, while the server can be left with implementing the AST.
      * The point of this is so carry to be managed the same, intuitive way (locally) in both local and remote console sessions.
      */
-    if (((opts.type === 'verb') || (opts.type === 'astree')) && (method !== 'put')) {
+    if (((opts.format === 'verb') || (opts.format === 'astree')) && (method !== 'put')) {
         return next(new ServerSideServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
     }
 
@@ -122,7 +145,7 @@ const handleRoute = async (method, req, res, next) => {
         // We do not want to accept carry on the server-side since managing token carry is the client's job.
         // However, it makes no difference if the client sends a syntax tree directly.
         out = await tridy.query(cmd, {
-            tokenless:    opts.type === 'astree',
+            tokenless:    opts.format === 'astree',
             accept_carry: false
         });
     } catch (err) {

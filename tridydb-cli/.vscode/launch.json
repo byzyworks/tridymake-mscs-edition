@@ -4,6 +4,29 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Launch Test File (Development)",
+            "program": "${workspaceFolder}/src/app.js",
+            "cwd": "${workspaceFolder}/",
+            "args": ["inline", "--file", "src/tests/debug/test.tri", "--log-level", "debug", "--pretty"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Test File (Production)",
+            "program": "${workspaceFolder}/src/app.js",
+            "cwd": "${workspaceFolder}/",
+            "args": ["inline", "--file", "src/tests/debug/test.tri"],
+            "outputCapture": "std",
+            "console": "externalTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Launch Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",

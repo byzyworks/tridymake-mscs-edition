@@ -75,6 +75,10 @@ program
             .default(global.defaults.remote.timeout)
     )
     .addOption(
+        new Option('--type-key <key>', 'The key used to classify modules when printing compressed output using @done.')
+            .default(global.defaults.alias.type)
+    )
+    .addOption(
         new Option('-P, --server-port <port>', 'The port number to bind to when in server mode.')
             .default(global.defaults.remote.port)
     )
@@ -90,6 +94,7 @@ program
         const opts = program.opts();
 
         global.alias        = { };
+        global.alias.type   = opts.typeKey;
         global.alias.tags   = opts.tagsKey;
         global.alias.state  = opts.freeKey;
         global.alias.nested = opts.treeKey;

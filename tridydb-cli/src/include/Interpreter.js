@@ -75,7 +75,8 @@ class Interpreter {
      * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
      * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
      * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
-     * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @param   {Boolean} opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @param   {Boolean} opts.type_key     The key used to classify modules when printing compressed output using @done. Default is 'type'.
      * @returns {Array<Object>}             The output of the statement(s).
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.
@@ -85,6 +86,7 @@ class Interpreter {
         opts.accept_carry = opts.accept_carry ?? false;
 
         global.alias        = global.alias  ?? { };
+        global.alias.type   = opts.type_key ?? global.alias.type   ?? global.defaults.alias.type;
         global.alias.tags   = opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags;
         global.alias.state  = opts.free_key ?? global.alias.state  ?? global.defaults.alias.state;
         global.alias.nested = opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested;
