@@ -96,10 +96,8 @@ class StatementParser {
     next(opts = { }) {
         const tokens = this._readNext();
 
-        if (!opts.accept_carry) {
-            if (!this.isCarryEmpty() && !this.isStatementComplete()) {
-                throw new SyntaxError(`The input given contains an incomplete statement (missing final ";" or "}").`);
-            }
+        if (!opts.accept_carry && !this.isCarryEmpty() && !this.isStatementComplete()) {
+            throw new SyntaxError(`The input given contains an incomplete statement (missing final ";" or "}").`);
         }
 
         // Clearing is done so the line and col can be made with respect to any new statement that comes next.
@@ -109,9 +107,8 @@ class StatementParser {
 
         if (tokens.isEmpty()) {
             return null;
-        } else {
-            return tokens;
         }
+        return tokens;
     }
 }
 

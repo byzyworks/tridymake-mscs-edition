@@ -2,7 +2,34 @@
     {
         "tree": [
             {
+                "free": "0"
+            },
+            {
+                "free": "1"
+            },
+            {
+                "free": "0.0"
+            },
+            {
+                "free": "0.1"
+            },
+            {
+                "free": "true"
+            },
+            {
+                "free": "false"
+            },
+            {
+                "free": "null"
+            },
+            {
                 "free": "a"
+            },
+            {
+                "free": "This is a string."
+            },
+            {
+                "free": "0\n"
             }
         ]
     }

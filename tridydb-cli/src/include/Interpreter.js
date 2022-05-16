@@ -34,9 +34,8 @@ const sendTridyRequest = async (data) => {
     } catch (err) {
         if (err.response) {
             throw new ClientSideServerError(err.response.data);
-        } else {
-            throw new ClientSideServerError();
         }
+        throw new ClientSideServerError();
     }
 }
 
@@ -166,9 +165,8 @@ class Interpreter {
 
         if (opts.pretty) {
             return JSON.stringify(input, null, 4).replace(/\\\\/g, '\\');
-        } else {
-            return JSON.stringify(input).replace(/\\\\/g, '\\');
         }
+        return JSON.stringify(input).replace(/\\\\/g, '\\');
     }
 
     /**

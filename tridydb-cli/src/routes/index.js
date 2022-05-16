@@ -31,39 +31,53 @@ const toTridy = (op, opts = { }) => {
         cmd += `@${op}`;
     
         if ((op !== 'get') && (op !== 'del')) {
-            if (opts.format === 'mod') {
-                if (opts.type) {
-                    cmd += ` @of "${opts.type}"`;
-                }
-
-                if (opts.tags) {
-                    cmd += ` @as ${opts.tags.replace(/,/g, ' ')}`;
-                }
-            
-                if (opts.state) {
-                    if (opts.stateformat === 'string') {
-                        cmd += ` @is "${opts.state}"`;
-                    } else {
-                        cmd += ` @is @${opts.stateformat} ${opts.state} @end`;
+            switch (opts.format) {
+                case 'mod':
+                    if (opts.type) {
+                        cmd += ` @of "${opts.type}"`;
                     }
-                }
+    
+                    if (opts.tags) {
+                        cmd += ` @as ${opts.tags.replace(/,/g, ' ')}`;
+                    }
+                
+                    if (opts.state) {
+                        switch (opts.stateformat) {
+                            case 'string':
+                                cmd += ` @is "${opts.state}"`;
+                                break;
+                            case 'dynamic':
+                                cmd += ` @is \`${opts.state}\``;
+                                break;
+                            default:
+                                cmd += ` @is @${opts.stateformat} ${opts.state} @end`;
+                                break;
+                        }
+                    }
+    
+                    /**
+                     * Note that there isn't a place for '@has' nested statements.
+                     * This feature was removed because it would just create a lot of odd-looking query strings.
+                     * The main, unnested part of the statement would be structured to use HTTP query parameters, while the nested statements would have to put in as strings of raw Tridy code.
+                     * In other words, allowing nested statement would only make the syntax unwieldy and inconsistent for the REST methodology.
+                     * Attempting to force the syntax of nested statements as HTTP query parameters would technically entail multiple statements with identical parameter keys.
+                     * That means having to develop a system that would make each parameter key (or subvalue, if all packed into one parameter) unique and also associable to the correct statement.
+                     * The problem with that, of course, is that modules can get infinitely large and infinitely deep, as can the degree of nested statements there are in one, unnested statement.
+                     * Put simply, I don't think it's worth it when there's an alternative, which is to simply provide a way for statements to be entered fully as strings of raw Tridy code (in "verbatim mode").
+                     * "Verbatim mode" includes sending the entire statement as Tridy code, not just the nested part.
+                     * However, most of the time, '@has' is not necessary to use to begin with, and can be completely avoided with effective tagging.
+                     */
 
-                /**
-                 * Note that there isn't a place for '@has' nested statements.
-                 * This feature was removed because it would just create a lot of odd-looking query strings.
-                 * The main, unnested part of the statement would be structured to use HTTP query parameters, while the nested statements would have to put in as strings of raw Tridy code.
-                 * In other words, allowing nested statement would only make the syntax unwieldy and inconsistent for the REST methodology.
-                 * Attempting to force the syntax of nested statements as HTTP query parameters would technically entail multiple statements with identical parameter keys.
-                 * That means having to develop a system that would make each parameter key (or subvalue, if all packed into one parameter) unique and also associable to the correct statement.
-                 * The problem with that, of course, is that modules can get infinitely large and infinitely deep, as can the degree of nested statements there are in one, unnested statement.
-                 * Put simply, I don't think it's worth it when there's an alternative, which is to simply provide a way for statements to be entered fully as strings of raw Tridy code (in "verbatim mode").
-                 * "Verbatim mode" includes sending the entire statement as Tridy code, not just the nested part.
-                 * However, most of the time, '@has' is not necessary to use to begin with, and can be completely avoided with effective tagging.
-                 */
-            } else if (opts.format === 'string') {
-                cmd += ` "${opts.data}"`
-            } else {
-                cmd += ` @${opts.format} ${opts.data} @end`;
+                    break;
+                case 'string':
+                    cmd += ` "${opts.data}"`;
+                    break;
+                case 'dynamic':
+                    cmd += ` \`${opts.data}\``;
+                    break;
+                default:
+                    cmd += ` @${opts.format} ${opts.data} @end`;
+                    break;
             }
         } else if (op === 'get') {
             switch (opts.compression) {
@@ -163,9 +177,8 @@ const handleRoute = async (method, req, res, next) => {
     } catch (err) {
         if (err instanceof SyntaxError) {
             return next(new ServerSideServerError('The previous request contains unusable input.', err, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false, is_wrapper: true }));
-        } else {
-            throw err;
         }
+        throw err;
     }
 
     res.json(out);

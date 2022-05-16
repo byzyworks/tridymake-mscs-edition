@@ -4,14 +4,14 @@ import { parser as infixParser } from './InfixParser.js';
 import { StateTree }             from './StateTree.js';
 import { Token }                 from './Token.js';
 
-import { global, isEmpty } from '../utility/common.js';
-import { SyntaxError }     from '../utility/error.js';
+import { global, isEmpty, parseDynamic } from '../utility/common.js';
+import { SyntaxError }                   from '../utility/error.js';
 
 class SyntaxParser {
     constructor() { }
 
-    _handleUnexpected() {
-        const token = this._tokens.peek();
+    _handleUnexpected(token = null) {
+        token = token ?? this._tokens.peek();
         switch (token.debug.type) {
             case 'key':
                 throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected clause "@${token.debug.val}".`);
@@ -31,15 +31,17 @@ class SyntaxParser {
 
         if (current.is('t')) {
             context.push(current);
+            this._tokens.next();
 
-            current = this._tokens.next().toContextToken();
+            current = this._tokens.peek().toContextToken();
         }
 
         while (current.is('t')) {
             context.push(this._getContextImplicitBinaryOp());
             context.push(current);
+            this._tokens.next();
 
-            current = this._tokens.next().toContextToken();
+            current = this._tokens.peek().toContextToken();
         }
     }
 
@@ -48,8 +50,9 @@ class SyntaxParser {
 
         while (current.isUnaryOpContextToken()) {
             context.push(current);
+            this._tokens.next();
 
-            current = this._tokens.next().toContextToken();
+            current = this._tokens.peek().toContextToken();
         }
     }
 
@@ -58,13 +61,11 @@ class SyntaxParser {
     }
     
     _handleContextBinaryOp(context) {
-        if (this._isPreviousContextExpression(context)) {
-            const current = this._tokens.peek().toContextToken();
-            context.push(current);
-            this._tokens.next();
-        } else {
+        if (!this._isPreviousContextExpression(context)) {
             this._handleUnexpected();
         }
+
+        context.push(this._tokens.next().toContextToken());
     }
 
     _handleContextExpressionInner(context) {
@@ -117,12 +118,12 @@ class SyntaxParser {
 
         if (is_enclosed) {
             current = this._tokens.peek().toContextToken();
-            if (current.is('o', ')')) {
-                context.push(current);
-                this._tokens.next();
-            } else {
+            if (!current.is('o', ')')) {
                 this._handleUnexpected();
             }
+
+            context.push(current);
+            this._tokens.next();
         }
     }
 
@@ -166,7 +167,7 @@ class SyntaxParser {
         let line = 0;
         let data = '';
 
-        if (!this._tokens.peek().is('part')) {
+        if (!this._tokens.peek().is('part') && !this._tokens.peek().is('dynpart')) {
             return null;
         }
 
@@ -181,50 +182,62 @@ class SyntaxParser {
                 data += "\n";
             }
 
-            data += this._tokens.peek().val;
-
-            this._tokens.next();
+            data += this._tokens.next().val;
 
             line++;
-        } while (this._tokens.peek().is('part'));
+        } while (this._tokens.peek().is('part') || this._tokens.peek().is('dynpart'));
     
         return data;
     }
 
     _readWhileRawAndParse() {
+        /**
+         * Note to return undefined when the raw input stream is empty or its value cannot be determined, and avoid returning null under such circumstances.
+         * A literal null value can be entered as user input via. dynamic typing, and thus additionally be returned as a non-error output.
+         * Undefined would never be returned since JSON does not translate a literal undefined value to a native type, unlike null.
+         */
+
         let type;
         let data;
 
         const current = this._tokens.peek();
-        if (current.isRawInputToken()) {
-            if (current.is('key')) {
-                this._tokens.next();
+        if (!current.isRawInputToken()) {
+            return undefined;
+        }
 
-                type = current.val;
-            } else {
-                type = 'string';
-            }
+        if (current.is('key')) {
+            this._tokens.next();
 
-            data = this._readWhileRaw({ multiline: true });
-            if (data === null) {
-                return null;
-            } else if (type !== 'string') {
-                /**
-                 * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
-                 * Thus, the backslash characters have to themselves be escaped before they are put them.
-                 * Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
-                 * 
-                 * Note for YAML in particular, removing the whitespace at the very beginning is at least an important consideration.
-                 * Otherwise, if starting on a new line, it may cause the parser to pick up on the initial line feed unexpectedly.
-                 * Since YAML is whitespace-sensitive, that can end up throwing errors as a result.
-                 */
-                data = data.replace(/\\/g, '\\\\').replace(/^\s+/, '').replace(/\s+$/gm, '');
-                if (data === '') {
-                    return null;
-                }
+            type = current.val;
+        } else if (current.is('part')) {
+            type = 'string';
+        } else if (current.is('dynpart')) {
+            type = 'dynamic';
+        }
+
+        data = this._readWhileRaw({ multiline: true });
+        if (data === null) {
+            return undefined;
+        }
+
+        if (type === 'dynamic') {
+            data = parseDynamic(data);
+        }
+
+        if ((type !== 'string') && (type !== 'dynamic')) {
+            /**
+             * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
+             * Thus, the backslash characters have to themselves be escaped before they are put them.
+             * Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
+             * 
+             * Note for YAML in particular, removing the whitespace at the very beginning is at least an important consideration.
+             * Otherwise, if starting on a new line, it may cause the parser to pick up on the initial line feed unexpectedly.
+             * Since YAML is whitespace-sensitive, that can end up throwing errors as a result.
+             */
+            data = data.replace(/\\/g, '\\\\').replace(/^\s+/, '').replace(/\s+$/gm, '');
+            if (data === '') {
+                return undefined;
             }
-        } else {
-            return null;
         }
         
         try {
@@ -242,6 +255,7 @@ class SyntaxParser {
                     }
                     break;
                 case 'string':
+                case 'dynamic':
                     break;
             }
         } catch (err) {
@@ -252,64 +266,52 @@ class SyntaxParser {
     }
     
     _handleOperation() {
-        if (this._tokens.peek().is('key', 'set')) {
+        const current = this._tokens.next();
+        if (current.is('key', 'set')) {
             this._astree.enterSetAndLeave('operation', 'edit');
-            this._tokens.next();
-
-            if (this._tokens.peek().isRawInputToken()) {
-                this._astree.enterPos('raw');
-            } else {
-                this._astree.enterPos('definition');
-            }
-        } else if (this._tokens.peek().is('key', 'new')) {
+        } else if (current.is('key', 'new')) {
             this._astree.enterSetAndLeave('operation', 'module');
-            this._tokens.next();
+        } else if (current.is('key', 'get')) {
+            this._astree.enterSetAndLeave('operation', 'print');
+        } else if (current.is('key', 'del')) {
+            this._astree.enterSetAndLeave('operation', 'delete');
+        } else {
+            this._handleUnexpected(current);
+        }
 
+        if (current.isDefiningOpToken()) {
             if (this._tokens.peek().isRawInputToken()) {
                 this._astree.enterPos('raw');
             } else {
                 this._astree.enterPos('definition');
             }
-        } else if (this._tokens.peek().is('key', 'get')) {
-            this._astree.enterSetAndLeave('operation', 'print');
-            this._tokens.next();
-        } else if (this._tokens.peek().is('key', 'del')) {
-            this._astree.enterSetAndLeave('operation', 'delete');
-            this._tokens.next();
-        } else {
-            this._handleUnexpected();
         }
     }
 
-    _readWhileTag() {                            
+    _readWhileTag() {
         const tags = [ ];
 
         let current = this._tokens.peek();
-        while (true) {
-            if (current.is('tag') || current.is('key', 'uuid')) {
-                let new_tag = this._tokens.peek().val;
-
-                // There is no reason one would want to post duplicate tags in the same module.
-                // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
-                for (const current_tag of tags) {
-                    if (new_tag === current_tag) {
-                        this._handleUnexpected();
-                    }
+        while (current.is('tag') || current.is('key', 'uuid')) {
+            // There is no reason one would want to post duplicate tags in the same module.
+            // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
+            let new_tag = current.val;
+            for (const current_tag of tags) {
+                if (new_tag === current_tag) {
+                    this._handleUnexpected();
                 }
-
-                // When a clause token is produced, the @ at the beginning of it is lost.
-                // To continue distinguishing it from regular tags here, it is added back.
-                // It is assumed that the outer if-statement will filter out clauses that can't perform as tags.
-                if (current.is('key')) {
-                    new_tag = '@' + new_tag;
-                }
-
-                tags.push(new_tag);
-                
-                this._tokens.next();
-            } else {
-                break;
             }
+
+            // When a clause token is produced, the @ at the beginning of it is lost.
+            // To continue distinguishing it from regular tags here, it is added back.
+            // It is assumed that the outer if-statement will filter out clauses that can't perform as tags.
+            if (current.is('key')) {
+                current.val = '@' + current.val;
+            }
+
+            tags.push(current.val);
+
+            this._tokens.next();
 
             current = this._tokens.peek();
         }
@@ -324,11 +326,10 @@ class SyntaxParser {
             this._tokens.next();
         } else {
             const tags = this._readWhileTag();
-            if (!isEmpty(tags)) {
-                this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
-            } else if (opts.require) {
+            if (opts.require && isEmpty(tags)) {
                 this._handleUnexpected();
             }
+            this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
         }
     }
 
@@ -344,11 +345,10 @@ class SyntaxParser {
             this._tokens.next();
         } else {
             const type = this._readWhileRaw({ multiline: true });
-            if (type === null) {
+            if (type === undefined) {
                 this._handleUnexpected();
-            } else {
-                this._astree.enterSetAndLeave(global.defaults.alias.type, type);
             }
+            this._astree.enterSetAndLeave(global.defaults.alias.type, type);
         }
     }
 
@@ -357,11 +357,10 @@ class SyntaxParser {
             this._tokens.next();
         } else {
             const free = this._readWhileRawAndParse();
-            if (free === null) {
+            if (free === undefined) {
                 this._handleUnexpected();
-            } else {
-                this._astree.enterSetAndLeave(global.defaults.alias.state, free);
             }
+            this._astree.enterSetAndLeave(global.defaults.alias.state, free);
         }
     }
 
@@ -438,11 +437,10 @@ class SyntaxParser {
 
     _handleRawDefinition() {
         const raw = this._readWhileRawAndParse();
-        if (raw === null) {
+        if (raw === undefined) {
             this._handleUnexpected();
-        } else {
-            this._astree.setPosValue(raw);
         }
+        this._astree.setPosValue(raw);
         this._astree.leavePos();
     }
 
@@ -529,13 +527,13 @@ class SyntaxParser {
             }
         }
 
-        if (this._tokens.peek().is('punc', ';')) {
-            this._astree.nextItem();
-
-            this._tokens.next();
-        } else {
+        if (!this._tokens.peek().is('punc', ';')) {
             this._handleUnexpected();
         }
+
+        this._tokens.next();
+
+        this._astree.nextItem();
     }
 
     parse(input, opts = { }) {

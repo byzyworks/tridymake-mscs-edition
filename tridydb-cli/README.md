@@ -1513,11 +1513,48 @@ The operation is not completely permanent, though, since modules can always be r
 
 `@of` is used to directly state a type specifier for the module irrespective of what the module's tags are.
 
-A module's type specifier 
+This also allows getting around the limitations of the more limited syntax around tags (implicit `@of`/`@as` re-uses the last tag as the type) so that any arbitrary string can be used as a type specifier.
 
-WIP
+A module's type specifier has a specific purpose, in that it is used as an associative key to the module in the case where output is desired in a compressed form. As an example, here is a TridyDB statement that creates three modules with `@of`.
 
-`@of` 
+```
+@new @of "Type Example 1" @is "foo";
+@new @of "Type Example 1" @is "bar";
+@new @of "Type Example 2" @is "baz";
+```
+
+```json
+{
+    "tree": [
+        {
+            "type": "Type Example 1",
+            "free": "foo"
+        },
+        {
+            "type": "Type Example 1",
+            "free": "bar"
+        },
+        {
+            "type": "Type Example 2",
+            "free": "baz"
+        }
+    ]
+}
+```
+
+As a result of the type specifier's value, below is the output whenever `@get @final;` is used.
+
+```json
+{
+    "Type Example 1": [
+        "foo",
+        "bar"
+    ],
+    "Type Example 2": "baz"
+}
+```
+
+Using `@of` requires that one can only provide tags using `@as`. Just as `@of` allows setting a type specifier independent from tagging, `@as` allows setting tags independent of a type specifier.
 
 <br>
 
@@ -1542,6 +1579,14 @@ WIP
     ]
 }
 ```
+
+<br>
+
+<div id="syntax-implicit"/>
+
+### **Definition: Implicit `@of` / `@as`**
+
+WIP
 
 <br>
 

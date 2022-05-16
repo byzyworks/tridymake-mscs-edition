@@ -105,9 +105,8 @@ export class StateTree {
     getTopPos() {
         if (this._pos.length === 0) {
             return null;
-        } else {
-            return this._pos[this._pos.length - 1];
         }
+        return this._pos[this._pos.length - 1];
     }
 
     getPosValue() {
@@ -122,9 +121,8 @@ export class StateTree {
         const pos = this.getTopPos();
         if (pos === null) {
             return ptr;
-        } else {
-            return ptr[pos];
         }
+        return ptr[pos];
     }
 
     setPosValue(value) {
@@ -231,9 +229,8 @@ export class StateTree {
         const pos = this.getTopPos();
         if (pos === null) {
             return common.isEmpty(ptr);
-        } else {
-            return common.isEmpty(ptr[pos]);
         }
+        return common.isEmpty(ptr[pos]);
     }
 
     isPosUndefined() {

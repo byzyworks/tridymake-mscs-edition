@@ -50,12 +50,11 @@ export const cli = async (opts = { }) => {
         try {
             out = await tridy.query(answers, { accept_carry: true });
         } catch (err) {
-            if ((err instanceof SyntaxError) || (err instanceof ClientSideServerError)) {
-                error_handler.handle(err);
-                retry = true;
-            } else {
+            if (!(err instanceof SyntaxError) && !(err instanceof ClientSideServerError)) {
                 throw err;
             }
+            error_handler.handle(err);
+            retry = true;
         }
 
         if (!retry && !isEmpty(out)) {

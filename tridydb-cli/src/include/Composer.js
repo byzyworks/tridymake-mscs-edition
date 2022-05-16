@@ -426,39 +426,43 @@ class Composer {
         }
     }
 
-    // The purpose of this is strictly for optimizing how Tridy handles very large trees.
-    // Without it, all modules in the database will be tested needlessly by a context expression.
+    /**
+     * The purpose of this is strictly for optimizing how Tridy handles very large trees.
+     * Without it, all modules in the database will be tested needlessly by a context expression.
+     */
     _getMaximumDepth(test) {
         if (common.isEmpty(test)) {
             return 0;
-        } else if (this._isTag(test)) {
-            return 1;
-        } else {
-            let a_depth = 0;
-            if (test.a !== undefined) {
-                a_depth = this._getMaximumDepth(test.a);
-            }
-            if (a_depth === null) {
-                return a_depth;
-            }
-    
-            let b_depth = 0;
-            if (test.b !== undefined) {
-                b_depth = this._getMaximumDepth(test.b);
-            }
-            if (b_depth === null) {
-                return b_depth;
-            }
-
-            let depth = (a_depth > b_depth) ? a_depth : b_depth;
-            if (test.op === '//') {
-                return null;
-            } else if (test.op === '/') {
-                return depth + 1;
-            } else {
-                return depth;
-            }
         }
+        
+        if (this._isTag(test)) {
+            return 1;
+        }
+        
+        let a_depth = 0;
+        if (test.a !== undefined) {
+            a_depth = this._getMaximumDepth(test.a);
+        }
+        if (a_depth === null) {
+            return a_depth;
+        }
+
+        let b_depth = 0;
+        if (test.b !== undefined) {
+            b_depth = this._getMaximumDepth(test.b);
+        }
+        if (b_depth === null) {
+            return b_depth;
+        }
+
+        let depth = (a_depth > b_depth) ? a_depth : b_depth;
+        if (test.op === '//') {
+            return null;
+        }
+        if (test.op === '/') {
+            return depth + 1;
+        }
+        return depth;
     }
 
     _traverseModule(test, command, depth, max_depth, opts = { }) {

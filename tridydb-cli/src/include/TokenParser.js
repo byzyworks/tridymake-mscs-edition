@@ -122,7 +122,7 @@ class TokenParser {
         }
 
         if (this._isQuoteMark(ch)) {
-            this._readQuoteMark();
+            this._readLiteral();
         }
 
         switch (this._mode.peek()) {
@@ -159,11 +159,11 @@ class TokenParser {
     }
 
     _readRaw() {
-        const pos = this._getPos();
-
+        const type = (this._mode.peek() === 'btstring') ? 'dynpart' : 'part';
         const part = this._readWhileEscaped();
+        const pos  = this._getPos();
 
-        return new Token('part', part, pos);
+        return new Token(type, part, pos);
     }
 
     _readKeyword() {
@@ -229,11 +229,10 @@ class TokenParser {
         }
 
         if (is_enclosed) {
-            if (!this._parser.isEOF() && (this._parser.peek() === '}')) {
-                tag += this._parser.next();
-            } else {
+            if (this._parser.isEOF() || (this._parser.peek() !== '}')) {
                 throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Missing closing bracket in variable "${tag}".`);
             }
+            tag += this._parser.next();
         }
 
         return tag;
@@ -273,7 +272,7 @@ class TokenParser {
         return new Token('punc', punc, pos);
     }
 
-    _readQuoteMark() {
+    _readLiteral() {
         switch (this._mode.peek()) {
             case 'json':
             case 'yaml':

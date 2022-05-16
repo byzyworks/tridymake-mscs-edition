@@ -9,6 +9,10 @@ class Compressor {
         opts.typeless = opts.typeless ?? false;
         opts.tagless  = opts.tagless  ?? false;
 
+        if (!common.isDictionary(target.getPosValue())) {
+            return;
+        }
+
         if (opts.typeless) {
             target.enterSetAndLeave(common.global.alias.type, undefined);
         }
@@ -30,6 +34,10 @@ class Compressor {
 
     _compressModuleHeavy(target, opts = { }) {
         opts.strict = opts.strict ?? false;
+
+        if (!common.isDictionary(target)) {
+            return target;
+        }
 
         let type;
 
@@ -58,33 +66,30 @@ class Compressor {
         target = new StateTree(free);
 
         for (let sub of tree) {
-            sub  = common.toDictionary(sub);
-
-            type = sub[common.global.alias.type];
+            // Don't move "sub =" before "type ="; "_compressModuleHeavy()" truncates the type specifier.
+            type = common.isDictionary(sub) ? sub[common.global.alias.type] : null;
 
             sub = this._compressModuleHeavy(sub, opts);
-
-            sub = new StateTree(sub);
             
             if (common.isPrimitive(type)) {
                 target.enterPos(type);
                 if (opts.strict) {
                     if (common.isArray(target.getPosValue()) || target.isPosUndefined()) {
-                        target.putPosValue(sub.getRaw());
+                        target.putPosValue(sub);
                     } else {
                         target.leavePos();
                         target.enterPos(0);
                         while (!target.isPosUndefined()) {
                             target.nextItem();
                         }
-                        target.setPosValue(sub.getRaw());
+                        target.setPosValue(sub);
                         target.leavePos();
                         target.enterPos(type);
                     }
                 } else if (target.isPosUndefined()) {
-                    target.setPosValue(sub.getRaw());
+                    target.setPosValue(sub);
                 } else {
-                    target.putPosValue(sub.getRaw());
+                    target.putPosValue(sub);
                 }
                 target.leavePos();
             } else {
@@ -93,9 +98,9 @@ class Compressor {
                     target.nextItem();
                 }
                 if (opts.strict) {
-                    target.putPosValue(sub.getRaw());
+                    target.putPosValue(sub);
                 } else {
-                    target.setPosValue(sub.getRaw());
+                    target.setPosValue(sub);
                 }
                 target.leavePos();
             }

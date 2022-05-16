@@ -28,5 +28,6 @@ Remember also to set the version number inside package.json and utility/common.
 * Added clause `@of` to specify a module's type in the form of a double-quoted string, used by `@merged` and `@final`'s reduced output as the module's key. If not given, the final tag in the module's tagset (when given without `@as`) will be used.
 * Added `--type-key` program argument (and argument to `tridy.query(...)`) to control the name of the type key's key.
 * Added (multi-line) raw string input with either single quotation, double quotation, or grave accent marks, for `@is`, `@of`, and module raw input.
+* Grave accent marks allow "dynamic input", as in where the type of the input can change depending on the input (for instance, `` `0` `` becomes the literal number 0 and not a string, while `"0"` always becomes a string).
 * The input buffer / carry is now cleared when pressing Ctrl+C while inside console mode.
 * Fixed a bug where the database would fail to catch errors when attempting `@new` against a root module already changed to a primitive type using `@set` with raw input.

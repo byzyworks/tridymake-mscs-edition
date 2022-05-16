@@ -110,7 +110,7 @@ export const toDictionary = (obj) => {
 }
 
 export const deepCopy = (source) => {
-    let copy;
+    let copy = source;
     if ((source !== undefined) && isObject(source)) {
         if (isArray(source)) {
             copy = [ ];
@@ -125,8 +125,6 @@ export const deepCopy = (source) => {
                 copy[property] = source[property];
             }
         }
-    } else {
-        copy = source;
     }
     
     return copy;
@@ -161,26 +159,41 @@ export const deepModify = (target, callback) => {
 export const isEmpty = (obj) => {
     if (obj === undefined) {
         return true;
-    } else {
-        if (isArray(obj)) {
-            return obj.length === 0;
-        } else if (isDictionary(obj)) {
-            return Object.keys(obj).length === 0;
-        } else if (typeof obj === 'string') {
-            return obj === '';
-        }
+    } else if (isArray(obj)) {
+        return obj.length === 0;
+    } else if (isDictionary(obj)) {
+        return Object.keys(obj).length === 0;
+    } else if (typeof obj === 'string') {
+        return obj === '';
     }
 }
 
 export const hasDuplicates = (arr) => {
     for (let i = 0; i < arr.length; i++) {
         for (let j = i + 1; j < arr.length; j++) {
-            if (arr[i] == arr[j]) {
+            if (arr[i] === arr[j]) {
                 return true;
             }
         }
     }
     return false;
+}
+
+export const parseDynamic = (value) => {
+    if (!isNaN(value)) {
+        return Number(value);
+    } else {
+        switch (value) {
+            case 'true':
+                return true;
+            case 'false':
+                return false;
+            case 'null':
+                return null;
+            default:
+                return value;
+        }
+    }
 }
 
 const defaults = Object.freeze({

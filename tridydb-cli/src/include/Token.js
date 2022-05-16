@@ -166,7 +166,8 @@ export class Token {
         return false ||
             this.is('key', 'json') ||
             this.is('key', 'yaml') ||
-            this.is('part')
+            this.is('part') ||
+            this.is('dynpart')
         ;
     }
 

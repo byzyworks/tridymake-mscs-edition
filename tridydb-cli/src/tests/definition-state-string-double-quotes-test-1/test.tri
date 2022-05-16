@@ -1,5 +1,15 @@
 @tridy;
 
-@new @none @is 'a';
+@new @none @is "0";
+@new @none @is "1";
+@new @none @is "0.0";
+@new @none @is "0.1";
+@new @none @is "true";
+@new @none @is "false";
+@new @none @is "null";
+@new @none @is "a";
+@new @none @is "This is a string.";
+@new @none @is "0
+";
 
 @get;
