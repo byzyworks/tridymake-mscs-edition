@@ -1,29 +1,29 @@
 @tridy;
 
-@new $var-tag @is @json { "$var-key": "$var-val" } @end;
+@new @as $var-tag @is @json { "$var-key": "$var-val" } @end;
 
-@new $a;
+@new @as $a;
 
-@new $$a;
+@new @as $$a;
 
-@new ${a};
+@new @as ${a};
 
-@new ${a}b;
+@new @as ${a}b;
 
-@new a${b};
+@new @as a${b};
 
-@new ${a}${b};
+@new @as ${a}${b};
 
-@new $${a};
+@new @as $${a};
 
-@new ${$a$b};
+@new @as ${$a$b};
 
-@new ${${a}${b}};
+@new @as ${${a}${b}};
 
-@new ${${a}b};
+@new @as ${${a}b};
 
-@new ${a${b}};
+@new @as ${a${b}};
 
-@new $$${$a$${b}$c${${d}$$e${f}}};
+@new @as $$${$a$${b}$c${${d}$$e${f}}};
 
 @get;

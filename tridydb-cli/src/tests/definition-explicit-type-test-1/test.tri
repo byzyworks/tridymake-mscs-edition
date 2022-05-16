@@ -1,0 +1,5 @@
+@tridy;
+
+@new @of "a" @as b;
+
+@get;

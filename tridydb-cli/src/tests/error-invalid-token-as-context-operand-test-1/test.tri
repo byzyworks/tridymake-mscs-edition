@@ -1,0 +1,3 @@
+@tridy;
+
+@in fruit @and (%^& @or orange) @new @as thing;

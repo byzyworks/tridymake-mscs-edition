@@ -1,11 +1,11 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@in a @new b;
+@in a @new @as b;
 
-@in a @new b;
+@in a @new @as b;
 
-@in a/b @new @uuid @is @none @has @none;
+@in a/b @new @as @uuid @is @none @has @none;
 
 @get;

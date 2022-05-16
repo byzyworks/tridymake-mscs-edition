@@ -34,29 +34,50 @@ export const isArrayableObject = (obj) => {
         return true;
     }
 
+    if (isDictionary(obj)) {
+        let order = 0;
+        for (const key in obj) {
+            if (isNaN(key) || key != order) {
+                return false;
+            }
+            order++;
+        }
+        return true;
+    }
+
     /**
-     * This is to return false on receiving a primitive type.
+     * This will return false on receiving a primitive type.
      * It does this because, even though we could simply make a primitive the first element of a new array "without losing information",
      * we could do the same to any primitive or complex type, making this function pretty pointless since that means everything can be made an array in some sense.
      * Thus, it more accurately means "could I change the value of this variable in-place to be an array without a loss of information, and without changing how it's accessed?"
      */
-    if (!isDictionary(obj)) {
-        return false;
-    }
-
-    let order = 0;
-    for (const key in obj) {
-        if (isNaN(key) || key != order) {
-            return false;
-        }
-        order++;
-    }
-
-    return true;
+    return false;
 }
 
 export const isPrimitive = (obj) => {
     return !isObject(obj) && !isNullish(obj);
+}
+
+/**
+ * A "basic" value is completely interchangable with all formats (primitive, array, map/dictionary) "without losing information".
+ */
+export const isBasic = (obj) => {
+    if (isNullish(obj)) {
+        return true;
+    }
+    if (isPrimitive(obj)) {
+        return true;
+    }
+    if (isArray(obj) && (obj.length === 1)) {
+        return true;
+    }
+    if (isDictionary(obj)) {
+        const keys = Object.keys(obj);
+        if ((keys.length === 1) && (keys[0] === '0')) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export const toArray = (obj) => {

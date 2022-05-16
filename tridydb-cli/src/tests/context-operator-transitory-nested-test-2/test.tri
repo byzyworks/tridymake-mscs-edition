@@ -1,21 +1,21 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@in a @new b skipped;
+@in a @new @as b skipped;
 
-@in a/b @new c;
+@in a/b @new @as c;
 
-@in a/b/c @new c;
+@in a/b/c @new @as c;
 
-@in a/b//c @new d;
+@in a/b//c @new @as d;
 
-@in a/b//c/d @new d ignored;
+@in a/b//c/d @new @as d ignored;
 
-@in a/b//c @new e ignored;
+@in a/b//c @new @as e ignored;
 
-@in a/b @new f ignored;
+@in a/b @new @as f ignored;
 
-@in a//c/d @new transitory-test;
+@in a//c/d @new @as transitory-test;
 
 @get;

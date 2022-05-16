@@ -1,0 +1,19 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@in a @new @as b;
+
+@in a @new @as b;
+
+@in a @new @as c;
+
+@in a @new @as c;
+
+@in a @new @as c;
+
+@in a/c @new "This is a string.";
+
+@get;

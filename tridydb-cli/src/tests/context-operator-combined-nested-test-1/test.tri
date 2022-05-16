@@ -1,19 +1,19 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@in a @new b;
+@in a @new @as b;
 
-@in a/b @new c;
+@in a/b @new @as c;
 
-@in a/b @new d;
+@in a/b @new @as d;
 
-@new a ignored;
+@new @as a ignored;
 
-@in ignored @new b;
+@in ignored @new @as b;
 
-@in ignored/b @new d;
+@in ignored/b @new @as d;
 
-@in a/b>c/d @new non-transitory-test;
+@in a/b>c/d @new @as non-transitory-test;
 
 @get;

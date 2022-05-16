@@ -165,7 +165,8 @@ export class Token {
     isRawInputToken() {
         return false ||
             this.is('key', 'json') ||
-            this.is('key', 'yaml')
+            this.is('key', 'yaml') ||
+            this.is('part')
         ;
     }
 
@@ -180,8 +181,10 @@ export class Token {
     isGetParameterToken() {
         return false ||
             this.is('key', 'raw') ||
-            this.is('key', 'strip') ||
-            this.is('key', 'merge') ||
+            this.is('key', 'typeless') ||
+            this.is('key', 'tagless') ||
+            this.is('key', 'trimmed') ||
+            this.is('key', 'merged') ||
             this.is('key', 'final')
         ;
     }

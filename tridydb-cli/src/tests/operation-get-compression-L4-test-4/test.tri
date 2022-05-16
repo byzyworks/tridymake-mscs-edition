@@ -1,0 +1,9 @@
+@tridy;
+
+@new a;
+
+@in a @new b;
+
+@in a @new c;
+
+@get @merged;

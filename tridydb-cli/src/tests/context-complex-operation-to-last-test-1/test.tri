@@ -1,15 +1,15 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@in a @new b first;
+@in a @new @as b first;
 
-@in a/b @new b middle;
+@in a/b @new @as b middle;
 
-@in a/b/b @new b last;
+@in a/b/b @new @as b last;
 
-@in a/b/b/b @new a;
+@in a/b/b/b @new @as a;
 
-@in a//b&!(b>>b) @new c to-last;
+@in a//b&!(b>>b) @new @as c to-last;
 
 @get;

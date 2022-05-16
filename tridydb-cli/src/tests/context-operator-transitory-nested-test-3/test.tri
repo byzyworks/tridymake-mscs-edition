@@ -1,19 +1,19 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@in a @new b;
+@in a @new @as b;
 
-@in a/b @new c;
+@in a/b @new @as c;
 
-@in a/b @new d;
+@in a/b @new @as d;
 
-@in a/b @new e ignored;
+@in a/b @new @as e ignored;
 
-@in a @new f ignored;
+@in a @new @as f ignored;
 
-@new g ignored;
+@new @as g ignored;
 
-@in a / ((b / c) | (b / d)) @new precedence-test;
+@in a / ((b / c) | (b / d)) @new @as precedence-test;
 
 @get;

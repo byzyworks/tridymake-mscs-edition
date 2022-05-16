@@ -2,6 +2,6 @@
 
 @del;
 
-@new a;
+@new @as a;
 
 @get;

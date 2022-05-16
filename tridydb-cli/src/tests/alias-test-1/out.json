@@ -1,19 +1,21 @@
 [
     {
-        "baz": [
+        "qux": [
             {
-                "foo": [
+                "foo": "a",
+                "bar": [
                     "a"
                 ],
-                "bar": [
+                "baz": [
                     "easy",
                     "medium",
                     "hard",
                     "impossible"
                 ],
-                "baz": [
+                "qux": [
                     {
-                        "foo": [
+                        "foo": "b",
+                        "bar": [
                             "b"
                         ]
                     }

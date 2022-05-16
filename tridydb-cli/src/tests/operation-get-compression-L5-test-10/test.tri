@@ -1,0 +1,15 @@
+@tridy;
+
+@new a @is @json { } @end;
+
+@in a @new @none @is "b";
+
+@in a @new c @is "c1";
+
+@in a @new 1 @is "d";
+
+@in a @new @none @is "e";
+
+@in a @new c @is "c2";
+
+@get @final;

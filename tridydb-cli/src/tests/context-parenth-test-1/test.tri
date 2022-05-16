@@ -1,13 +1,13 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@new b;
+@new @as b;
 
-@in a (a (a) (a a)) a @new parenth-a-test-1;
+@in a (a (a) (a a)) a @new @as parenth-a-test-1;
 
-@in !!!b (!b (!!!!!b) (!b !!!b)) !b @new parenth-a-test-2;
+@in !!!b (!b (!!!!!b) (!b !!!b)) !b @new @as parenth-a-test-2;
 
-@in !!a (a (!!!!a) (a !!a)) a @new parenth-a-test-3-final;
+@in !!a (a (!!!!a) (a !!a)) a @new @as parenth-a-test-3-final;
 
 @get;

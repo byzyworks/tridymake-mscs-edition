@@ -7,7 +7,7 @@
             "name": "Launch Test File (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/debug/test.tri", "--log-level", "debug", "--pretty"],
+            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -20,7 +20,7 @@
             "name": "Launch Test File (Production)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/debug/test.tri"],
+            "args": ["inline", "--file", "src/tests/_debug/test.tri"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },

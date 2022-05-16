@@ -1,0 +1,11 @@
+@tridy;
+
+@new @none;
+
+@new @as a;
+
+@new @as b;
+
+@new @as a b c;
+
+@get;

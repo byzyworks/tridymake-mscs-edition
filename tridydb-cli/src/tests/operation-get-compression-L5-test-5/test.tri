@@ -1,0 +1,7 @@
+@tridy;
+
+@new a;
+
+@in a @new @as b;
+
+@get @final;

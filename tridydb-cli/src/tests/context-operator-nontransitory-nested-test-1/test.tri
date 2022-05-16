@@ -1,21 +1,21 @@
 @tridy;
 
-@new a parent-of-b ascendant-of-c;
+@new @as a parent-of-b ascendant-of-c;
 
-@in a @new b child-of-a;
+@in a @new @as b child-of-a;
 
-@in a/b @new c descendant-of-a;
+@in a/b @new @as c descendant-of-a;
 
-@new a parent-of-only-b;
+@new @as a parent-of-only-b;
 
-@in a parent-of-only-b @new b;
+@in a parent-of-only-b @new @as b;
 
-@in (a @parent b) & (a > b) @new d with-parent-of-b;
+@in (a @parent b) & (a > b) @new @as d with-parent-of-b;
 
-@in (a @ascend c) & (a >> c) @new e with-ascendant-of-c;
+@in (a @ascend c) & (a >> c) @new @as e with-ascendant-of-c;
 
-@in * // (b @child a) & (b < a) @new f with-child-of-a;
+@in * // (b @child a) & (b < a) @new @as f with-child-of-a;
 
-@in * // (c @descend a) & (c << a) @new g with-descendent-of-a;
+@in * // (c @descend a) & (c << a) @new @as g with-descendent-of-a;
 
 @get;

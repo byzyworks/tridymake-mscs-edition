@@ -1,4 +1,4 @@
-& node $PSScriptRoot/../../app.js inline --tags-key 'foo' --free-key 'bar' --tree-key 'baz' --pretty --command @"
+& node $PSScriptRoot/../../app.js inline --type-key 'foo' --tags-key 'bar' --free-key 'baz' --tree-key 'qux' --pretty --command @"
 
 @new a
 @is @json [

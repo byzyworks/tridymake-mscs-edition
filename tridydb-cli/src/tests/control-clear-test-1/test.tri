@@ -1,11 +1,11 @@
 @tridy;
 
-@new a;
+@new @as a;
 
 @get a;
 
 @clear;
 
-@new b;
+@new @as b;
 
 @get b;

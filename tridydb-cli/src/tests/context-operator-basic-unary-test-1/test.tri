@@ -1,19 +1,19 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@new b;
+@new @as b;
 
-@in !a @new not-a-test;
+@in !a @new @as not-a-test;
 
-@in !!a @new not-b-test;
+@in !!a @new @as not-b-test;
 
-@in !!!a @new not-a-test;
+@in !!!a @new @as not-a-test;
 
-@in @not b @new not-b-test;
+@in @not b @new @as not-b-test;
 
-@in @not @not b @new not-a-test;
+@in @not @not b @new @as not-a-test;
 
-@in @not @not @not b @new not-b-test;
+@in @not @not @not b @new @as not-b-test;
 
 @get;

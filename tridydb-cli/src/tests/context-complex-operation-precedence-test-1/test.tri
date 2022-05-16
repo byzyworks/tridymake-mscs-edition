@@ -1,31 +1,31 @@
 @tridy;
 
-@new f;
+@new @as f;
 
-@in f @new skipped;
+@in f @new @as skipped;
 
-@in f/skipped @new e;
+@in f/skipped @new @as e;
 
-@in f/skipped/e @new d;
+@in f/skipped/e @new @as d;
 
-@in f/skipped/e @new d c;
+@in f/skipped/e @new @as d c;
 
-@in f/skipped/e @new d c b;
+@in f/skipped/e @new @as d c b;
 
-@in f/skipped/e @new d c b a;
+@in f/skipped/e @new @as d c b a;
 
-@in f/skipped/e @new c;
+@in f/skipped/e @new @as c;
 
-@in f/skipped/e @new c b ignored;
+@in f/skipped/e @new @as c b ignored;
 
-@in f/skipped/e @new c b a;
+@in f/skipped/e @new @as c b a;
 
-@in f/skipped/e @new b;
+@in f/skipped/e @new @as b;
 
-@in f/skipped/e @new b a ignored;
+@in f/skipped/e @new @as b a ignored;
 
-@in f/skipped/e @new a ignored;
+@in f/skipped/e @new @as a ignored;
 
-@in f // e / d | c ^ b & !a @new precedence-test;
+@in f // e / d | c ^ b & !a @new @as precedence-test;
 
 @get;

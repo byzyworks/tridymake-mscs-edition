@@ -41,7 +41,11 @@ const toTridy = (op, opts = { }) => {
                 }
             
                 if (opts.state) {
-                    cmd += ` @is @${opts.stateformat} ${opts.state} @end`;
+                    if (opts.stateformat === 'string') {
+                        cmd += ` @is "${opts.state}"`;
+                    } else {
+                        cmd += ` @is @${opts.stateformat} ${opts.state} @end`;
+                    }
                 }
 
                 /**
@@ -56,6 +60,8 @@ const toTridy = (op, opts = { }) => {
                  * "Verbatim mode" includes sending the entire statement as Tridy code, not just the nested part.
                  * However, most of the time, '@has' is not necessary to use to begin with, and can be completely avoided with effective tagging.
                  */
+            } else if (opts.format === 'string') {
+                cmd += ` "${opts.data}"`
             } else {
                 cmd += ` @${opts.format} ${opts.data} @end`;
             }
@@ -65,19 +71,25 @@ const toTridy = (op, opts = { }) => {
                     cmd += ` @raw`;
                     break;
                 case 1:
-                    cmd += ` @strip`;
+                    cmd += ` @typeless`;
                     break;
                 case 2:
-                    cmd += ` @merge`;
+                    cmd += ` @tagless`;
                     break;
                 case 3:
+                    cmd += ` @trimmed`;
+                    break;
+                case 4:
+                    cmd += ` @merged`;
+                    break;
+                case 5:
                     cmd += ` @final`;
                     break;
             }
         }
 
         if (opts.greedy) {
-            cmd += `@once `;
+            cmd += ` @once`;
         }
 
         cmd += ';';
@@ -105,7 +117,7 @@ const getOpts = (req, res) => {
         opts.compression = req.query.compression;
     }
 
-    if (req.query.type && (req.query.type !== 'mod')) {
+    if (req.query.format && (req.query.format !== 'mod')) {
         opts.format = req.query.format;
         opts.data   = req.query.data;
     } else {

@@ -16,6 +16,9 @@
                             "esc3": "\#",
                             "esc4": "\@"
                         }
+                    },
+                    {
+                        "free": "This is a   \n\tmulti-line       \n\tstring"
                     }
                 ]
             }

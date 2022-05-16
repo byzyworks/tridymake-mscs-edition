@@ -1,5 +1,5 @@
 @tridy;
 
-@new @as @none @is @none @has @none;
+@new @of @none @as @none @is @none @has @none;
 
 @get;

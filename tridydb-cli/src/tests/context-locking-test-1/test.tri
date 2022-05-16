@@ -1,18 +1,18 @@
 @tridy;
 
-@new a locked
+@new @as a locked
 @has {
-    @new b;
+    @new @as b;
     
     @in b < a
-    @new c;
+    @new @as c;
 };
 
-@new a unlocked
+@new @as a unlocked
 @has {
-    @new b;
+    @new @as b;
 };
 
-@in unlocked / b < a @new c;
+@in unlocked / b < a @new @as c;
 
 @get;

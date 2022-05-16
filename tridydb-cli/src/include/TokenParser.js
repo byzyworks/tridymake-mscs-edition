@@ -65,7 +65,13 @@ class TokenParser {
             } else if (ch === '@') {
                 this._mode.push('key');
                 break;
-            } else if ((ch === '"') && (this._mode.peek() === 'string')) {
+            } else if ((ch === "'") && (this._mode.peek() === 'sqstring')) {
+                this._mode.pop();
+                break;
+            } else if ((ch === '"') && (this._mode.peek() === 'dqstring')) {
+                this._mode.pop();
+                break;
+            } else if ((ch === '`') && (this._mode.peek() === 'btstring')) {
                 this._mode.pop();
                 break;
             } else {
@@ -78,8 +84,10 @@ class TokenParser {
 
     _readNext() {
         switch (this._mode.peek()) {
-            case 'string':
             case 'yaml':
+            case 'sqstring':
+            case 'dqstring':
+            case 'btstring':
                 break;
             default:
                 this._readWhilePred(this._isWhitespace);
@@ -113,16 +121,17 @@ class TokenParser {
             return keyword;
         }
 
+        if (this._isQuoteMark(ch)) {
+            this._readQuoteMark();
+        }
+
         switch (this._mode.peek()) {
             case 'json':
             case 'yaml':
+            case 'sqstring':
+            case 'dqstring':
+            case 'btstring':
                 return this._readRaw();
-            default:
-                if ((ch === '"') && (this._mode.peek() !== 'string')) {
-                    this._mode.push('string');
-                    this._parser.next();
-                    return this._readRaw();
-                }
         }
 
         if (this._isIdentifier(ch) || this._isVariableStart(ch)) {
@@ -145,7 +154,8 @@ class TokenParser {
     _readComment() {
         this._readWhilePred((ch) => {
             return ch != "\n";
-        })
+        });
+        this._parser.next();
     }
 
     _readRaw() {
@@ -262,6 +272,23 @@ class TokenParser {
         
         return new Token('punc', punc, pos);
     }
+
+    _readQuoteMark() {
+        switch (this._mode.peek()) {
+            case 'json':
+            case 'yaml':
+                break;
+            default:
+                const ch = this._parser.next();
+                if (ch === "'") {
+                    this._mode.push('sqstring');
+                } else if (ch === '"') {
+                    this._mode.push('dqstring');
+                } else if (ch === '`') {
+                    this._mode.push('btstring');
+                }
+        }
+    }
     
     _isWhitespace(ch) {
         return /\s/g.test(ch);
@@ -290,6 +317,10 @@ class TokenParser {
 
     _isVariableStart(ch) {
         return /[$]/g.test(ch);
+    }
+
+    _isQuoteMark(ch) {
+        return /['"`]/g.test(ch);
     }
 
     _isTag(ch) {

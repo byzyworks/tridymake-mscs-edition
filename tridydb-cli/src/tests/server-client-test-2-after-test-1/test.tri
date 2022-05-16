@@ -1,6 +1,6 @@
 @tridy;
 
-@new b;
+@new @as b;
 
 @get;
 

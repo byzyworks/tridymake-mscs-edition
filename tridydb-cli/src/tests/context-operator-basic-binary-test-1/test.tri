@@ -2,22 +2,22 @@
 
 @new @none;
 
-@new a;
+@new @as a;
 
-@new b;
+@new @as b;
 
-@new a b;
+@new @as a b;
 
-@in (a @and b) & (a b) & (a & b) @new and-test;
+@in (a @and b) & (a b) & (a & b) @new @as and-test;
 
-@in (a @xor b) & (a ^ b) @new xor-test;
+@in (a @xor b) & (a ^ b) @new @as xor-test;
 
-@in (a @or b) & (a, b) & (a | b) @new or-test;
+@in (a @or b) & (a, b) & (a | b) @new @as or-test;
 
-@in !(a @and b) @new nand-test;
+@in !(a @and b) @new @as nand-test;
 
-@in !(a @xor b) @new xnor-test;
+@in !(a @xor b) @new @as xnor-test;
 
-@in !(a @or b) @new nor-test;
+@in !(a @or b) @new @as nor-test;
 
 @get;

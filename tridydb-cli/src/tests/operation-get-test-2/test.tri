@@ -1,17 +1,17 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@in a @new b;
+@in a @new @as b;
 
-@in a @new b;
+@in a @new @as b;
 
-@in a @new b;
+@in a @new @as b;
 
-@in a @new c;
+@in a @new @as c;
 
-@in a @new c;
+@in a @new @as c;
 
-@in a @new c;
+@in a @new @as c;
 
 @get a/c;

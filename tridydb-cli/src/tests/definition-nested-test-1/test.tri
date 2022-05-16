@@ -1,13 +1,13 @@
 @tridy;
 
-@new @none @has {
-    @new a @has {
-        @new b;
-        @new c;
+@new @as @none @has {
+    @new @as a @has {
+        @new @as b;
+        @new @as c;
     };
-    @new d @has {
-        @new e;
-        @new f;
+    @new @as d @has {
+        @new @as e;
+        @new @as f;
     };
 };
 

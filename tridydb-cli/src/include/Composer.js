@@ -1,16 +1,18 @@
 import uuid from 'uuid-random';
 
-import { StateTree } from './StateTree.js';
+import { compressor } from './Compressor.js';
+import { StateTree }  from './StateTree.js';
 
-import * as common from '../utility/common.js';
-import { Stack }   from '../utility/Stack.js';
+import * as common     from '../utility/common.js';
+import { SyntaxError } from '../utility/error.js';
+import { Stack }       from '../utility/Stack.js';
 
 class Composer {
     constructor() {
         this._target = new Stack();
     }
     
-    _createModule(command) {
+    _createModule() {
         const module = new StateTree(null, common.global.alias);
 
         this._astree.enterPos('raw');
@@ -379,90 +381,6 @@ class Composer {
         return copy;
     }
 
-    _lossyCompressModuleLite(target) {
-        target.enterSetAndLeave(common.global.alias.type, undefined);
-        target.enterSetAndLeave(common.global.alias.tags, undefined);
-
-        target.enterPos(common.global.alias.nested);
-        if (!target.isPosEmpty()) {
-            target.enterPos(0);
-            while (!target.isPosUndefined()) {
-                this._lossyCompressModuleLite(target);
-                target.nextItem();
-            }
-            target.leavePos();
-        }
-        target.leavePos();
-    }
-    
-    _lossyCompressModuleHeavy(target, opts = { }) {
-        opts.strict = opts.strict ?? false;
-
-        let   type;
-        let   tags;
-        const free = common.toDictionary(target[common.global.alias.state]);
-        const tree = common.toArray(target[common.global.alias.nested]);
-
-        target = new StateTree(free);
-
-        for (let sub of tree) {
-            sub  = common.toDictionary(sub);
-
-            type = sub[common.global.alias.type];
-            tags = common.toArray(sub[common.global.alias.tags]);
-            if ((type === undefined) && !common.isEmpty(tags)) {
-                type = tags[tags.length - 1];
-            }
-
-            sub = this._lossyCompressModuleHeavy(sub, opts);
-
-            sub = new StateTree(sub);
-            
-            if (common.isPrimitive(type)) {
-                target.enterPos(type);
-                if (opts.strict) {
-                    if (common.isArray(target.getPosValue()) || target.isPosUndefined()) {
-                        target.putPosValue(sub.getRaw());
-                    } else {
-                        target.leavePos();
-                        target.enterPos(0);
-                        while (!target.isPosUndefined()) {
-                            target.nextItem();
-                        }
-                        target.setPosValue(sub.getRaw());
-                        target.leavePos();
-                        target.enterPos(type);
-                    }
-                } else if (target.isPosUndefined()) {
-                    target.setPosValue(sub.getRaw());
-                } else {
-                    target.putPosValue(sub.getRaw());
-                }
-                target.leavePos();
-            } else {
-                target.enterPos(0);
-                while (!target.isPosUndefined()) {
-                    target.nextItem();
-                }
-                target.setPosValue(sub.getRaw());
-                target.leavePos();
-            }
-        }
-
-        target = target.getRaw();
-
-        if (!opts.strict && !common.isEmpty(target) && common.isArrayableObject(target)) {
-            const arr = [ ];
-            for (const part of Object.values(target)) {
-                arr.push(part);
-            }
-
-            target = arr;
-        }
-
-        return target;
-    }
-
     _composeModule(command, opts = { }) {
         opts.template = opts.template ?? null;
 
@@ -472,24 +390,14 @@ class Composer {
                 target.setPosValue(this._uniqueCopy(opts.template));
                 break;
             case 'module':
-                target.enterPutAndLeave(common.global.alias.nested, this._uniqueCopy(opts.template));
+                if (common.isDictionary(target.getPosValue())) {
+                    target.enterPutAndLeave(common.global.alias.nested, this._uniqueCopy(opts.template));
+                } else {
+                    throw new SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
+                }
                 break;
             case 'print':
-                let copy = common.deepCopy(target.getPosValue());
-
-                switch (this._astree.enterGetAndLeave(['other', 'compression'])) {
-                    case 'low':
-                        copy = new StateTree(copy);
-                        this._lossyCompressModuleLite(copy);
-                        copy = copy.getRaw();
-                        break;
-                    case 'medium':
-                        copy = this._lossyCompressModuleHeavy(copy, { strict: true });
-                        break;
-                    case 'high':
-                        copy = this._lossyCompressModuleHeavy(copy, { strict: false });
-                        break;
-                }
+                const copy = compressor.compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
 
                 this._output.push(copy);
 
@@ -602,11 +510,9 @@ class Composer {
 
         const command = this._astree.enterGetAndLeave('operation');
 
-        let template;
-        if (this._isReadOp(command)) {
-            template = null;
-        } else {
-            template = this._createModule(command);
+        let template = null;
+        if (!this._isReadOp(command)) {
+            template = this._createModule();
         }
 
         this._traverseModule(expression, command, 0, this._getMaximumDepth(expression), { template: template, greedy: greedy });

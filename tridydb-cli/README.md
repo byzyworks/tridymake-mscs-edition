@@ -2,13 +2,13 @@
 
 # **Tridy**
 
-Tridy (pronounced "tree-dee") was formed as a response to common generalized data storage formats such as XML, JSON, or YAML that normally represent data 'as-is', meaning where an object (as a subcollection of data) is to be represented multiple times, it must also exist and be copied to the same number of locations. This is likely to create considerable redundancy, and while Tridy does not do away with it from the back-end (nor is it supposed to), it can at least do away with it from the front.
+Tridy (pronounced "tree-dee") was formed as a response to common generalized data storage formats such as XML, JSON, or YAML that normally represent data 'as-is', meaning where an object (as a subcollection of data) is to be represented multiple times, it must also exist and be copied to the same number of locations. This is likely to create considerable redundancy in a large number of situations where these common markdown formats would often be used, and while Tridy does not do away with it from the back-end (nor is it supposed to), it can at least do away with it from the front.
 
-Notably, it is not intended to be as a replacement for SQL or even NoSQL as a general data storage solution, as while Tridy may solve some redundancies, it is not designed to be efficient. This is considering that it deals directly with, if not expects nested data, and still in the end would cause this data to being duplicated, which is wildly storage-inefficient if we compare this to referencing. That, of course, isn't mentioning the tons of other optimizations that so far exist in other SQL and NoSQL database systems.
+TridyDB provides a language and software solution for working with data that is hierarchically-structured without necessitating a great deal of separation between how the data is stored versus how it is used and presented. Notably, it is not intended to be as a replacement for SQL or even NoSQL as a general data storage solution, as while Tridy may solve some redundancies, it is not designed to be efficient. The data it manages is still duplicated redundantly in the back-end where it appears more than once, which is not the case with relational systems. That, of course, isn't mentioning the tons of other optimizations that so far exist in other SQL and NoSQL database systems.
 
-As for what it *is* for, Tridy is designed to be a lightweight tool for lightweight, though-slightly-more-heavyweight-than-usual configuration data (usually because of redundancies), and that is organized in a tree or graph-like structure. This data is expected to be processed into a readable output that other applications are meant to interact with directly or, if needed, through a Tridy interface. It is extremely modular in the sense that (non-nested) data is never coupled together, as also an upside to the at-least redundant output. Without that, is is also ideal for creating DAG structures, given that, at the storage level at least, no referencing means no circular references either. Finally, as it creates and stores data in the form of a tree, it is also at a natural advantage when it comes to integrating with a filesystem, and is easily able to input and output to one.
+As for what it *is* for, Tridy is designed to be a lightweight tool for lightweight, though-slightly-more-heavyweight-than-usual configuration data (usually because of redundancies) that happens to be organized in a tree-like/graph-like/hierarchical structure. This data can be processed into a markdown output that other applications are meant to interact with directly or, if needed with particular interest, through one of TridyDB's many interfaces. Thus, it would be appropriate also to refer to TridyDB as a "data composer" or "data compiler/transpiler", as it can act as much like a one-time standalone utility as it can a full database system. In addition, the fact that TridyDB coalesces particularly with markdown formats means that the advantages of these can still come naturally, whether it's their being lightweight, simplistic, easy to separate (modular), or easy to migrate.
 
-To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redundant data defined in an irredundant format.
+To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redundant, hierarchical data defined in an irredundant format.
 
 <br>
 
@@ -55,16 +55,24 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 6.  [@new](#syntax-new)
                 7.  [@set](#syntax-set)
                 8.  [@del](#syntax-del)
-                9.  [@as](#syntax-as)
-                10. [@uuid](#syntax-uuid)
-                11. [@is](#syntax-is)
-                12. [@json](#syntax-json)
-                13. [@yaml](#syntax-yaml)
-                14. [@end](#syntax-end)
-                15. [@has](#syntax-has)
-                16. [@none](#syntax-none)
-                17. [@once](#syntax-once)
-                18. [@many](#syntax-many)
+                9.  [@of](#syntax-of)
+                10. [@as](#syntax-as)
+                11. [@uuid](#syntax-uuid)
+                12. [@is](#syntax-is)
+                13. [Strings](#syntax-string)
+                14. [@json](#syntax-json)
+                15. [@yaml](#syntax-yaml)
+                16. [@end](#syntax-end)
+                17. [@has](#syntax-has)
+                18. [@none](#syntax-none)
+                19. [@once](#syntax-once)
+                20. [@many](#syntax-many)
+                21. [@raw](#syntax-raw)
+                22. [@typeless](#syntax-typeless)
+                23. [@tagless](#syntax-tagless)
+                24. [@trimmed](#syntax-trimmed)
+                25. [@merged](#syntax-merged)
+                26. [@final](#syntax-final)
             3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
@@ -152,13 +160,15 @@ Tridy contains keywords, or **clauses**, that all begin with an `@` symbol.
 
 Similar to SQL, Tridy statements are also semicolon-delimited, where the semicolon is required at the end of the statement. This has at least the advantage of allowing the language to be whitespace-insensitive, allowing users to adopt their own indentation or presentation style.
 
-The first statement, `@new a`, creates a new module tagged as *a*, and stores it at the root module inside a newly-created document. Since the document is likely stored as a JSON object, the root module would be whatever is *directly* under the opening `{` and closing `}` of the document.
+The first statement, `@new a`, creates a new module tagged as *a*, and stores it at the root module inside a newly-created document. Since the document is likely stored as a JSON object, the root module would be whatever is *directly* under the opening `{` and closing `}` of the document. It also implicitly sets the module's type specifier to be `"a"`, since another, more explicit clause `@as` wasn't used, and `a` was the last and only tag there.
 
 `@new` is considered as the **operation** of the Tridy statement, which defines the action taken by it. `@new`, as the name implies, creates a new module, while the three other operations `@set`, `@get`, and `@del` can be used to change an existing module, print an existing module, and delete an existing module respectively.
 
 The second statement, `@new b`, acts similarly, creating a new module tagged as `b` under the root module. More specifically, the last two statements (respectively) stored the modules tagged `a` and `b` under a named array inside the root module, of which the name of this array is consistent for all modules. That would imply that `a` and `b` can also store their own sub-modules, so it's worth noting that modules are such that they can be placed recursively at any possible depth.
 
 The third statement creates a new module tagged as both `a` and `b`. Tags are such that individual modules can have multiple tags, and they do not have to be unique. Thus, TridyDB places no restrictions on how a module is identified, and uniqueness constraints are not meant to be enforced except at a higher level.
+
+Since the tags were provided implicitly, the type identifier is automatically-determined as well, which this time is `"b"`. The reason why the final tag is chosen is a result of natural language, where the noun or most-significant identifier usually follows its adjectives, or less-significant identifiers.
 
 The fourth statement is meant to show some of where Tridy can be powerful. In any Tridy statement, `@in` is used to specify a **context**, which is the expression that any module is tested for before the statement can be applied to it. The operation always follows *after* the end of whatever the context expression is, so in this case, the context expression is `a @xor b`. Given this preceding expression, `@new c` will only be applied to an existing module if and only if it has the tags `a` or `b`, but never both at the same time. Only in the modules created by the first two statements would this evaluate as true, so only the first two modules are affected. However, they both receive a copy of the new module tagged as `c`, and the only change needed to make all three existing modules (under the root module) receive a copy would be to change `a @xor b` to `a @or b`.
 
@@ -170,6 +180,7 @@ If the output format is a JSON object, then the statements above might have the 
 {
     "tree": [
         {
+            "type": "a",
             "tags": ["a"],
             "tree": [
 +               {
@@ -178,6 +189,7 @@ If the output format is a JSON object, then the statements above might have the 
             ]
         },
         {
+            "type": "b",
             "tags": ["b"],
             "tree": [
 +               {
@@ -186,6 +198,7 @@ If the output format is a JSON object, then the statements above might have the 
             ]
         },
         {
+            "type": "b",
             "tags": ["a", "b"]
         }
     ]
@@ -217,18 +230,20 @@ Tridy is designed especially for these high-power operations, in a sense creatin
 TridyDB expects a kind of schema to foster it's capabilities and make it useful in a way that is as generalized as possible, but not so generalized that it can't offer anything over directly working with JSON, YAML, or similar. As part of this compromise, Tridy works with self-contained units of information that are collectively termed as **modules**. What actually makes a module a module is outlined in the list below:
 
 1. At a minimum, every module should (but is not required to) have of an array of strings that each individually form the module's **tags**.
-2. In reality, a module may also have a **free** data structure, and a **tree** data structure.
+2. In reality, a module may also have a **free** data structure, a **tree** data structure, and a **type** specifier.
 3. A module should contain no other data items at the root of the module, not even metadata.
 4. All identification of the module by TridyDB for queries must be done using tags located inside the tags array. TridyDB will not consider anything else.
 5. A module may have zero to many tags, as an array of strings.
 6. Tags have no requirements to be unique, but they may be made unique by design.
-7. Tags are strings that may *only* contain lowercase letters, uppercase letters, numbers, dashes, or underscores.
+7. Tags are strings that may *only* contain lowercase letters, uppercase letters, numbers, dashes, underscores, or periods.
 8. *All* data that is organized in an arbitrary fashion must be stored under the free data structure. This should include an application's usable data.
 9. There are no rules for how the free data structure should be composed, and it can be a primitive type, an array type, a mapped type, or any combination of all three. It is an application's job to control the schema or format of it.
 10. *All* modules which are nested under the current module must be stored under the tree data structure, which must itself be an array.
 11. A module may have zero to many nested modules inside the tree data structure.
 12. Modules may recursively nest other modules to no limit in depth or number of modules otherwise.
-13. The keys used as identifiers may change depending on the application (TridyDB allows renaming these via. arguments).
+13. A module may use a type specifier to act solely as the key used by the module, in some circumstances, at a higher-level, as in the parent module.
+14. A type specifier can be a string of any composition, but also *must* be a string.
+15. The keys used as identifiers for these data structures may change depending on the application (TridyDB allows renaming these via. "alias" arguments).
 
 Every module in an instance of Tridy is also a descendant of the **root module**, of which there is only one, and which is always used as a reference point for Tridy statements. Essentially, the root module is also equivalent to the entire database and its contents since nothing can exist outside of it. Thus, throughout this manual, what is referred to as the Tridy **database** is interchangable with the root module.
 
@@ -246,12 +261,15 @@ In Tridy, **context** refers to the pathing situation of a module. In particular
 {
     "tree": [
         {
+            "type": "b",
             "tags": ["a", "b"],
             "tree": [
                 {
+                    "type": "e",
                     "tags": ["e"],
                     "tree": [
                         {
+                            "type": "i",
                             "tags": ["h", "i"]
                         }
                     ]
@@ -259,12 +277,15 @@ In Tridy, **context** refers to the pathing situation of a module. In particular
             ]
         },
         {
+            "type": "a",
             "tags": ["a"]
         },
         {
+            "type": "d",
             "tags": ["c", "d"],
             "tree": [
                 {
+                    "type": "g",
                     "tags": ["f", "g"]
                 }
             ]
@@ -335,10 +356,10 @@ As an example that is not read-only:
 
 ```
 # Before
-@new a;
+@new @as a;
 
 # After
-@in a @new b;
+@in a @new @as b;
 ```
 
 ```diff
@@ -369,12 +390,12 @@ The `@any` operand is used in a way that is analogous to a tautology in the Trid
 ```
 # Before
 @new;
-@new a;
-@new b;
-@new a b;
+@new @as a;
+@new @as b;
+@new @as a b;
 
 # After
-@in * @new c;
+@in * @new @as c;
 ```
 
 ```diff
@@ -428,16 +449,16 @@ The `@root` operand applies if and only if the module being evaluated is a direc
 
 ```
 # Before
-@new a;
-@in a @new b;
-@in a/b @new b;
-@in a/b/b @new c;
-@in a @new d;
-@in a/d @new b;
-@in a/d/b @new c;
+@new @as a;
+@in a @new @as b;
+@in a/b @new @as b;
+@in a/b/b @new @as c;
+@in a @new @as d;
+@in a/d @new @as b;
+@in a/d/b @new @as c;
 
 # After
-@in a // c << b < ~ @new e;
+@in a // c << b < ~ @new @as e;
 ```
 
 ```diff
@@ -495,13 +516,13 @@ The `@leaf` operand applies if and only if the module being evaluated is a leaf,
 
 ```
 # Before
-@new a;
-@in a @new b;
-@in a/b @new b;
-@in a @new b;
+@new @as a;
+@in a @new @as b;
+@in a/b @new @as b;
+@in a @new @as b;
 
 # After
-@in a // % @new c;
+@in a // % @new @as c;
 ```
 
 ```diff
@@ -562,9 +583,9 @@ The `@not` operator forms the only unary operator in Tridy's expressional syntax
 ```
 # Before
 @new;
-@new a;
-@new b;
-@new a b;
+@new @as a;
+@new @as b;
+@new @as a b;
 
 # After
 @in !a @new c;
@@ -616,12 +637,12 @@ Worth noting is that `@and` is also considered as the *implicit* operation, mean
 ```
 # Before
 @new;
-@new a;
-@new b;
-@new a b;
+@new @as a;
+@new @as b;
+@new @as a b;
 
 # After
-@in a & b @new c;
+@in a & b @new @as c;
 ```
 
 ```diff
@@ -663,12 +684,12 @@ The `@xor` operator evaluates as true if and only if an operand on one side of t
 ```
 # Before
 @new;
-@new a;
-@new b;
-@new a b;
+@new @as a;
+@new @as b;
+@new @as a b;
 
 # After
-@in a ^ b @new c;
+@in a ^ b @new @as c;
 ```
 
 ```diff
@@ -715,12 +736,12 @@ The `@or` operator evaluates as true if either side of the operator evaluates as
 ```
 # Before
 @new;
-@new a;
-@new b;
-@new a b;
+@new @as a;
+@new @as b;
+@new @as a b;
 
 # After
-@in a | b @new c;
+@in a | b @new @as c;
 ```
 
 ```diff
@@ -771,12 +792,12 @@ The `@parent` operator returns true only if the right side of the operator is tr
 
 ```
 # Before
-@new apple;
-@new apple;
-@in apple @new seed @once;
+@new @as apple;
+@new @as apple;
+@in apple @new @as seed @once;
 
 # After
-@in apple > seed @new reproductive;
+@in apple > seed @new @as reproductive;
 ```
 
 ```diff
@@ -814,13 +835,13 @@ The `@ascend` operator extends `@parent` to recursively look for sub-modules whe
 
 ```
 # Before
-@new orchard;
-@new orchard;
-@in orchard new apple;
-@in orchard/apple @new seed @once;
+@new @as orchard;
+@new @as orchard;
+@in orchard new @as apple;
+@in orchard/apple @new @as seed @once;
 
 # After
-@in orchard >> seed @new regrowable;
+@in orchard >> seed @new @as regrowable;
 ```
 
 ```diff
@@ -868,12 +889,12 @@ The `@child` operator returns true only if the left side of the operator is true
 
 ```
 # Before
-@new orchard;
-@new trashcan;
-@in orchard | trashcan @new apple;
+@new @as orchard;
+@new @as trashcan;
+@in orchard | trashcan @new @as apple;
 
 # After
-@in * / apple < orchard @new fresh;
+@in * / apple < orchard @new @as fresh;
 ```
 
 ```diff
@@ -918,17 +939,17 @@ The `@descend` operator extends `@child` similar to the way `@ascend` extends `@
 
 ```
 # Before
-@new year 1961 1960s;
-@in 1961 @new month October;
-@in 1961/October @new day 30;
-@in 1961/October/30 @new event tsar-bomba-dropped;
-@new year 1989 1980s;
-@in 1989 @new month November;
-@in 1989/November @new day 9;
-@in 1989/November/9 @new event fall-of-berlin-wall;
+@new @as year 1961 1960s;
+@in 1961 @new @as month October;
+@in 1961/October @new @as day 30;
+@in 1961/October/30 @new @as event tsar-bomba-dropped;
+@new @as year 1989 1980s;
+@in 1989 @new @as month November;
+@in 1989/November @new @as day 9;
+@in 1989/November/9 @new @as event fall-of-berlin-wall;
 
 # After
-@in * // event << 1980s @new period late-soviet;
+@in * // event << 1980s @new @as period late-soviet;
 ```
 
 ```diff
@@ -993,12 +1014,12 @@ The `@to` operator has a behavior similar to that of `@child`, where it will ret
 
 ```
 # Before
-@new apple;
-@new apple;
-@in apple @new seed @once;
+@new @as apple;
+@new @as apple;
+@in apple @new @as seed @once;
 
 # After
-@in apple / seed @new sprout;
+@in apple / seed @new @as sprout;
 ```
 
 ```diff
@@ -1038,13 +1059,13 @@ The `@toward` operator does not just have an effect on the . `@toward` looks for
 
 ```
 # Before
-@new a;
-@in a new b closest;
-@in a/b @new b middle;
-@in a/b/b @new b deepest;
+@new @as a;
+@in a new @as b closest;
+@in a/b @new @as b middle;
+@in a/b/b @new @as b deepest;
 
 # After
-@in a // b @new c;
+@in a // b @new @as c;
 ```
 
 ```diff
@@ -1097,18 +1118,18 @@ Naturally, to control the precedence of different operators in a context express
 
 ```
 # Before
-@new a b c;
-@new a b;
-@new a c;
-@new a;
-@new b c;
-@new b;
-@new c;
-@in a & b | c @new d without-parentheses;
+@new @as a b c;
+@new @as a b;
+@new @as a c;
+@new @as a;
+@new @as b c;
+@new @as b;
+@new @as c;
+@in a & b | c @new @as d without-parentheses;
 
 # After
 @del a & b | c / d;
-@in a & (b | c) @new d with-parentheses;
+@in a & (b | c) @new @as d with-parentheses;
 ```
 
 ```diff
@@ -1169,15 +1190,15 @@ Note that parentheses can also be used to reverse the transitions created by the
 
 ```
 # Before
-@new a;
-@in a @new b;
-@in a @new c;
-@new c;
-@in a / b | c @new d without-parentheses;
+@new @as a;
+@in a @new @as b;
+@in a @new @as c;
+@new @as c;
+@in a / b | c @new @as d without-parentheses;
 
 # After
 @del a / b | c / d;
-@in (a / b) | c @new d with-parentheses;
+@in (a / b) | c @new @as d with-parentheses;
 ```
 
 ```diff
@@ -1336,9 +1357,9 @@ By default, the results of `@get` will be a JSON representation of the database 
 `@get` may be used with `@in` to filter output based on a context expression, however, the context expression may also be given after `@get` without the use of `@in`. `@get` takes no definition arguments to its right-hand side.
 
 ```
-@new a;
-@new a;
-@in a @new b;
+@new @as a;
+@new @as a;
+@in a @new @as b;
 @get;
 @get a/b;
 
@@ -1388,10 +1409,10 @@ By default, the results of `@get` will be a JSON representation of the database 
 
 ```
 # Before
-@new a;
+@new @as a;
 
 # After
-@in a @new b;
+@in a @new @as b;
 ```
 
 ```diff
@@ -1423,11 +1444,11 @@ Note that this command is generally not recommended for normal use, and Tridy sc
 
 ```
 # Before
-@new a;
-@in a @new b;
+@new @as a;
+@in a @new @as b;
 
 # After
-@in a @set b;
+@in a @set @as b;
 ```
 
 ```diff
@@ -1462,8 +1483,8 @@ The operation is not completely permanent, though, since modules can always be r
 
 ```
 # Before
-@new a;
-@in a @new b;
+@new @as a;
+@in a @new @as b;
 
 # After
 @in a/b @del;
@@ -1486,11 +1507,27 @@ The operation is not completely permanent, though, since modules can always be r
 
 <br>
 
+<div id="syntax-of"/>
+
+### **Definition: `@of`**
+
+`@of` is used to directly state a type specifier for the module irrespective of what the module's tags are.
+
+A module's type specifier 
+
+WIP
+
+`@of` 
+
+<br>
+
 <div id="syntax-as"/>
 
 ### **Definition: `@as`**
 
-`@as` is one of few clauses in Tridy that are totally unnecessary to give, but exist as a convenience to the user simply as a way to be explicit. The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set`. `@as` is meant to come after the operation, but before `@is` or `@has`. Normally, tags are be given to the right-hand side of the operation even without the use of `@as`, hence why it is usually unnecessary.
+The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set`. `@as` is meant to come after the operation, but before `@is` or `@has`. Normally, tags are be given to the right-hand side of the operation even without the use of `@as`, hence why it is usually unnecessary.
+
+WIP
 
 ```
 @new @as a b c;
@@ -1518,11 +1555,11 @@ As a disadvantage of this, though, the UUID would not be known beforehand, makin
 
 ```
 # After
-@new a;
-@new a;
+@new @as a;
+@new @as a;
 
 # After
-@in a @new @uuid;
+@in a @new @as @uuid;
 ```
 
 ```diff
@@ -1561,7 +1598,7 @@ Following `@is`, the user would specify a format clause, most commonly `@json`, 
 `@is` along with its formatted argument is meant to be specified after `@as` if given, but before `@has`.
 
 ```
-@new file fsobj @is @json {
+@new @as file fsobj @is @json {
     "handle": "file",
     "path": "/usr/bin/node",
     "properties": {
@@ -1595,6 +1632,26 @@ Following `@is`, the user would specify a format clause, most commonly `@json`, 
 
 <br>
 
+<div id="syntax-string"/>
+
+### **Raw Definition: `'` / `"` / `` ` ``**
+
+For special reasons, this was included even though, without the beginning `@`, it technically isn't a clause.
+
+For wherever it is possible for a user to enter raw input, while most of the formats use and need delimiting clauses, literal strings only need the markings one would expect from working with any other language.
+
+Either single-quotation, double-quotation, or grave accent marks can be used. There are no advantages to using either of the three over one another, except that the delimiting character needs to be escaped with `\` to be used as a literal, and having multiple options provides some flexibility with that (no need to escape double-quotes in a single-quoted string, for instance). All three will even accept a string over multiple lines, so they behave identically for the most part.
+
+```
+```
+
+```json
+```
+
+WIP
+
+<br>
+
 <div id="syntax-json"/>
 
 ### **Raw Definition: `@json`**
@@ -1603,7 +1660,7 @@ The `@json` clause is used as a starting delimiter for JSON-formatted input wher
 
 ```
 # Before
-@new a;
+@new @as a;
 
 # After
 @in a @new @json {
@@ -1662,7 +1719,7 @@ YAML, unlike JSON, is sensitive to whitespace. However, the rules as with YAML r
 
 ```
 # Before
-@new a;
+@new @as a;
 
 # After
 @in a @new @yaml
@@ -1735,12 +1792,12 @@ Thus, relative to a nested statement, the module represented by the parent state
 `@has` along with its bracketed statements is meant to be specified after `@is` if given, but before `@once` or `@many`.
 
 ```
-@new orchard @has {
-    @new apple @has {
-        @new seed;
+@new @as orchard @has {
+    @new @as apple @has {
+        @new @as seed;
     };
-    @new apple;
-    @in apple @new seed;
+    @new @as apple;
+    @in apple @new @as seed;
 };
 ```
 
@@ -1785,7 +1842,7 @@ Thus, relative to a nested statement, the module represented by the parent state
 
 ```
 # After
-@new @as @none @is @none @has @none;
+@new @of @none @as @none @is @none @has @none;
 ```
 
 ```diff
@@ -1810,12 +1867,12 @@ There is a particular use case for this, namely where context expressions are ad
 
 ```
 # Before
-@new a;
-@new a;
-@new a;
+@new @as a;
+@new @as a;
+@new @as a;
 
 # After
-@in a @new b @once;
+@in a @new @as b @once;
 ```
 
 ```diff
@@ -1851,12 +1908,12 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 
 ```
 # Before
-@new a;
-@new a;
-@new a;
+@new @as a;
+@new @as a;
+@new @as a;
 
 # After
-@in a @new b @many;
+@in a @new @as b @many;
 ```
 
 ```diff
@@ -1892,6 +1949,213 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 
 <br>
 
+<div id="syntax-raw"/>
+
+### **Meta-Operation: `@raw`**
+
+`@raw` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
+
+`@raw` specifies the default format in which the output of `@get` is printed with respect to the amount of compression used, which is none. No compression means that the output is printed exactly how it is stored, leaving Tridy "metadata" (the tagset and the type specifier, namely) intact.
+
+"Raw" format or no compression is necessary for the output to be *two-way*, meaning that it would be possible to plug the output directly back into TridyDB and have it be immediately useable the way it is as a TridyDB database.
+
+`@raw` conflicts with `@trimmed`, `@merged`, and `@final`.
+
+WIP
+
+<br>
+
+<div id="syntax-typeless"/>
+
+### **Meta-Operation: `@typeless`**
+
+WIP
+
+<br>
+
+<div id="syntax-tagless"/>
+
+### **Meta-Operation: `@tagless`**
+
+WIP
+
+<br>
+
+<div id="syntax-trimmed"/>
+
+### **Meta-Operation: `@trimmed`**
+
+`@trimmed` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
+
+`@trimmed` introduces some compression to the output, whereby the tagset and the type identifier, if they exist, are removed from the output.
+
+```
+@new a @is "foo";
+@in a @new @of @none @as b @is "bar";
+
+@get @raw;
+@get @trimmed;
+```
+
+```json
+[
+    {
+        "tree": [
+            {
+                "tags": ["a"],
+                "free": "foo",
+                "tree": [
+                    {
+                        "type": null,
+                        "tags": ["b"],
+                        "free": "bar"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "tree": [
+            {
+                "free": "foo",
+                "tree": [
+                    {
+                        "free": "bar"
+                    }
+                ]
+            }
+        ]
+    }
+]
+```
+
+Notably, trimmed output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
+
+`@trimmed` conflicts with `@raw`, `@merged`, and `@final`.
+
+WIP
+
+<br>
+
+<div id="syntax-merged"/>
+
+### **Meta-Operation: `@merged`**
+
+`@merged` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
+
+`@merged` does the same as `@trimmed` does by removing the tags and the type specifier from the output, but additionally performs a special operation where the free and tree data structures are merged into one singular data structure, and re-mapped to the module itself. Because the tree data structure is almost always (excluding the effect raw input can have) an array, and the free data structure can either be a string, an array, or a map, merging is not trivial, and there are rules to keep in mind with it. However, `@merge` uses a stricter and arguably simpler form of merging than `@final` does.
+
+With `@merge`, the value of the type specifier given to a module is used as the key of that module in the final output, or if no type specifier is present, then the final tag in the module's tagset is used. If no tags *or* type specifier is present, then starting with 0, the lowest-value currently-undefined integer index is used.
+
+The type key will refer to an array with the also-compressed module inside of it, which is always a mapped type even if its indeces are entirely numeric.
+
+```
+@new a @is "foo";
+@in a @new @of @none @as b @is "bar";
+
+@get @raw;
+@get @merged;
+```
+
+```json
+[
+    {
+        "tree": [
+            {
+                "tags": ["a"],
+                "free": "foo",
+                "tree": [
+                    {
+                        "type": null,
+                        "tags": ["b"],
+                        "free": "bar"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "a": [
+            {
+                "0": "foo",
+                "1": {
+                    "0": "bar"
+                }
+            }
+        ]
+    }
+]
+```
+
+As opposed to `@final`, `@merged` always uses the most flexible type of container that it *might* need to support the compressed data, so that the output uses consistent typing regardless of the state of the data being compressed or how it might change. This does mean the compression is somewhat weaker than `@final`'s, however.
+
+Notably, merged output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
+
+`@merged` conflicts with `@raw`, `@trimmed`, and `@final`.
+
+WIP
+
+<br>
+
+<div id="syntax-final"/>
+
+### **Meta-Operation: `@final`**
+
+`@final` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
+
+`@final` places the highest degree of compression out of the available compression level specifiers. Like `@trimmed`, it removes the tag and type specifier from the output, and like `@merged`, it tries to merge the free and tree data structures together at the base of their respective modules. However, unlike `@merged`, `@final` assumes a set of equivalencies so that it can reduce the overall complexity of the data by choosing the smallest available form, at least as far as what TridyDB automatically generates.
+
+These equivalencies are as follows:
+
+1. If a map contains only integer keys that start at 0, increment by 1, are in numerical order, and exist without any gaps larger than 1, then that map is transformed directly into an array.
+2. If an array (including possibly the output of the above rule) contains only one element, then the array is replaced with its one singular element.
+
+These rules do not apply to data given through `@is`, since the free data structure is never automatically-generated by TridyDB. Therefore, if a map in which rule #1 applies, or an array in which rule #2 applies, is provided through `@is`, then the containers are left intact without being reducible further (where map > array > primitive). As with the other forms of compression, this does not apply in reverse, where for instance, if a string is provided through `@is`, and its module still has a bunch of a sub-modules, then an array would still be generated from it. Likewise, if the sub-modules exist (as they are stored, not as output) with tags or type specifiers, then having the associative index would still force the module to output as a map even if the free data structure is only an array or string.
+
+```
+@new a @is "foo";
+@in a @new @of @none @as b @is "bar";
+
+@get @raw;
+@get @final;
+```
+
+```json
+[
+    {
+        "tree": [
+            {
+                "tags": ["a"],
+                "free": "foo",
+                "tree": [
+                    {
+                        "type": null,
+                        "tags": ["b"],
+                        "free": "bar"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "a": [
+            "foo",
+            "bar"
+        ]
+    }
+]
+```
+
+The namesake for this clause is because the amount of sense it makes to use this clause depends on the amount to which the data is expected to change. Since the typing in this case is dynamic/loose (where `@merged`'s typing is static/strict), using this option requires more work from the application developer to properly address the output or its individual pieces, since the difference between a 1-element and 2-element array here would be a primitive and an array, respectively, and "array[0]" wouldn't work in the former case. Therefore, it makes the most sense to use when either the data is well-managed from the application's perspective, or the database's schema is not subject to change with respective its overall state changing.
+
+Notably, finalized output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
+
+`@final` conflicts with `@raw`, `@trimmed`, and `@merged`.
+
+WIP
+
+<br>
+
 <div id="syntax-summary"/>
 
 ### **Summary**
@@ -1904,26 +2168,37 @@ The syntax rules are detailed below using Microsoft's command line syntax:
 |
     {
         {
-            {@get | @del} [<context expression>]
+            {
+                @get [<context expression>]
+                [{@raw | @typeless | @tagless | @trimmed | @merged | @final}]
+            |
+                @del [<context expression>]
+            }
         |
             @in <context expression>
-            {@get | @del}
+            {
+                @get
+                [{@raw | @typeless | @tagless | @trimmed | @merged | @final}]
+            |
+                @del
+            }
         }
     |
         [@in <context expression>]
         {@new | @set}
         [
             {
-                {@json <json> | @yaml <yaml>} @end
-            |
                 {
-                    @tridy
-                    @as {<tags> | @none}
+                    [{<tags> | @none}]
                 |
-                    [@as] {<tags> | @none}
+                    [@tridy]
+                    [@of "<type identifier string>"]
+                    [@as {<tags> | @none}]
                 }
-                [@is {{@json <json> | @yaml <yaml>} @end | @none}]
+                [@is {{@json <json> | @yaml <yaml>} @end | "<string>" | @none}]
                 [@has {\{ <tridy statements> \} | @none}]
+            |
+                {{@json <json> | @yaml <yaml>} @end | "<string>"}
             }
         ]
     }
@@ -2267,7 +2542,14 @@ As it only affects existing modules, the possible query parameters (like clauses
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
 | `context` | context expression | The modules to acquire. | `@in <?context>` |
-| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `compression` | `0` | Output compression level (no compression). | `@raw` |
+| `compression` | `1` | Output compression level. | `@typeless` |
+| `compression` | `2` | Output compression level. | `@tagless` |
+| `compression` | `3` | Output compression level. | `@trimmed` |
+| `compression` | `4` | Output compression level. | `@merged` |
+| `compression` | `5` | Output compression level (full compression). | `@final` |
+| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
+| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
 
 <br>
 
@@ -2281,13 +2563,15 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `type` | { `json`, `yaml` } | The new module's import data type. | `@new <?type> <?data> @end` |
-| `data` | pre-formatted data | The new module's import data. | `@new <?type> <?data> @end` |
+| `format` | { `json`, `yaml`, `string` } | The new module's import data type. | `@new <?format> <?data> @end` |
+| `data` | pre-formatted data | The new module's import data. | `@new <?format> <?data> @end` |
 | `context` | context expression | The modules to append. | `@in <?context>` |
+| `type` | string | The new module's type specifier. | `@of <?type>` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `freetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?freetype> <?free> @end` |
-| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freetype> <?free> @end` |
-| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `freeformat` | { `json`, `yaml`, `string` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
+| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?free> @end` |
+| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
+| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
 
 <br>
 
@@ -2301,13 +2585,15 @@ As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `type` | { `json`, `yaml` } | The new module's import data type. | `@set <?type> <?data> @end` |
-| `data` | pre-formatted data | The new module's import data. | `@set <?type> <?data> @end` |
+| `format` | { `json`, `yaml`, `string` } | The new module's import data type. | `@set <?format> <?data> @end` |
+| `data` | pre-formatted data | The new module's import data. | `@set <?format> <?data> @end` |
 | `context` | context expression | The modules to modify. | `@in <?context>` |
+| `type` | string | The new module's type specifier. | `@of <?type>` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `freetype` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?freetype> <?free> @end` |
-| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freetype> <?free> @end` |
-| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `freeformat` | { `json`, `yaml`, `string` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
+| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?free> @end` |
+| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
+| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
 
 <br>
 
@@ -2322,7 +2608,8 @@ As it only affects existing modules, the possible query parameters (like clauses
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
 | `context` | context expression | The modules to delete. | `@in <?context>` |
-| `greedy` | boolean | Enables greedy context expression evaluation. | `@once` |
+| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
+| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
 
 <br>
 
@@ -2336,7 +2623,7 @@ While it is possible, verbatim mode is less recommended in most cases over synta
 
 | Query | Value Type | Description |
 | --- | --- | --- |
-| `type` | { `verb` } | Enables verbatim mode for the query. |
+| `format` | { `verb` } | Enables verbatim mode for the query. |
 | `data` | Tridy statements | Any verbatim queries to be sent to the server. |
 
 <br>
@@ -2355,7 +2642,7 @@ Note that this is the same paradigm that TridyDB in client mode uses to communic
 
 | Query | Value Type | Description |
 | --- | --- | --- |
-| `type` | { `astree` } | Enables syntax tree mode for the query. |
+| `format` | { `astree` } | Enables syntax tree mode for the query. |
 | `data` | Tridy syntax tree | Any query syntax trees to be sent to the server. |
 
 <br>
@@ -2406,6 +2693,9 @@ Strings starting with `#` and ending with a line feed, which are entirely ignore
 
 ### **Composition**
 The process of evaluating context expressions against the contexts of different modules, and then executing specific operations of interpreted statements on the modules that are matched by the context expression.
+
+### **Compression**
+A multi-level parameter/feature of `@get` that reduces the verbosity of the output at the expense of ommitting TridyDB metadata that would allow the output to be automatically re-usable as input or another database.
 
 ### **Console Mode**
 A mode of running the TridyDB application exclusive from inline or server mode, whereby the user is presented with an interactive terminal for giving and receiving input asynchronously.
@@ -2471,7 +2761,7 @@ The process of using tokens extracted from a Tridy statement to create an abstra
 A clause used as control flow for passing raw input through the Tridy interpreter.
 
 ### **Raw Input**
-A string of data that is passed through the Tridy interpreter in a common, established data format that doesn't include Tridy itself, namely JSON and/or YAML.
+A string of data that is passed through the Tridy interpreter in a common, established data format that doesn't include Tridy itself, namely JSON and/or YAML, or as a literal string.
 
 ### **Root Module**
 The module in which all other modules are nested under, that is not nested under any other modules itself, and that is addressed whenever a context expression is not provided in a statement.
@@ -2523,6 +2813,9 @@ A standalone installation of TridyDB that turns it into a userland terminal util
 
 ### **TridyDB CLI**
 See "**TridyDB Application**"
+
+### **Type Specifier**
+A special string token that identifies the key the module would be associated to inside its parent module in the case of output where some types of compression are enacted.
 
 ### **Verbatim Mode**
 A special way of sending input to a TridyDB server that involves sending Tridy code to the server directly through the `PUT` method, where the server does everything from tokenization to composition.

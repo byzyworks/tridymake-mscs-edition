@@ -1,0 +1,7 @@
+@tridy;
+
+@new a @is @json { "0": "b" } @end;
+
+@in a @new c;
+
+@get @merged;

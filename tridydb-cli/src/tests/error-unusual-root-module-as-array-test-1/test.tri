@@ -1,0 +1,7 @@
+@tridy;
+
+@set @json [ "I am not a proper module." ] @end;
+
+@new a;
+
+@get;

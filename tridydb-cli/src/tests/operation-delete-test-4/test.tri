@@ -1,16 +1,16 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@new a;
+@new @as a;
 
-@new a;
+@new @as a;
 
-@new b;
+@new @as b;
 
-@new b;
+@new @as b;
 
-@new b;
+@new @as b;
 
 @del a;
 

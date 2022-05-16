@@ -1,29 +1,29 @@
 @tridy;
 
-@new random-tree;
+@new @as random-tree;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in (random-tree ?) | (random-tree // ?) @new random-node;
+@in (random-tree ?) | (random-tree // ?) @new @as random-node;
 
-@in random-tree | (random-tree // *) @new child-of-all;
+@in random-tree | (random-tree // *) @new @as child-of-all;
 
 @get random-tree;

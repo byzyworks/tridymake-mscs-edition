@@ -2,12 +2,12 @@
 
 @new @none;
 
-@new a;
+@new @as a;
 
-@new b;
+@new @as b;
 
-@new a b;
+@new @as a b;
 
-@in @any & * @new c;
+@in @any & * @new @as c;
 
 @get;

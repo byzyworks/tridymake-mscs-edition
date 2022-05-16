@@ -166,7 +166,11 @@ class SyntaxParser {
         let line = 0;
         let data = '';
 
-        while (this._tokens.peek().is('part')) {
+        if (!this._tokens.peek().is('part')) {
+            return null;
+        }
+
+        do {
             /**
              * With certain formats like YAML that are whitespace-sensitive, the line feed needs to be respected so the indentation is as well.
              * If there are multiple "part" tokens, this function assumes each is equivalent to one line.
@@ -182,7 +186,7 @@ class SyntaxParser {
             this._tokens.next();
 
             line++;
-        }
+        } while (this._tokens.peek().is('part'));
     
         return data;
     }
@@ -192,49 +196,59 @@ class SyntaxParser {
         let data;
 
         const current = this._tokens.peek();
-        if (current.is('key', 'json')) {
-            type = 'json';
-            this._tokens.next();
-            
-            /**
-             * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
-             * Thus, the backslash characters have to themselves be escaped before they are put them.
-             * Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
-             */
-            data = this._readWhileRaw({ multiline: false }).replace(/\\/g, '\\\\').replace(/^\s+/, '').replace(/\s+$/, '');
-        } else if (current.is('key', 'yaml')) {
-            type = 'yaml';
-            this._tokens.next();
+        if (current.isRawInputToken()) {
+            if (current.is('key')) {
+                this._tokens.next();
 
-            /**
-             * Note for YAML, removing the whitespace at the very beginning is at least an important consideration.
-             * Otherwise, if starting on a new line, it may cause the parser to pick up on the initial line feed unexpectedly.
-             * Since YAML is whitespace-sensitive, that can end up throwing errors as a result.
-             */
-            data = this._readWhileRaw({ multiline: true }).replace(/\\/g, '\\\\').replace(/^\s+/, '').replace(/\s+$/gm, '');
+                type = current.val;
+            } else {
+                type = 'string';
+            }
+
+            data = this._readWhileRaw({ multiline: true });
+            if (data === null) {
+                return null;
+            } else if (type !== 'string') {
+                /**
+                 * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
+                 * Thus, the backslash characters have to themselves be escaped before they are put them.
+                 * Note not to be fooled by the escape characters here either; "\\" is one backslash literal.
+                 * 
+                 * Note for YAML in particular, removing the whitespace at the very beginning is at least an important consideration.
+                 * Otherwise, if starting on a new line, it may cause the parser to pick up on the initial line feed unexpectedly.
+                 * Since YAML is whitespace-sensitive, that can end up throwing errors as a result.
+                 */
+                data = data.replace(/\\/g, '\\\\').replace(/^\s+/, '').replace(/\s+$/gm, '');
+                if (data === '') {
+                    return null;
+                }
+            }
         } else {
             return null;
         }
         
-        let parsed;
         try {
             switch (type) {
                 case 'json':
-                    parsed = JSON.parse(data);
+                    data = JSON.parse(data);
+                    if (this._tokens.peek().is('key', 'end')) {
+                        this._tokens.next();
+                    }
                     break;
                 case 'yaml':
-                    parsed = yaml.load(data);
+                    data = yaml.load(data);
+                    if (this._tokens.peek().is('key', 'end')) {
+                        this._tokens.next();
+                    }
+                    break;
+                case 'string':
                     break;
             }
         } catch (err) {
             throw new SyntaxError(err.message);
         }
 
-        if (this._tokens.peek().is('key', 'end')) {
-            this._tokens.next();
-        }
-
-        return parsed;
+        return data;
     }
     
     _handleOperation() {
@@ -278,7 +292,7 @@ class SyntaxParser {
                 // There is no reason one would want to post duplicate tags in the same module.
                 // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
                 for (const current_tag of tags) {
-                    if (new_tag == current_tag) {
+                    if (new_tag === current_tag) {
                         this._handleUnexpected();
                     }
                 }
@@ -318,11 +332,16 @@ class SyntaxParser {
         }
     }
 
-    _handleTypeDefinition() {
+    _handleTypeDefinitionImplicit() {
+        const tags = this._astree.enterGetAndLeave(global.defaults.alias.tags);
+        if (!isEmpty(tags)) {
+            this._astree.enterSetAndLeave(global.defaults.alias.type, tags[tags.length - 1]);
+        }
+    }
+
+    _handleTypeDefinitionExplicit() {
         if (this._tokens.peek().is('key', 'none')) {
             this._tokens.next();
-
-            this._astree.enterSetAndLeave(global.defaults.alias.type, null);
         } else {
             const type = this._readWhileRaw({ multiline: true });
             if (type === null) {
@@ -374,7 +393,7 @@ class SyntaxParser {
             if (this._tokens.peek().is('key', 'of')) {
                 this._tokens.next();
     
-                this._handleTypeDefinition();
+                this._handleTypeDefinitionExplicit();
             }
 
             if (this._tokens.peek().is('key', 'as')) {
@@ -385,7 +404,7 @@ class SyntaxParser {
         } else if (this._tokens.peek().is('key', 'of')) {
             this._tokens.next();
     
-            this._handleTypeDefinition();
+            this._handleTypeDefinitionExplicit();
 
             if (this._tokens.peek().is('key', 'as')) {
                 this._tokens.next();
@@ -398,6 +417,8 @@ class SyntaxParser {
             this._handleTagsDefinition({ require: true });
         } else {
             this._handleTagsDefinition({ require: false });
+
+            this._handleTypeDefinitionImplicit();
         }
 
         if (this._tokens.peek().is('key', 'is')) {
@@ -416,7 +437,12 @@ class SyntaxParser {
     }
 
     _handleRawDefinition() {
-        this._astree.setPosValue(this._readWhileRawAndParse());
+        const raw = this._readWhileRawAndParse();
+        if (raw === null) {
+            this._handleUnexpected();
+        } else {
+            this._astree.setPosValue(raw);
+        }
         this._astree.leavePos();
     }
 
@@ -439,21 +465,29 @@ class SyntaxParser {
                 switch (op) {
                     case 'get':
                         if (this._tokens.peek().is('key', 'raw')) {
+                            this._astree.enterSetAndLeave(['compression'], 0);
+                            
                             this._tokens.next();
-                        
-                            this._astree.enterSetAndLeave(['other', 'compression'], 'none');
-                        } else if (this._tokens.peek().is('key', 'strip')) {
+                        } else if (this._tokens.peek().is('key', 'typeless')) {
+                            this._astree.enterSetAndLeave(['compression'], 1);
+
                             this._tokens.next();
-                        
-                            this._astree.enterSetAndLeave(['other', 'compression'], 'low');
-                        } else if (this._tokens.peek().is('key', 'merge')) {
+                        } else if (this._tokens.peek().is('key', 'tagless')) {
+                            this._astree.enterSetAndLeave(['compression'], 2);
+
                             this._tokens.next();
-                        
-                            this._astree.enterSetAndLeave(['other', 'compression'], 'medium');
+                        } else if (this._tokens.peek().is('key', 'trimmed')) {
+                            this._astree.enterSetAndLeave(['compression'], 3);
+
+                            this._tokens.next();
+                        } else if (this._tokens.peek().is('key', 'merged')) {
+                            this._astree.enterSetAndLeave(['compression'], 4);
+
+                            this._tokens.next();
                         } else if (this._tokens.peek().is('key', 'final')) {
+                            this._astree.enterSetAndLeave(['compression'], 5);
+
                             this._tokens.next();
-                        
-                            this._astree.enterSetAndLeave(['other', 'compression'], 'high');
                         }
                         break;
                 }
@@ -468,7 +502,7 @@ class SyntaxParser {
 
                 if (this._tokens.peek().is('key', 'in')) {
                     this._tokens.next();
-    
+
                     this._handleContext();
                 }
     
@@ -485,13 +519,13 @@ class SyntaxParser {
             }
     
             if (this._tokens.peek().is('key', 'once')) {
-                this._tokens.next();
-    
                 this._astree.enterSetAndLeave(['context', 'greedy'], true);
-            } else if (this._tokens.peek().is('key', 'many')) {
+
                 this._tokens.next();
-    
+            } else if (this._tokens.peek().is('key', 'many')) {
                 this._astree.enterSetAndLeave(['context', 'greedy'], false);
+
+                this._tokens.next();
             }
         }
 

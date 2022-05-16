@@ -1,15 +1,15 @@
 @tridy;
 
-@new a;
+@new @as a;
 
-@in a @new b has-to has-toward;
+@in a @new @as b has-to has-toward;
 
-@in a @new ignored;
+@in a @new @as ignored;
 
-@in (a @to b) & (a / b) @new b to has-toward;
+@in (a @to b) & (a / b) @new @as b to has-toward;
 
-@in a/b @new ignored;
+@in a/b @new @as ignored;
 
-@in (a @toward b) & (a // b) @new c toward;
+@in (a @toward b) & (a // b) @new @as c toward;
 
 @get;

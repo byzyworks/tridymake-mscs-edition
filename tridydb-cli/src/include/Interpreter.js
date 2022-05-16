@@ -24,7 +24,7 @@ const sendTridyRequest = async (data) => {
             method: 'put',
             url: 'http://' + global.remote.host + ':' + global.remote.port,
             params: {
-                type: 'astree',
+                format: 'astree',
                 data: data
             },
             timeout: global.remote.timeout

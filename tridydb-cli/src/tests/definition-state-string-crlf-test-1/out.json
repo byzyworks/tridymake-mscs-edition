@@ -1,0 +1,9 @@
+[
+    {
+        "tree": [
+            {
+                "free": "This is a\r\nmulti-line\r\nstring."
+            }
+        ]
+    }
+]

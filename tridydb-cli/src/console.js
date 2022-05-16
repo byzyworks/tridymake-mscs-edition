@@ -32,6 +32,9 @@ export const cli = async (opts = { }) => {
     });
 
     rl.on("SIGINT", () => {
+        tokenizer.clear()
+        rl.setPrompt(getPrompt());
+
         rl.write(chalk.red("^C"));
         rl.clearLine(-1);
         rl.prompt();

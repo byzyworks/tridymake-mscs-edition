@@ -1,0 +1,31 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    },
+                    "This is a string.",
+                    "This is a string.",
+                    "This is a string."
+                ]
+            }
+        ]
+    }
+]

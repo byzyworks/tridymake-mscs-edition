@@ -23,6 +23,9 @@ Remember also to set the version number inside package.json and utility/common.
 
 ## Version 1.1.0
 
-* Added clauses `@raw`, `@strip`, `@merge`, and `@final` as ending parameters to `@get` as a way to remove TridyDB metadata from the output (as a side effect making the output one-way / non-reusable by Tridy as input), and compress the remaining output down to varying degrees (`@raw` means no compression / the default behavior while `@final` has the greatest compression).
-* Added clause `@of` to specify a module's type in the form of a double-quoted string, used by `@merge` and `@final`'s reduced output as the module's key. If not given, the final tag in the module's tagset will be used.
+* Added clauses `@raw`, `@typeless`, `@tagless`, `@trimmed`, `@merged`, and `@final` as ending parameters to `@get` as a way to remove TridyDB metadata from the output (as a side effect making the output one-way / non-reusable by Tridy as input), and compress the remaining output down to varying degrees (`@raw` means no compression / the default behavior while `@final` has the greatest compression).
+* Added clause `@of` to specify a module's type in the form of a double-quoted string, used by `@merged` and `@final`'s reduced output as the module's key. If not given, the final tag in the module's tagset (when given without `@as`) will be used.
 * Added `--type-key` program argument (and argument to `tridy.query(...)`) to control the name of the type key's key.
+* Added (multi-line) raw string input with either single quotation, double quotation, or grave accent marks, for `@is`, `@of`, and module raw input.
+* The input buffer / carry is now cleared when pressing Ctrl+C while inside console mode.
+* Fixed a bug where the database would fail to catch errors when attempting `@new` against a root module already changed to a primitive type using `@set` with raw input.

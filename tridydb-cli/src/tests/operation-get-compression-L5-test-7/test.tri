@@ -1,0 +1,7 @@
+@tridy;
+
+@new a @is @json [ "b" ] @end;
+
+@in a @new @none @is "c";
+
+@get @final;
