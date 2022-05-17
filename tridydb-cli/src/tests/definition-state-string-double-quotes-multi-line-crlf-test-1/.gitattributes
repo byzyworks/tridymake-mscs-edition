@@ -1,0 +1,2 @@
+*.json text eol=lf
+*.tri  text eol=crlf

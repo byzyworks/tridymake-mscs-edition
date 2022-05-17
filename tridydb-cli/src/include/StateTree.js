@@ -141,7 +141,7 @@ export class StateTree {
 
         const pos = this.getTopPos();
         if (pos === null) {
-            if (!this._tree) {
+            if (this._tree === undefined) {
                 this._tree = [ ];
             } else if (!Array.isArray(this._tree)) {
                 const temp = this._tree;
@@ -150,7 +150,7 @@ export class StateTree {
             }
             this._tree.push(value);
         } else {
-            if (!this._ptr[pos]) {
+            if (this._ptr[pos] === undefined) {
                 this._ptr[pos] = [ ];
             } else if (!Array.isArray(this._ptr[pos])) {
                 const temp = this._ptr[pos];

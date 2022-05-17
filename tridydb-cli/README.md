@@ -1337,7 +1337,7 @@ As a control clause, `@exit` can only be given alone in a statement, disregardin
 
 <div id="syntax-in"/>
 
-### **Meta-Operation: `@in`**
+### **Context Meta-Operation: `@in`**
 
 `@in` is the clause normally used to read in a context expression for the statement, where its argument would be the context expression itself. This context expression is used to filter out the modules affected by the statements according to what the context expression contains, and to expand out from the root, which is normally the only module affected when a context expression is not present. More of this is explained in detail in the section on context.
 
@@ -1707,21 +1707,92 @@ Following `@is`, the user would specify a format clause, most commonly `@json`, 
 
 ### **Raw Definition: `'` / `"` / `` ` ``**
 
-For special reasons, this was included even though, without the beginning `@`, it technically isn't a clause.
+For special reasons, this was included even though, without the beginning `@`, it technically isn't describing a clause.
 
-For wherever it is possible for a user to enter raw input, while most of the formats use and need delimiting clauses, literal strings only need the markings one would expect from working with any other language.
+For wherever it is possible for a user to enter raw input, while most of the formats use and need delimiting clauses, literal strings only need the same markings one would expect from working with any other language.
 
-Either single-quotation, double-quotation, or grave accent marks can be used. 
+Either single-quotation, double-quotation, or grave accent marks can be used, with each having some unique behavior of their own, while all happen to have the ability to stretch input over multiple lines.
 
-There are no advantages to using either of the three over one another, except that the delimiting character needs to be escaped with `\` to be used as a literal, and having multiple options provides some flexibility with that (no need to escape double-quotes in a single-quoted string, for instance). All three will even accept a string over multiple lines, so they behave identically for the most part.
+Double-quotation marks exhibit the simplest behavior, whereby the input from one quotation mark to the next is recorded, with all characters included, even special characters. After input, it is both stored internally and exported as a string.
 
 ```
+@new @is "a";
+@new @is "0";
+@new @is "multi
+line";
 ```
 
 ```json
+{
+    "tree": [
+        {
+            "free": "a"
+        },
+        {
+            "free": "0"
+        },
+        {
+            "free": "multi\nline"
+        }
+    ]
+}
 ```
 
-WIP
+Single-quotation marks have a different effect when it comes to multi-line input. Single-quotation mark strings do not respect vertical tabulation control characters, including carriage returns, line feeds, form feeds, and vertical tabs, as these are cut out of the string immediately before it is stored.
+
+```
+@new @is 'a';
+@new @is '0';
+@new @is 'multi
+line';
+```
+
+```json
+{
+    "tree": [
+        {
+            "free": "a"
+        },
+        {
+            "free": "0"
+        },
+        {
+            "free": "multiline"
+        }
+    ]
+}
+```
+
+Grave accent marks can be used to for so called *dynamic* raw input, which automatically converts its input to a particular, more-restrictive type when it can be interpreted as being one of that type. Otherwise, it will simply output a string just as the others do.
+
+Grave accent mark strings do not cut out vertical tabulation characters like single-quotation mark strings do. This is because it isn't useful to do so where dynamic raw input would be (most non-string primitive input is short-form), and would seem unintuitive to allow non-string primitives split over multiple lines (such as seen below) to be interpreted the same as one not.
+
+```
+@new @is `a`;
+@new @is `0`;
+@new @is `tr
+ue`;
+```
+
+```json
+{
+    "tree": [
+        {
+            "free": "a"
+        },
+        {
+            "free": 0
+        }
+        {
+            "free": "tr\nue"
+        }
+    ]
+}
+```
+
+Using dynamic raw input, the following values, if formatted correctly, are converted to their respective types: numbers (as integers, floating point, hexadecimal, octal, binary, scientific notation, etc.), booleans (`` `true` `` and `` `false` ``), and `` `null` ``. This makes it able to at fully represent at least JSON's particular collection of available types.
+
+All three string input variants require `\` to use their respective characters as literals inside each string respectively.
 
 <br>
 
@@ -1846,7 +1917,7 @@ For obvious reasons that it bypasses Tridy's requirements for modules, using thi
 
 ### **Raw Definition: `@end`**
 
-The `@end` clause is used as an ending delimiter for raw input clauses like `@json` and `@yaml`. Whereby these would pass control over parsing the input to their respective interpreter, `@end` closes this input and passes control back to the Tridy interpreter.
+Similar to an ending quotation mark, the `@end` clause is used as an ending delimiter for raw input clauses like `@json` and `@yaml`. Whereby these would pass control over parsing the input to their respective interpreter, `@end` closes this input and passes control back to the Tridy interpreter.
 
 `@end` always appears at the end of a raw input string, as it is required for the Tridy statement to be completed with a Tridy-parsed semicolon in any case. The raw input string enclosed by the beginning delimiter and `@end` can be one to several lines long if need be, where line feed characters will either be trimmed out or kept in accordance with the format used.
 
@@ -1930,7 +2001,7 @@ Thus, relative to a nested statement, the module represented by the parent state
 
 <div id="syntax-once"/>
 
-### **Meta-Operation: `@once`**
+### **Context Meta-Operation: `@once`**
 
 `@once` is a special parameter that is used to make a Tridy statement (and in fact, any Tridy statement regardless of operation) "greedy". Effectively, a greedy Tridy statement is one which is limited to affecting a single module, whereby it will stop searching for new modules once at least one module returns true according to the context expression. This means it will not only retract from searching through sub-modules, but through co-modules as well, meaning modules in the same tree of a parent module that each may or may not have a matching context as well. It is not possible otherwise to ignore co-modules.
 
@@ -1973,7 +2044,7 @@ There is a particular use case for this, namely where context expressions are ad
 
 <div id="syntax-many"/>
 
-### **Meta-Operation: `@many`**
+### **Context Meta-Operation: `@many`**
 
 As an alternative to `@once`, `@many` is an explicit way to specify the default behavior Tridy exhibits when selecting modules, which is to test all existing modules where a context expression evaluates as true and apply an operation therein. It is not necessary to include.
 
@@ -2024,7 +2095,7 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 
 <div id="syntax-raw"/>
 
-### **Meta-Operation: `@raw`**
+### **Compression Meta-Operation: `@raw`**
 
 `@raw` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
@@ -2032,31 +2103,79 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 
 "Raw" format or no compression is necessary for the output to be *two-way*, meaning that it would be possible to plug the output directly back into TridyDB and have it be immediately useable the way it is as a TridyDB database.
 
-`@raw` conflicts with `@trimmed`, `@merged`, and `@final`.
-
-WIP
+`@raw` conflicts with `@typeless`, `@tagless`, `@trimmed`, `@merged`, and `@final`.
 
 <br>
 
 <div id="syntax-typeless"/>
 
-### **Meta-Operation: `@typeless`**
+### **Compression Meta-Operation: `@typeless`**
 
-WIP
+`@typeless` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
+
+`@typeless` introduces some compression to the output, whereby specifically the type identifier, if it exists, is removed from the output.
+
+```
+@new a @is "foo";
+@in a @new @as b @is "bar";
+
+@get @raw;
+@get @trimmed;
+```
+
+```json
+[
+    {
+        "tree": [
+            {
+                "type": "a",
+                "tags": ["a"],
+                "free": "foo",
+                "tree": [
+                    {
+                        "tags": ["b"],
+                        "free": "bar"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "tree": [
+            {
+                "free": "foo",
+                "tree": [
+                    {
+                        "free": "bar"
+                    }
+                ]
+            }
+        ]
+    }
+]
+```
+
+Typeless output represents what the output of what `@get` would normally be if `@merged` or `@final` compression was not implemented. As such, removing the type specifier in this respect does partly make it *one-way*, though only where `@merged` or `@final` may be used on the output, recursively, and is not a concern otherwise.
+
+`@typeless` conflicts with `@raw`, `@tagless`, `@trimmed`, `@merged`, and `@final`.
 
 <br>
 
 <div id="syntax-tagless"/>
 
-### **Meta-Operation: `@tagless`**
+### **Compression Meta-Operation: `@tagless`**
 
-WIP
+`@tagless` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
+
+`@tagless` introduces some compression to the output, whereby specifically tagset, if it exists, is removed from the output.
+
+`@tagless` conflicts with `@raw`, `@typeless`, `@trimmed`, `@merged`, and `@final`.
 
 <br>
 
 <div id="syntax-trimmed"/>
 
-### **Meta-Operation: `@trimmed`**
+### **Compression Meta-Operation: `@trimmed`**
 
 `@trimmed` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
@@ -2104,7 +2223,7 @@ WIP
 
 Notably, trimmed output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
 
-`@trimmed` conflicts with `@raw`, `@merged`, and `@final`.
+`@trimmed` conflicts with `@raw`, `@typeless`, `@tagless`, `@merged`, and `@final`.
 
 WIP
 
@@ -2112,7 +2231,7 @@ WIP
 
 <div id="syntax-merged"/>
 
-### **Meta-Operation: `@merged`**
+### **Compression Meta-Operation: `@merged`**
 
 `@merged` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
@@ -2164,7 +2283,7 @@ As opposed to `@final`, `@merged` always uses the most flexible type of containe
 
 Notably, merged output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
 
-`@merged` conflicts with `@raw`, `@trimmed`, and `@final`.
+`@merged` conflicts with `@raw`, `@typeless`, `@tagless`, `@trimmed`, and `@final`.
 
 WIP
 
@@ -2172,7 +2291,7 @@ WIP
 
 <div id="syntax-final"/>
 
-### **Meta-Operation: `@final`**
+### **Compression Meta-Operation: `@final`**
 
 `@final` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
@@ -2223,7 +2342,7 @@ The namesake for this clause is because the amount of sense it makes to use this
 
 Notably, finalized output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
 
-`@final` conflicts with `@raw`, `@trimmed`, and `@merged`.
+`@final` conflicts with `@raw`, `@typeless`, `@tagless`, `@trimmed`, and `@merged`.
 
 WIP
 
@@ -2265,13 +2384,13 @@ The syntax rules are detailed below using Microsoft's command line syntax:
                     [{<tags> | @none}]
                 |
                     [@tridy]
-                    [@of "<type identifier string>"]
+                    [@of {'<type identifier string>' | "<type identifier string>" | `<type identifier string>` | @none}]
                     [@as {<tags> | @none}]
                 }
-                [@is {{@json <json> | @yaml <yaml>} @end | "<string>" | @none}]
+                [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
                 [@has {\{ <tridy statements> \} | @none}]
             |
-                {{@json <json> | @yaml <yaml>} @end | "<string>"}
+                {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}
             }
         ]
     }
@@ -2805,6 +2924,9 @@ A clause used to define one of the major characteristic sections of a module in 
 
 ### **Descendant Module**
 The module which is nested under another module (the subject), either in which the subject module is a direct parent of the descendant, or that is recursively a parent of the descendant.
+
+### **Dynamic Raw Input**
+A string-only variant of raw input that auto-converts the contents of the string to whatever more restricted type is able to represent it internally; for instance, the string "true" being converted to a boolean.
 
 ### **Free Data Structure**
 A module section for storing information about the module that is organized arbitrarily, usually for use in an application-specific context, and that is always provided as raw input.

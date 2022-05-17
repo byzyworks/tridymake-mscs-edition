@@ -16,13 +16,13 @@ class Composer {
         const module = new StateTree(null, common.global.alias);
 
         this._astree.enterPos('raw');
-        if (!this._astree.isPosEmpty()) {
+        if (!this._astree.isPosUndefined()) {
             module.setPosValue(this._astree.getPosValue());
         }
         this._astree.leavePos();
 
         this._astree.enterPos('definition');
-        if (!this._astree.isPosEmpty()) {
+        if (!this._astree.isPosUndefined()) {
             // The order of assignment below affects the final output.
             // Don't switch it up unless you're prepared to change the expected test case outputs, too.
 
@@ -74,7 +74,7 @@ class Composer {
          */
         for (let i = 0; i < indices.length; i += 2) {
             ptr = ptr[indices[i]][indices[i + 1]];
-            if (common.isEmpty(ptr[common.global.alias.tags])) {
+            if (!common.isDictionary(ptr) || common.isEmpty(ptr[common.global.alias.tags])) {
                 current.push([ ]);
             } else {
                 current.push(ptr[common.global.alias.tags]);
@@ -369,11 +369,13 @@ class Composer {
         const copy = common.deepCopy(template);
 
         // A UUID needs to be unique for every copy of a module, even if generated in the same statement.
-        const tags = copy[common.global.alias.tags];
-        if (common.isArray(tags)) {
-            for (const i in tags) {
-                if (tags[i] === '@uuid') {
-                    tags[i] = uuid();
+        if (common.isDictionary(template)) {
+            const tags = copy[common.global.alias.tags];
+            if (common.isArray(tags)) {
+                for (const i in tags) {
+                    if (tags[i] === '@uuid') {
+                        tags[i] = uuid();
+                    }
                 }
             }
         }

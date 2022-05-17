@@ -167,7 +167,7 @@ class SyntaxParser {
         let line = 0;
         let data = '';
 
-        if (!this._tokens.peek().is('part') && !this._tokens.peek().is('dynpart')) {
+        if (!this._tokens.peek().isRawStringInputToken()) {
             return null;
         }
 
@@ -185,12 +185,13 @@ class SyntaxParser {
             data += this._tokens.next().val;
 
             line++;
-        } while (this._tokens.peek().is('part') || this._tokens.peek().is('dynpart'));
+        } while (this._tokens.peek().isRawStringInputToken());
     
         return data;
     }
 
-    _readWhileRawAndParse() {
+    _readWhileRawAndParse(opts = { }) {
+        opts.string_only = opts.string_only ?? false;
         /**
          * Note to return undefined when the raw input stream is empty or its value cannot be determined, and avoid returning null under such circumstances.
          * A literal null value can be entered as user input via. dynamic typing, and thus additionally be returned as a non-error output.
@@ -206,25 +207,34 @@ class SyntaxParser {
         }
 
         if (current.is('key')) {
+            if (opts.string_only) {
+                return undefined;
+            }
+
             this._tokens.next();
 
             type = current.val;
-        } else if (current.is('part')) {
-            type = 'string';
+            data = this._readWhileRaw({ multiline: true });
+        } else if (current.is('lpart')) {
+            type = 'line';
+            data = this._readWhileRaw({ multiline: false });
+        } else if (current.is('mlpart')) {
+            type = 'multiline';
+            data = this._readWhileRaw({ multiline: true });
         } else if (current.is('dynpart')) {
             type = 'dynamic';
+            data = this._readWhileRaw({ multiline: true });
         }
 
-        data = this._readWhileRaw({ multiline: true });
         if (data === null) {
             return undefined;
         }
 
-        if (type === 'dynamic') {
+        if (type === 'line') {
+            data = data.replace(/[\f\n\r\v]+/g, '');
+        } else if (type === 'dynamic') {
             data = parseDynamic(data);
-        }
-
-        if ((type !== 'string') && (type !== 'dynamic')) {
+        } else if (type !== 'multiline') {
             /**
              * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
              * Thus, the backslash characters have to themselves be escaped before they are put them.
@@ -254,7 +264,8 @@ class SyntaxParser {
                         this._tokens.next();
                     }
                     break;
-                case 'string':
+                case 'line':
+                case 'multiline':
                 case 'dynamic':
                     break;
             }
@@ -345,8 +356,8 @@ class SyntaxParser {
         if (this._tokens.peek().is('key', 'none')) {
             this._tokens.next();
         } else {
-            const type = this._readWhileRaw({ multiline: true });
-            if (type === null) {
+            const type = this._readWhileRawAndParse({ string_only: true });
+            if (type === undefined) {
                 this._handleUnexpected();
             }
             this._astree.enterSetAndLeave(global.defaults.alias.type, type);
@@ -357,7 +368,7 @@ class SyntaxParser {
         if (this._tokens.peek().is('key', 'none')) {
             this._tokens.next();
         } else {
-            const free = this._readWhileRawAndParse();
+            const free = this._readWhileRawAndParse({ string_only: false });
             if (free === undefined) {
                 this._handleUnexpected();
             }
@@ -437,7 +448,7 @@ class SyntaxParser {
     }
 
     _handleRawDefinition() {
-        const raw = this._readWhileRawAndParse();
+        const raw = this._readWhileRawAndParse({ string_only: false });
         if (raw === undefined) {
             this._handleUnexpected();
         }

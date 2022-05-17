@@ -162,12 +162,19 @@ export class Token {
         ;
     }
 
+    isRawStringInputToken() {
+        return false ||
+            this.is('lpart') ||
+            this.is('mlpart') ||
+            this.is('dynpart')
+        ;
+    }
+
     isRawInputToken() {
         return false ||
             this.is('key', 'json') ||
             this.is('key', 'yaml') ||
-            this.is('part') ||
-            this.is('dynpart')
+            this.isRawStringInputToken()
         ;
     }
 

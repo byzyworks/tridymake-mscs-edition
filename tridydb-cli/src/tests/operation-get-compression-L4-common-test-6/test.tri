@@ -1,5 +1,9 @@
 @tridy;
 
+@new `null`;
+
+@new `0`;
+
 @new @as a;
 
 @in a @new @as b;

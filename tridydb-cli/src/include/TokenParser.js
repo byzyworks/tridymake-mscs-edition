@@ -159,11 +159,23 @@ class TokenParser {
     }
 
     _readRaw() {
-        const type = (this._mode.peek() === 'btstring') ? 'dynpart' : 'part';
-        const part = this._readWhileEscaped();
-        const pos  = this._getPos();
+        let type;
+        switch (this._mode.peek()) {
+            case 'sqstring':
+                type = 'lpart';
+                break;
+            case 'dqstring':
+                type = 'mlpart';
+                break;
+            case 'btstring':
+                type = 'dynpart';
+                break;
+            default:
+                type = 'mlpart';
+                break;
+        }
 
-        return new Token(type, part, pos);
+        return new Token(type, this._readWhileEscaped(), this._getPos());
     }
 
     _readKeyword() {
@@ -254,8 +266,6 @@ class TokenParser {
     }
 
     _readMultiPunc() {
-        const pos = this._getPos();
-
         const curr = this._parser.peek();
 
         let punc = this._readWhilePred((ch) => {
@@ -269,7 +279,7 @@ class TokenParser {
             }
         }
         
-        return new Token('punc', punc, pos);
+        return new Token('punc', punc, this._getPos());
     }
 
     _readLiteral() {

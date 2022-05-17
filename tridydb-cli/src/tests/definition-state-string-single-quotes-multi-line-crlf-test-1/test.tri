@@ -1,0 +1,7 @@
+@tridy;
+
+@new @none @is 'This is a
+ multi-line
+ string.';
+
+@get;
