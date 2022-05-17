@@ -326,10 +326,11 @@ class SyntaxParser {
             this._tokens.next();
         } else {
             const tags = this._readWhileTag();
-            if (opts.require && isEmpty(tags)) {
+            if (!isEmpty(tags)) {
+                this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
+            } else if (opts.require) {
                 this._handleUnexpected();
             }
-            this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
         }
     }
 
@@ -345,7 +346,7 @@ class SyntaxParser {
             this._tokens.next();
         } else {
             const type = this._readWhileRaw({ multiline: true });
-            if (type === undefined) {
+            if (type === null) {
                 this._handleUnexpected();
             }
             this._astree.enterSetAndLeave(global.defaults.alias.type, type);

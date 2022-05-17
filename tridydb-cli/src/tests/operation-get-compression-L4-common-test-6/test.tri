@@ -1,0 +1,13 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@in a @new "c";
+
+@new @as d;
+
+@new "e";
+
+@get @merged;

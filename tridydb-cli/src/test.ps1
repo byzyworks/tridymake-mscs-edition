@@ -10,7 +10,7 @@ if (!$Test -or (!$Invoked -and ($Test -match '(?:^|-)server-'))) {
     Write-Host 'Starting server...';
     Write-Host;
     
-    $server_job = Start-Process -FilePath node -ArgumentList "$PSScriptRoot/app.js",'server','--server-port',"$port","--log-level","debug" -WorkingDirectory "$PSScriptRoot" -PassThru;
+    $server_job = Start-Process -FilePath node -ArgumentList "$PSScriptRoot/app.js",'server','--localhost','--server-port',"$port","--log-level","debug" -WorkingDirectory "$PSScriptRoot" -PassThru;
     Start-Sleep -Seconds 2;
 }
 
