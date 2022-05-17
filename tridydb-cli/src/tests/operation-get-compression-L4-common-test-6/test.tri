@@ -8,6 +8,10 @@
 
 @new @as d;
 
-@new "e";
+@new @json [ "e" ] @end;
+
+@new "f";
+
+@new `null`;
 
 @get @merged;

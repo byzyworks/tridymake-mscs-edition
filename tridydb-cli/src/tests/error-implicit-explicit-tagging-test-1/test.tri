@@ -1,0 +1,3 @@
+@tridy;
+
+@new a @of "b" @as c;

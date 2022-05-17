@@ -55,24 +55,25 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 6.  [@new](#syntax-new)
                 7.  [@set](#syntax-set)
                 8.  [@del](#syntax-del)
-                9.  [@of](#syntax-of)
-                10. [@as](#syntax-as)
-                11. [@uuid](#syntax-uuid)
-                12. [@is](#syntax-is)
-                13. [Strings](#syntax-string)
-                14. [@json](#syntax-json)
-                15. [@yaml](#syntax-yaml)
-                16. [@end](#syntax-end)
-                17. [@has](#syntax-has)
-                18. [@none](#syntax-none)
-                19. [@once](#syntax-once)
-                20. [@many](#syntax-many)
-                21. [@raw](#syntax-raw)
-                22. [@typeless](#syntax-typeless)
-                23. [@tagless](#syntax-tagless)
-                24. [@trimmed](#syntax-trimmed)
-                25. [@merged](#syntax-merged)
-                26. [@final](#syntax-final)
+                9.  [Explicit @of](#syntax-of)
+                10. [Explicit @as](#syntax-as)
+                11. [Implicit @of/@as](#syntax-implicit)
+                12. [@uuid](#syntax-uuid)
+                13. [@is](#syntax-is)
+                14. [Strings](#syntax-string)
+                15. [@json](#syntax-json)
+                16. [@yaml](#syntax-yaml)
+                17. [@end](#syntax-end)
+                18. [@has](#syntax-has)
+                19. [@none](#syntax-none)
+                20. [@once](#syntax-once)
+                21. [@many](#syntax-many)
+                22. [@raw](#syntax-raw)
+                23. [@typeless](#syntax-typeless)
+                24. [@tagless](#syntax-tagless)
+                25. [@trimmed](#syntax-trimmed)
+                26. [@merged](#syntax-merged)
+                27. [@final](#syntax-final)
             3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
@@ -1513,7 +1514,7 @@ The operation is not completely permanent, though, since modules can always be r
 
 `@of` is used to directly state a type specifier for the module irrespective of what the module's tags are.
 
-This also allows getting around the limitations of the more limited syntax around tags (implicit `@of`/`@as` re-uses the last tag as the type) so that any arbitrary string can be used as a type specifier.
+This also allows getting around the limitations of the more limited syntax around tags (implicit `@of`/`@as` re-uses the last tag as the type) so that any arbitrary string can be used as a type specifier. This does that with `@of`, quote marks are required to begin and end the type specifier.
 
 A module's type specifier has a specific purpose, in that it is used as an associative key to the module in the case where output is desired in a compressed form. As an example, here is a TridyDB statement that creates three modules with `@of`.
 
@@ -1556,15 +1557,19 @@ As a result of the type specifier's value, below is the output whenever `@get @f
 
 Using `@of` requires that one can only provide tags using `@as`. Just as `@of` allows setting a type specifier independent from tagging, `@as` allows setting tags independent of a type specifier.
 
+`@of` along with its formatted argument is meant to be specified before `@as`.
+
 <br>
 
 <div id="syntax-as"/>
 
 ### **Definition: `@as`**
 
-The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set`. `@as` is meant to come after the operation, but before `@is` or `@has`. Normally, tags are be given to the right-hand side of the operation even without the use of `@as`, hence why it is usually unnecessary.
+The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set`, whereby multiple tags are provided in a whitespace-delimited fashion. Any tags defined using `@as` do not affect the module's type specifier, in which `@of` would need to be paired with it.
 
-WIP
+Tags are one of the important features of Tridy used to identify how TridyDB can address the module. In contrast, the type specifier is meant to provide addressing at the application-level.
+
+`@as` is meant to come after the operation, after `@of`, but before `@is` or `@has`.
 
 ```
 @new @as a b c;
@@ -1586,7 +1591,28 @@ WIP
 
 ### **Definition: Implicit `@of` / `@as`**
 
-WIP
+It is possible to directly state a list of tags after the operation clause without any other clauses between them, ultimately while having a unique effect. Like with `@as`, multiple tags given this way are separated by spaces. However, this also stands in for `@of` by selecting the last tag in the list to be the module's type specifier.
+
+```
+@new a b c;
+```
+
+```json
+{
+    "tree": [
+        {
+            "type": "c",
+            "tags": ["a", "b", "c"]
+        }
+    ]
+}
+```
+
+The reason why the last tag is selected is due to the pseudo-English syntax, where the last tag would normally be expected to be the most significant or noun-like.
+
+This is also not an option where the type specifier should contain special characters that would not be allowed inside a tag, for which one must be provided through `@of`.
+
+Note that providing tags implicitly also takes the place of both `@of` and `@as`, so neither of these can be inside the same statement separately anymore.
 
 <br>
 
@@ -1685,7 +1711,9 @@ For special reasons, this was included even though, without the beginning `@`, i
 
 For wherever it is possible for a user to enter raw input, while most of the formats use and need delimiting clauses, literal strings only need the markings one would expect from working with any other language.
 
-Either single-quotation, double-quotation, or grave accent marks can be used. There are no advantages to using either of the three over one another, except that the delimiting character needs to be escaped with `\` to be used as a literal, and having multiple options provides some flexibility with that (no need to escape double-quotes in a single-quoted string, for instance). All three will even accept a string over multiple lines, so they behave identically for the most part.
+Either single-quotation, double-quotation, or grave accent marks can be used. 
+
+There are no advantages to using either of the three over one another, except that the delimiting character needs to be escaped with `\` to be used as a literal, and having multiple options provides some flexibility with that (no need to escape double-quotes in a single-quoted string, for instance). All three will even accept a string over multiple lines, so they behave identically for the most part.
 
 ```
 ```
@@ -2608,12 +2636,12 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `format` | { `json`, `yaml`, `string` } | The new module's import data type. | `@new <?format> <?data> @end` |
+| `format` | { `json`, `yaml`, `string`, `dynamic` } | The new module's import data type. | `@new <?format> <?data> @end` |
 | `data` | pre-formatted data | The new module's import data. | `@new <?format> <?data> @end` |
 | `context` | context expression | The modules to append. | `@in <?context>` |
 | `type` | string | The new module's type specifier. | `@of <?type>` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `freeformat` | { `json`, `yaml`, `string` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
+| `freeformat` | { `json`, `yaml`, `string`, `dynamic` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
 | `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?free> @end` |
 | `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
 | `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
@@ -2630,12 +2658,12 @@ As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `format` | { `json`, `yaml`, `string` } | The new module's import data type. | `@set <?format> <?data> @end` |
+| `format` | { `json`, `yaml`, `string`, `dynamic` } | The new module's import data type. | `@set <?format> <?data> @end` |
 | `data` | pre-formatted data | The new module's import data. | `@set <?format> <?data> @end` |
 | `context` | context expression | The modules to modify. | `@in <?context>` |
 | `type` | string | The new module's type specifier. | `@of <?type>` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `freeformat` | { `json`, `yaml`, `string` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
+| `freeformat` | { `json`, `yaml`, `string`, `dynamic` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
 | `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?free> @end` |
 | `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
 | `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
