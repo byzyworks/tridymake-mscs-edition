@@ -167,7 +167,7 @@ class SyntaxParser {
         let line = 0;
         let data = '';
 
-        if (!this._tokens.peek().isRawStringInputToken()) {
+        if (!this._tokens.peek().isRawInputStringToken()) {
             return null;
         }
 
@@ -185,7 +185,7 @@ class SyntaxParser {
             data += this._tokens.next().val;
 
             line++;
-        } while (this._tokens.peek().isRawStringInputToken());
+        } while (this._tokens.peek().isRawInputStringToken());
     
         return data;
     }
@@ -279,6 +279,15 @@ class SyntaxParser {
 
         return data;
     }
+
+    _handleRawDefinition() {
+        const raw = this._readWhileRawAndParse({ string_only: false });
+        if (raw === undefined) {
+            this._handleUnexpected();
+        }
+        this._astree.setPosValue(raw);
+        this._astree.leavePos();
+    }
     
     _handleOperation() {
         const current = this._tokens.next();
@@ -300,6 +309,8 @@ class SyntaxParser {
             } else {
                 this._astree.enterPos('definition');
             }
+        } else if (current.isTagModdingOpToken()) {
+            this._astree.enterPos('tags');
         }
     }
 
@@ -451,75 +462,102 @@ class SyntaxParser {
         this._astree.leavePos();
     }
 
-    _handleRawDefinition() {
-        const raw = this._readWhileRawAndParse({ string_only: false });
-        if (raw === undefined) {
-            this._handleUnexpected();
+    _handleTagModding() {
+        if (this._tokens.peek().is('key', 'tridy')) {
+            this._tokens.next();
+
+            if (this._tokens.peek().is('key', 'of')) {
+                this._tokens.next();
+    
+                this._handleTypeDefinitionExplicit();
+            }
+
+            if (this._tokens.peek().is('key', 'as')) {
+                this._tokens.next();
+
+                this._handleTagsDefinition({ require: true });
+            }
+        } else if (this._tokens.peek().is('key', 'of')) {
+            this._tokens.next();
+    
+            this._handleTypeDefinitionExplicit();
+
+            if (this._tokens.peek().is('key', 'as')) {
+                this._tokens.next();
+
+                this._handleTagsDefinition({ require: true });
+            }
         }
-        this._astree.setPosValue(raw);
-        this._astree.leavePos();
     }
 
-    _handleStatement(token) {
+    _handleStatement() {
+        let current;
+
         if (this._tokens.peek().isControlOpToken()) {
             // As a control statement, the functionality for it is handled directly by the interpreter, and not here.
             // This forces it to be handled from a client's perspective, thus having no effect on a server, other than it being accepted.
 
             this._tokens.next();  
         } else {
-            if (this._tokens.peek().isAffectingOpToken()) {
-                const op = this._tokens.peek().val;
+            /**
+             * '@in' should be required to give a context expression with some operations.
+             * Some operations like '@new' and '@set' create new modules, so they need the space to the right of them to detail these newly created modules.
+             * It would nonetheless be possible merge context expressions and tag definitions.
+             * However, it gets complicated when you want something like ''@new' a/b' when a doesn't exist yet, or ''@new' a/b|(b/c)'.
+             * Meanwhile ''@get' a/b' works because you know you're only addressing an existing module with it.
+             */
+            let context_defined = false;
+
+            if (this._tokens.peek().is('key', 'in')) {
+                this._tokens.next();
+
+                this._handleContext();
+                context_defined = true;
+            }
+
+            current = this._tokens.peek();
+            if (current.isAffectingOpToken()) {
+                const operation_token = current;
 
                 this._handleOperation();
 
-                if (!this._tokens.peek().is('punc', ';') && !this._tokens.peek().isGetParameterToken()) {
-                    this._handleContext();
+                if (!context_defined) {
+                    current = this._tokens.peek();
+                    if (current.isContextToken()) {
+                        this._handleContext();
+                        context_defined = true;
+                    }
                 }
 
-                switch (op) {
-                    case 'get':
-                        if (this._tokens.peek().is('key', 'raw')) {
-                            this._astree.enterSetAndLeave(['compression'], 0);
-                            
-                            this._tokens.next();
-                        } else if (this._tokens.peek().is('key', 'typeless')) {
-                            this._astree.enterSetAndLeave(['compression'], 1);
+                if (operation_token.isReadOpToken()) {
+                    current = this._tokens.peek();
+                    if (current.is('key', 'raw')) {
+                        this._astree.enterSetAndLeave(['compression'], 0);
+                        
+                        this._tokens.next();
+                    } else if (current.is('key', 'typeless')) {
+                        this._astree.enterSetAndLeave(['compression'], 1);
 
-                            this._tokens.next();
-                        } else if (this._tokens.peek().is('key', 'tagless')) {
-                            this._astree.enterSetAndLeave(['compression'], 2);
+                        this._tokens.next();
+                    } else if (current.is('key', 'tagless')) {
+                        this._astree.enterSetAndLeave(['compression'], 2);
 
-                            this._tokens.next();
-                        } else if (this._tokens.peek().is('key', 'trimmed')) {
-                            this._astree.enterSetAndLeave(['compression'], 3);
+                        this._tokens.next();
+                    } else if (current.is('key', 'trimmed')) {
+                        this._astree.enterSetAndLeave(['compression'], 3);
 
-                            this._tokens.next();
-                        } else if (this._tokens.peek().is('key', 'merged')) {
-                            this._astree.enterSetAndLeave(['compression'], 4);
+                        this._tokens.next();
+                    } else if (current.is('key', 'merged')) {
+                        this._astree.enterSetAndLeave(['compression'], 4);
 
-                            this._tokens.next();
-                        } else if (this._tokens.peek().is('key', 'final')) {
-                            this._astree.enterSetAndLeave(['compression'], 5);
+                        this._tokens.next();
+                    } else if (current.is('key', 'final')) {
+                        this._astree.enterSetAndLeave(['compression'], 5);
 
-                            this._tokens.next();
-                        }
-                        break;
+                        this._tokens.next();
+                    }
                 }
-            } else if (this._tokens.peek().isDefiningOpToken() || this._tokens.peek().is('key', 'in')) {
-                /**
-                 * '@in' should be required to give a context expression with some operations.
-                 * Some operations like '@new' and '@set' create new modules, so they need the space to the right of them to detail these newly created modules.
-                 * It would nonetheless be possible merge context expressions and tag definitions.
-                 * However, it gets complicated when you want something like ''@new' a/b' when a doesn't exist yet, or ''@new' a/b|(b/c)'.
-                 * Meanwhile ''@get' a/b' works because you know you're only addressing an existing module with it.
-                 */
-
-                if (this._tokens.peek().is('key', 'in')) {
-                    this._tokens.next();
-
-                    this._handleContext();
-                }
-    
+            } else if (current.isDefiningOpToken()) {
                 this._handleOperation();
     
                 switch (this._astree.getTopPos()) {
@@ -529,14 +567,18 @@ class SyntaxParser {
                     case 'definition':
                         this._handleDefinition();
                         break;
+                    case 'tags':
+                        this._handleTagModding();
+                        break;
                 }
             }
     
-            if (this._tokens.peek().is('key', 'once')) {
+            current = this._tokens.peek();
+            if (current.is('key', 'once')) {
                 this._astree.enterSetAndLeave(['context', 'greedy'], true);
 
                 this._tokens.next();
-            } else if (this._tokens.peek().is('key', 'many')) {
+            } else if (current.is('key', 'many')) {
                 this._astree.enterSetAndLeave(['context', 'greedy'], false);
 
                 this._tokens.next();

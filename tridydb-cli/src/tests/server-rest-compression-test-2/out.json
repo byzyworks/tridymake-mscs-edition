@@ -1,0 +1,6 @@
+[{"type":"hasfoo","tags":["a","hasfoo"],"free":"foo","tree":[{"type":"hasbar","tags":["b","hasbar"],"free":"bar"},{"type":"hasbaz","tags":["c","hasbaz"],"free":"baz"}]}]
+[{"tags":["a","hasfoo"],"free":"foo","tree":[{"tags":["b","hasbar"],"free":"bar"},{"tags":["c","hasbaz"],"free":"baz"}]}]
+[{"type":"hasfoo","free":"foo","tree":[{"type":"hasbar","free":"bar"},{"type":"hasbaz","free":"baz"}]}]
+[{"free":"foo","tree":[{"free":"bar"},{"free":"baz"}]}]
+[{"0":"foo","hasbar":[{"0":"bar"}],"hasbaz":[{"0":"baz"}]}]
+[{"0":"foo","hasbar":"bar","hasbaz":"baz"}]

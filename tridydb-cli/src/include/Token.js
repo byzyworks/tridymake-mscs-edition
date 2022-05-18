@@ -142,9 +142,11 @@ export class Token {
         }
     }
 
-    isReadOpToken() {
+    isContextToken() {
+        const converted = this.toContextToken();
         return false ||
-            this.is('key', 'get')
+            converted.is('t') ||
+            converted.is('o')
         ;
     }
 
@@ -155,14 +157,27 @@ export class Token {
         ;
     }
 
+    isReadOpToken() {
+        return false ||
+            this.is('key', 'get')
+        ;
+    }
+
     isAffectingOpToken() {
         return false ||
-            this.is('key', 'get') ||
+            this.isReadOpToken() ||
             this.is('key', 'del')
         ;
     }
 
-    isRawStringInputToken() {
+    isTagModdingOpToken() {
+        return false ||
+            this.is('key', 'tag') ||
+            this.is('key', 'untag')
+        ;
+    }
+
+    isRawInputStringToken() {
         return false ||
             this.is('lpart') ||
             this.is('mlpart') ||
@@ -174,7 +189,7 @@ export class Token {
         return false ||
             this.is('key', 'json') ||
             this.is('key', 'yaml') ||
-            this.isRawStringInputToken()
+            this.isRawInputStringToken()
         ;
     }
 
