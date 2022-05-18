@@ -28,6 +28,11 @@ Remember also to set the version number inside package.json and utility/common.
 * Added clause `@of` to specify a module's type in the form of a double-quoted string, used by `@merged` and `@final`'s reduced output as the module's key. If not given, the final tag in the module's tagset (when given without `@as`) will be used.
 * Added `--type-key` program argument (and argument to `tridy.query(...)`) to control the name of the type specifier's own key in storage.
 * Added (multi-line) raw string/primitive input with either single quotation, double quotation, or grave accent marks, for `@is`, `@of`, and module raw input.
+* Added REST mode server query parameter `compression` for output compression level.
+* Changed REST mode server query parameter `type` to `format`.
+* Added REST mode server query parameter `type` for type specifier.
+* Changed REST mode server query parameter `freetype` to `freeformat`.
+* Changed REST mode server query parameter `free` to `freedata`.
 * The input buffer / carry is now cleared when pressing Ctrl+C while inside console mode.
 * Fixed a bug where the database would attempt to check the tags of a primitive raw input module.
 * Fixed a bug where the database would fail to catch errors when attempting `@new` against a root module already changed to a primitive type using `@set` with raw input.

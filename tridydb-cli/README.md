@@ -2116,42 +2116,39 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 `@typeless` introduces some compression to the output, whereby specifically the type identifier, if it exists, is removed from the output.
 
 ```
+# Before
 @new a @is "foo";
-@in a @new @as b @is "bar";
+@in a @new @of @none @as b @is "bar";
 
-@get @raw;
-@get @trimmed;
+@get a @raw;
+
+# After
+@get a @typeless;
 ```
 
-```json
+```diff
 [
     {
+        "type": "a",
+        "tags": ["a"],
+        "free": "foo",
         "tree": [
             {
-                "type": "a",
-                "tags": ["a"],
-                "free": "foo",
-                "tree": [
-                    {
-                        "tags": ["b"],
-                        "free": "bar"
-                    }
-                ]
+                "tags": ["b"],
+                "free": "bar"
             }
         ]
     },
-    {
-        "tree": [
-            {
-                "free": "foo",
-                "tree": [
-                    {
-                        "free": "bar"
-                    }
-                ]
-            }
-        ]
-    }
++   {
++       "tags": ["a"],
++       "free": "foo",
++       "tree": [
++           {
++               "tags": ["b"],
++               "free": "bar"
++           }
++       ]
++   }
 ]
 ```
 
@@ -2167,7 +2164,45 @@ Typeless output represents what the output of what `@get` would normally be if `
 
 `@tagless` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
-`@tagless` introduces some compression to the output, whereby specifically tagset, if it exists, is removed from the output.
+`@tagless` introduces some compression to the output, whereby specifically the tagset, if it exists, is removed from the output.
+
+```
+# Before
+@new a @is "foo";
+@in a @new @of @none @as b @is "bar";
+
+@get a @raw;
+
+# After
+@get a @tagless;
+```
+
+```diff
+[
+    {
+        "type": "a",
+        "tags": ["a"],
+        "free": "foo",
+        "tree": [
+            {
+                "tags": ["b"],
+                "free": "bar"
+            }
+        ]
+    },
++   {
++       "type": "a",
++       "free": "foo",
++       "tree": [
++           {
++               "free": "bar"
++           }
++       ]
++   }
+]
+```
+
+Notably, tagless output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
 
 `@tagless` conflicts with `@raw`, `@typeless`, `@trimmed`, `@merged`, and `@final`.
 
@@ -2179,45 +2214,40 @@ Typeless output represents what the output of what `@get` would normally be if `
 
 `@trimmed` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
-`@trimmed` introduces some compression to the output, whereby the tagset and the type identifier, if they exist, are removed from the output.
+`@trimmed` introduces some compression to the output, whereby the tagset and the type identifier, if they exist, are removed from the output. As one would expect, `@trimmed` is simply the effects of `@typeless` and `@tagless` combined into one, such that only the free and tree data structures would remain.
 
 ```
+# Before
 @new a @is "foo";
 @in a @new @of @none @as b @is "bar";
 
-@get @raw;
-@get @trimmed;
+@get a @raw;
+
+# After
+@get a @trimmed;
 ```
 
-```json
+```diff
 [
     {
+        "type": "a",
+        "tags": ["a"],
+        "free": "foo",
         "tree": [
             {
-                "tags": ["a"],
-                "free": "foo",
-                "tree": [
-                    {
-                        "type": null,
-                        "tags": ["b"],
-                        "free": "bar"
-                    }
-                ]
+                "tags": ["b"],
+                "free": "bar"
             }
         ]
     },
-    {
-        "tree": [
-            {
-                "free": "foo",
-                "tree": [
-                    {
-                        "free": "bar"
-                    }
-                ]
-            }
-        ]
-    }
++   {
++       "free": "foo",
++       "tree": [
++           {
++               "free": "bar"
++           }
++       ]
++   }
 ]
 ```
 
@@ -2235,30 +2265,33 @@ WIP
 
 `@merged` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
-`@merged` does the same as `@trimmed` does by removing the tags and the type specifier from the output, but additionally performs a special operation where the free and tree data structures are merged into one singular data structure, and re-mapped to the module itself. Because the tree data structure is almost always (excluding the effect raw input can have) an array, and the free data structure can either be a string, an array, or a map, merging is not trivial, and there are rules to keep in mind with it. However, `@merge` uses a stricter and arguably simpler form of merging than `@final` does.
+`@merged` does the same as `@trimmed` does by removing the tags and the type specifier from the output, but additionally performs a special operation where the free and tree data structures are merged into one singular data structure, and re-mapped to the module itself. Because the tree data structure is almost always (excluding the effect raw input can have) an array, and the free data structure can be nearly anything, merging is not trivial, and there are rules to keep in mind with it. However, `@merge` uses a stricter and arguably simpler form of merging than `@final` does.
 
 With `@merge`, the value of the type specifier given to a module is used as the key of that module in the final output, or if no type specifier is present, then the final tag in the module's tagset is used. If no tags *or* type specifier is present, then starting with 0, the lowest-value currently-undefined integer index is used.
 
 The type key will refer to an array with the also-compressed module inside of it, which is always a mapped type even if its indeces are entirely numeric.
 
 ```
+# Before
 @new a @is "foo";
 @in a @new @of @none @as b @is "bar";
 
 @get @raw;
+
+# After
 @get @merged;
 ```
 
-```json
+```diff
 [
     {
         "tree": [
             {
+                "type": "a",
                 "tags": ["a"],
                 "free": "foo",
                 "tree": [
                     {
-                        "type": null,
                         "tags": ["b"],
                         "free": "bar"
                     }
@@ -2266,16 +2299,16 @@ The type key will refer to an array with the also-compressed module inside of it
             }
         ]
     },
-    {
-        "a": [
-            {
-                "0": "foo",
-                "1": {
-                    "0": "bar"
-                }
-            }
-        ]
-    }
++   {
++       "a": [
++           {
++               "0": "foo",
++               "1": {
++                   "0": "bar"
++               }
++           }
++       ]
++   }
 ]
 ```
 
@@ -2285,8 +2318,6 @@ Notably, merged output is *one-way*, meaning it cannot be plugged directly back 
 
 `@merged` conflicts with `@raw`, `@typeless`, `@tagless`, `@trimmed`, and `@final`.
 
-WIP
-
 <br>
 
 <div id="syntax-final"/>
@@ -2295,33 +2326,36 @@ WIP
 
 `@final` is a parameter special to when `@get` is used, and is one of the compression level specifiers.
 
-`@final` places the highest degree of compression out of the available compression level specifiers. Like `@trimmed`, it removes the tag and type specifier from the output, and like `@merged`, it tries to merge the free and tree data structures together at the base of their respective modules. However, unlike `@merged`, `@final` assumes a set of equivalencies so that it can reduce the overall complexity of the data by choosing the smallest available form, at least as far as what TridyDB automatically generates.
+`@final` places the highest degree of compression out of the available compression level specifiers. Like `@trimmed`, it removes the tag and type specifier from the output, and like `@merged`, it tries to merge the free and tree data structures together at the base of their respective modules. However, unlike `@merged`, `@final` assumes a set of equivalencies so that it can reduce the overall complexity of the data by representing it in the smallest possible 'form', at least as far as what TridyDB automatically generates.
 
 These equivalencies are as follows:
 
-1. If a map contains only integer keys that start at 0, increment by 1, are in numerical order, and exist without any gaps larger than 1, then that map is transformed directly into an array.
-2. If an array (including possibly the output of the above rule) contains only one element, then the array is replaced with its one singular element.
+1. If a map contains only integer keys that start at 0, increment by 1, are in numerical order, and exist without any gaps larger than 1 (in other words, the sequence 0, 1, 2, ..., *n*), then that map is transformed directly into an array.
+2. If an array (including possibly the output of the above rule) contains only one element, then the array is replaced with the contained element.
 
-These rules do not apply to data given through `@is`, since the free data structure is never automatically-generated by TridyDB. Therefore, if a map in which rule #1 applies, or an array in which rule #2 applies, is provided through `@is`, then the containers are left intact without being reducible further (where map > array > primitive). As with the other forms of compression, this does not apply in reverse, where for instance, if a string is provided through `@is`, and its module still has a bunch of a sub-modules, then an array would still be generated from it. Likewise, if the sub-modules exist (as they are stored, not as output) with tags or type specifiers, then having the associative index would still force the module to output as a map even if the free data structure is only an array or string.
+These rules do not apply to data given through `@is`, since the free data structure is never automatically-generated by TridyDB. Therefore, if a map in which rule #1 applies, or an array in which rule #2 applies, is provided through `@is`, then the containers are left intact without being reduced further (where map > array > primitive). As with the other forms of compression, this does not apply in reverse, where for instance, if a string is provided through `@is`, and its module still has a bunch of a sub-modules, then an array would still be generated from it. Likewise, if the sub-modules exist (as they are stored, not as output) with tags or type specifiers, then having the associative index would still force the module to output as a map even if the free data structure is only an array or string.
 
 ```
+# Before
 @new a @is "foo";
 @in a @new @of @none @as b @is "bar";
 
 @get @raw;
+
+# After
 @get @final;
 ```
 
-```json
+```diff
 [
     {
         "tree": [
             {
+                "type": "a",
                 "tags": ["a"],
                 "free": "foo",
                 "tree": [
                     {
-                        "type": null,
                         "tags": ["b"],
                         "free": "bar"
                     }
@@ -2329,12 +2363,12 @@ These rules do not apply to data given through `@is`, since the free data struct
             }
         ]
     },
-    {
-        "a": [
-            "foo",
-            "bar"
-        ]
-    }
++   {
++       "a": [
++           "foo",
++           "bar"
++       ]
++   }
 ]
 ```
 
@@ -2343,8 +2377,6 @@ The namesake for this clause is because the amount of sense it makes to use this
 Notably, finalized output is *one-way*, meaning it cannot be plugged directly back into TridyDB as input, since no tags would prevent modules from being addressed like they were before.
 
 `@final` conflicts with `@raw`, `@typeless`, `@tagless`, `@trimmed`, and `@merged`.
-
-WIP
 
 <br>
 
@@ -2384,7 +2416,7 @@ The syntax rules are detailed below using Microsoft's command line syntax:
                     [{<tags> | @none}]
                 |
                     [@tridy]
-                    [@of {'<type identifier string>' | "<type identifier string>" | `<type identifier string>` | @none}]
+                    [@of {'<type identifier string>' | "<type identifier string>" | @none}]
                     [@as {<tags> | @none}]
                 }
                 [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
@@ -2755,13 +2787,17 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `format` | { `json`, `yaml`, `string`, `dynamic` } | The new module's import data type. | `@new <?format> <?data> @end` |
+| `format` | { `json`, `yaml` } | The new module's import data type. | `@new <?format> <?data> @end` |
+| `format` | `string` | The new module's import data type. | `@new "<?data>"` |
+| `format` | `dynamic` | The new module's import data type. | ``@new `<?data>` `` |
 | `data` | pre-formatted data | The new module's import data. | `@new <?format> <?data> @end` |
 | `context` | context expression | The modules to append. | `@in <?context>` |
-| `type` | string | The new module's type specifier. | `@of <?type>` |
+| `type` | string | The new module's type specifier. | `@of "<?type>"` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `freeformat` | { `json`, `yaml`, `string`, `dynamic` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
-| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?free> @end` |
+| `freeformat` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?freeformat> <?freedata> @end` |
+| `freeformat` | `string` | The new module's free data structure import data type. | `@is "<?freedata>"` |
+| `freeformat` | `dynamic` | The new module's free data structure import data type. | ``@is `<?freedata>` `` |
+| `freedata` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?freedata> @end` |
 | `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
 | `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
 
@@ -2777,13 +2813,17 @@ As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `format` | { `json`, `yaml`, `string`, `dynamic` } | The new module's import data type. | `@set <?format> <?data> @end` |
+| `format` | { `json`, `yaml` } | The new module's import data type. | `@set <?format> <?data> @end` |
+| `format` | `string` | The new module's import data type. | `@set "<?data>"` |
+| `format` | `dynamic` | The new module's import data type. | ``@set `<?data>` `` |
 | `data` | pre-formatted data | The new module's import data. | `@set <?format> <?data> @end` |
 | `context` | context expression | The modules to modify. | `@in <?context>` |
-| `type` | string | The new module's type specifier. | `@of <?type>` |
+| `type` | string | The new module's type specifier. | `@of "<?type>"` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
-| `freeformat` | { `json`, `yaml`, `string`, `dynamic` } | The new module's free data structure import data type. | `@is <?freeformat> <?free> @end` |
-| `free` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?free> @end` |
+| `freeformat` | { `json`, `yaml` } | The new module's free data structure import data type. | `@is <?freeformat> <?freedata> @end` |
+| `freeformat` | `string` | The new module's free data structure import data type. | `@is "<?freedata>"` |
+| `freeformat` | `dynamic` | The new module's free data structure import data type. | ``@is `<?freedata>` `` |
+| `freedata` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?freedata> @end` |
 | `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
 | `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
 

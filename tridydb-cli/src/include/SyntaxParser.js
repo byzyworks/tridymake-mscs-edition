@@ -222,6 +222,10 @@ class SyntaxParser {
             type = 'multiline';
             data = this._readWhileRaw({ multiline: true });
         } else if (current.is('dynpart')) {
+            if (opts.string_only) {
+                throw new SyntaxError(`line ${current.debug.line}, col ${current.debug.col}: Using a dynamic (grave accent-marked) string is not allowed here.`);
+            }
+
             type = 'dynamic';
             data = this._readWhileRaw({ multiline: true });
         }

@@ -1,5 +1,0 @@
-@tridy;
-
-@new @of `null` @is `true`;
-
-@get @final;

@@ -159,6 +159,8 @@ class TokenParser {
     }
 
     _readRaw() {
+        const pos = this._getPos();
+
         let type;
         switch (this._mode.peek()) {
             case 'sqstring':
@@ -175,7 +177,7 @@ class TokenParser {
                 break;
         }
 
-        return new Token(type, this._readWhileEscaped(), this._getPos());
+        return new Token(type, this._readWhileEscaped(), pos);
     }
 
     _readKeyword() {

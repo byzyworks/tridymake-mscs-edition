@@ -41,16 +41,16 @@ const toTridy = (op, opts = { }) => {
                         cmd += ` @as ${opts.tags.replace(/,/g, ' ')}`;
                     }
                 
-                    if (opts.state) {
+                    if (opts.statedata) {
                         switch (opts.stateformat) {
                             case 'string':
-                                cmd += ` @is "${opts.state}"`;
+                                cmd += ` @is "${opts.statedata}"`;
                                 break;
                             case 'dynamic':
-                                cmd += ` @is \`${opts.state}\``;
+                                cmd += ` @is \`${opts.statedata}\``;
                                 break;
                             default:
-                                cmd += ` @is @${opts.stateformat} ${opts.state} @end`;
+                                cmd += ` @is @${opts.stateformat} ${opts.statedata} @end`;
                                 break;
                         }
                     }
@@ -81,29 +81,42 @@ const toTridy = (op, opts = { }) => {
             }
         } else if (op === 'get') {
             switch (opts.compression) {
-                case 0:
+                case undefined:
+                    break;
+                case '0':
                     cmd += ` @raw`;
                     break;
-                case 1:
+                case '1':
                     cmd += ` @typeless`;
                     break;
-                case 2:
+                case '2':
                     cmd += ` @tagless`;
                     break;
-                case 3:
+                case '3':
                     cmd += ` @trimmed`;
                     break;
-                case 4:
+                case '4':
                     cmd += ` @merged`;
                     break;
-                case 5:
+                case '5':
                     cmd += ` @final`;
                     break;
+                default:
+                    return next(new ServerSideServerError(`Invalid value passed to parameter "compression": "${opts.compression}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
             }
         }
 
-        if (opts.greedy) {
-            cmd += ` @once`;
+        switch (opts.greedy) {
+            case undefined:
+                break;
+            case 'true':
+                cmd += ` @once`;
+                break;
+            case 'false':
+                cmd += ` @many`;
+                break;
+            default:
+                return next(new ServerSideServerError(`Invalid value passed to parameter "greedy": "${opts.greedy}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
         }
 
         cmd += ';';
@@ -139,7 +152,7 @@ const getOpts = (req, res) => {
         opts.type        = req.query.type;
         opts.tags        = req.query.tags;
         opts.stateformat = req.query.freeformat;
-        opts.state       = req.query.free;
+        opts.statedata   = req.query.freedata;
     }
 
     return opts;
