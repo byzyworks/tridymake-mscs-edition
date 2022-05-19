@@ -168,10 +168,12 @@ export const isEmpty = (obj) => {
     }
 }
 
-export const hasDuplicates = (arr) => {
+export const hasDuplicates = (arr, arr2) => {
+    arr2 = arr2 ?? arr;
+
     for (let i = 0; i < arr.length; i++) {
-        for (let j = i + 1; j < arr.length; j++) {
-            if (arr[i] === arr[j]) {
+        for (let j = i + 1; j < arr2.length; j++) {
+            if (arr[i] === arr2[j]) {
                 return true;
             }
         }

@@ -33,6 +33,9 @@ Remember also to set the version number inside package.json and utility/common.
 * Added REST mode server query parameter `type` for type specifier.
 * Changed REST mode server query parameter `freetype` to `freeformat`.
 * Changed REST mode server query parameter `free` to `freedata`.
+* Added `@put` operation for editing module elements without deleting ommitted elements.
+* Added `@tag` operation for appending new tags to a module.
+* Added `@untag` operation for deleting specific tags from a module.
 * The input buffer / carry is now cleared when pressing Ctrl+C while inside console mode.
 * Fixed a bug where the database would attempt to check the tags of a primitive raw input module.
 * Fixed a bug where the database would fail to catch errors when attempting `@new` against a root module already changed to a primitive type using `@set` with raw input.

@@ -383,47 +383,178 @@ class Composer {
         return copy;
     }
 
-    _composeModule(command, opts = { }) {
-        opts.template = opts.template ?? null;
-
+    _overwriteModule(template) {
         const target = this._target.peek();
-        switch (command) {
-            case 'edit':
-                target.setPosValue(this._uniqueCopy(opts.template));
-                break;
-            case 'module':
-                if (common.isDictionary(target.getPosValue())) {
-                    target.enterPutAndLeave(common.global.alias.nested, this._uniqueCopy(opts.template));
-                } else {
-                    throw new SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
+
+        target.setPosValue(template);
+    }
+
+    _composeModule(template) {
+        const target = this._target.peek();
+
+        if (!common.isDictionary(target.getPosValue())) {
+            throw new SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
+        }
+
+        target.enterPutAndLeave(common.global.alias.nested, template);
+    }
+
+    _printModule() {
+        const target = this._target.peek();
+
+        const copy = compressor.compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
+
+        this._output.push(copy);
+    }
+
+    _deleteModule() {
+        const target = this._target.peek();
+
+        const spliced = target.getTopPos();
+        if (spliced === null) {
+            // then this module is the root module.
+            target.setPosValue({ });
+        } else {
+            target.leavePos();
+            target.getPosValue().splice(spliced, 1);
+            
+            if ((spliced === 0) && target.isPosEmpty()) {
+                target.setPosValue(undefined);
+            }
+
+            /**
+             * When target.nextItem() is called, the negative index will auto-reset to 0.
+             * The negative index is used so the composer knows to retry 0 after the array has shifted.
+             * This is the easiest way to tell that the tree array has already shifted back because of a @del statement.
+             */
+            target.enterPos(spliced - 1);
+        }
+    }
+
+    _editModulePart(target, template, nulled, key) {
+        if ((template[common.global.alias[key]] !== undefined) || (common.isDictionary(nulled) && (nulled[common.global.defaults.alias[key]] === true))) {
+            target.enterSetAndLeave(common.global.alias[key], template[common.global.alias[key]]);
+        }
+    }
+
+    _editModule(template) {
+        const target = this._target.peek();
+
+        if (!common.isDictionary(target.getPosValue())) {
+            throw new SyntaxError(`Tried to edit an improperly-formatted root module (was @set with raw input used to change it?).`);
+        }
+
+        const nulled = this._astree.enterGetAndLeave(['definition', 'nulled']);
+
+        this._editModulePart(target, template, nulled, 'type');
+        this._editModulePart(target, template, nulled, 'tags');
+        this._editModulePart(target, template, nulled, 'state');
+        this._editModulePart(target, template, nulled, 'nested');
+    }
+
+    _tagModule(template) {
+        const target = this._target.peek();
+
+        if (!common.isDictionary(target.getPosValue())) {
+            throw new SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
+        }
+
+        target.enterPos(common.global.alias.tags);
+
+        let tags = target.getPosValue();
+
+        if (!common.isArray(tags)) {
+            if (tags !== undefined) {
+                target.leavePos();
+                throw new SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
+            }
+            tags = [ ];
+            target.setPosValue(tags);
+        }
+
+        if (common.isArray(template[common.global.alias.tags])) {
+            const tagslen = tags.length; // Because the length of the tags array changes as tags are added, and the syntax parser already does a duplicate check.
+
+            let duplicate;
+            for (const added of template[common.global.alias.tags]) {
+                duplicate = false;
+                for (let i = 0; i < tagslen; i++) {
+                    if (tags[i] === added) {
+                        duplicate = true;
+                        break;
+                    }
                 }
+    
+                if (!duplicate) {
+                    target.putPosValue(added);
+                }
+            }
+        }
+
+        target.leavePos();
+    }
+
+    _untagModule(template) {
+        const target = this._target.peek();
+
+        if (!common.isDictionary(target.getPosValue())) {
+            throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
+        }
+
+        target.enterPos(common.global.alias.tags);
+
+        const tags = target.getPosValue();
+
+        if (!common.isArray(tags)) {
+            target.leavePos();
+            throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
+        }
+
+        if (common.isArray(template[common.global.alias.tags])) {
+            for (const removed of template[common.global.alias.tags]) {
+                for (let i = 0; i < tags.length; i++) {
+                    if (tags[i] === removed) {
+                        tags.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+        }
+
+        if (target.isPosEmpty()) {
+            target.setPosValue(undefined);
+        }
+
+        target.leavePos();
+    }
+
+    _operateModule(command, opts = { }) {
+        opts.template = opts.template ?? null;
+        if (opts.template !== null) {
+            opts.template = this._uniqueCopy(opts.template);
+        }
+
+        switch (command) {
+            case 'overwrite':
+                this._overwriteModule(opts.template);
+                break;
+            case 'compose':
+                this._composeModule(opts.template);
                 break;
             case 'print':
-                const copy = compressor.compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
-
-                this._output.push(copy);
-
+                this._printModule();
                 break;
             case 'delete':
-                const spliced = target.getTopPos();
-                if (spliced === null) {
-                    // then this module is the root module.
-                    target.setPosValue({ });
-                } else {
-                    target.leavePos();
-                    target.getPosValue().splice(spliced, 1);
-                    
-                    if ((spliced === 0) && target.isPosEmpty()) {
-                        target.setPosValue(undefined);
-                    }
-
-                    /**
-                     * When target.nextItem() is called, the negative index will auto-reset to 0.
-                     * The negative index is used so the composer knows to retry 0 after the array has shifted.
-                     * This is the easiest way to tell that the tree array has already shifted back because of a @del statement.
-                     */
-                    target.enterPos(spliced - 1);
-                }
+                this._deleteModule();
+                break;
+            case 'edit':
+                this._editModule(opts.template);
+                break;
+            case 'tag':
+                this._tagModule(opts.template);
+                break;
+            case 'untag':
+                this._untagModule(opts.template);
                 break;
         }
     }
@@ -494,19 +625,10 @@ class Composer {
         }
 
         if (matched_this) {
-            this._composeModule(command, { template: opts.template });
+            this._operateModule(command, { template: opts.template });
         }
 
         return matched;
-    }
-
-    _isReadOp(command) {
-        switch (command) {
-            case 'print':
-                return true;
-            default:
-                return false;
-        }
     }
 
     _parseStatement() {
@@ -517,7 +639,7 @@ class Composer {
         const command = this._astree.enterGetAndLeave('operation');
 
         let template = null;
-        if (!this._isReadOp(command)) {
+        if (command !== 'print') {
             template = this._createModule();
         }
 

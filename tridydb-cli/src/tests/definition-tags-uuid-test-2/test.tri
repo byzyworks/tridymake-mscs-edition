@@ -1,0 +1,11 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@in a @new @as b;
+
+@in a/b @tag @uuid;
+
+@get;

@@ -1,0 +1,5 @@
+@tridy;
+
+@new a;
+
+@in a @tag b @is "c";

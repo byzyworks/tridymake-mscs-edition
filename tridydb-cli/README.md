@@ -55,25 +55,28 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 6.  [@new](#syntax-new)
                 7.  [@set](#syntax-set)
                 8.  [@del](#syntax-del)
-                9.  [Explicit @of](#syntax-of)
-                10. [Explicit @as](#syntax-as)
-                11. [Implicit @of/@as](#syntax-implicit)
-                12. [@uuid](#syntax-uuid)
-                13. [@is](#syntax-is)
-                14. [Strings](#syntax-string)
-                15. [@json](#syntax-json)
-                16. [@yaml](#syntax-yaml)
-                17. [@end](#syntax-end)
-                18. [@has](#syntax-has)
-                19. [@none](#syntax-none)
-                20. [@once](#syntax-once)
-                21. [@many](#syntax-many)
-                22. [@raw](#syntax-raw)
-                23. [@typeless](#syntax-typeless)
-                24. [@tagless](#syntax-tagless)
-                25. [@trimmed](#syntax-trimmed)
-                26. [@merged](#syntax-merged)
-                27. [@final](#syntax-final)
+                9.  [@put](#syntax-put)
+                10. [@tag](#syntax-tag)
+                11. [@untag](#syntax-untag)
+                12. [Explicit @of](#syntax-of)
+                13. [Explicit @as](#syntax-as)
+                14. [Implicit @of/@as](#syntax-implicit)
+                15. [@uuid](#syntax-uuid)
+                16. [@is](#syntax-is)
+                17. [Strings](#syntax-string)
+                18. [@json](#syntax-json)
+                19. [@yaml](#syntax-yaml)
+                20. [@end](#syntax-end)
+                21. [@has](#syntax-has)
+                22. [@none](#syntax-none)
+                23. [@once](#syntax-once)
+                24. [@many](#syntax-many)
+                25. [@raw](#syntax-raw)
+                26. [@typeless](#syntax-typeless)
+                27. [@tagless](#syntax-tagless)
+                28. [@trimmed](#syntax-trimmed)
+                29. [@merged](#syntax-merged)
+                30. [@final](#syntax-final)
             3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
@@ -1406,6 +1409,8 @@ By default, the results of `@get` will be a JSON representation of the database 
 
 `@new` is the main operation used with Tridy, as without it, Tridy modules would not be composable to begin with. `@new` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then copies this module to the tree data structure of all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, it is placed only at the root module. Thus, a module created through `@new` becomes a sub-module of the context to which it is provided. Using `@new` is never an idempotent operation.
 
+`@none` may be used in place of any arguments, though while having no effect over simply leaving the definition clause where `@none` would happen to be used as undefined.
+
 `@new`'s equivalent in SQL is `CREATE`/`INSERT` and in REST architecture is `POST`.
 
 ```
@@ -1437,9 +1442,11 @@ By default, the results of `@get` will be a JSON representation of the database 
 
 ### **Operation: `@set`**
 
-`@set` is an operation that is intended to apply changes to an existing module, and as the same module which is matched through `@in` as a context expression. `@set` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then overwrites all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, then the root module is altered (in effect overwriting the entire database). Using `@set` is sometimes an idempotent operation.
+`@set` is an operation that is intended to apply changes to an existing module, and as the same module which is matched in a context expression. `@set` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then overwrites all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, then the root module is altered (in effect overwriting the entire database). Using `@set` is sometimes an idempotent operation.
 
 Note that this command is generally not recommended for normal use, and Tridy scripts can be designed without ever needing to use `@set`. The main reason why this isn't recommended is because it is nearly equivalent to deleting a module and then placing a new one in the same spot or order that the deleted one was in before, making it particularly dangerous as with `@del`. However, also as a result of this, `@set` generally makes the most sense when used in combination with `@get` to acquire the original module and replace it's elements and/or apply soft operations defined by the application such that this operation is usable in such a way that isn't completely destructive.
+
+`@none` may be used in place of any arguments, though while having no effect over simply leaving the definition clause where `@none` would happen to be used as undefined.
 
 `@set`'s equivalent in SQL is `ALTER`/`UPDATE` and in REST architecture is `PUT`.
 
@@ -1505,6 +1512,114 @@ The operation is not completely permanent, though, since modules can always be r
     ]
 }
 ```
+
+<br>
+
+<div id="syntax-put"/>
+
+### **Operation: `@put`**
+
+`@put` is an operation that is intended to apply changes to an existing module, and as the same module which is matched in a context expression. `@put` is used to define the elements of a module on its right-hand side and then place the elements individually on top of an existing module where the subsequent context expression given through `@in` becomes true, replacing whatever already happens to be there in that module. If there is no `@in`, then the root module is altered.
+
+`@put` has a less destructive role than `@set`, being that it does not overwrite the existing module with a new one. As such, if an element (for example, the tagset or free data structure) is left undefined in the statement, then the incumbent element definition is maintained. This is in contrast to `@set`, which is only granular with respect to the module, meaning that the undefined elements in the statement subsequently become undefined / get deleted in the matched module.
+
+As partly an exception to this rule, using `@none` behaves different with `@put` than with other operations, as it happens to have different behavior than when simply leaving elements undefined in this case. Here, while leaving an element undefined will mean the existing module is kept intact, using `@none` with its element will cause the existing module to be deleted the same way that `@set` would cause it to be.
+
+```
+# Before
+@new
+@as a
+@is "before"
+@has {
+    @new @as c;
+};
+
+# After
+@put
+@as @none
+@is "after";
+```
+
+```diff
+{
+    "tree": [
+        {
+-           "tags": ["a"],
+-           "free": "before",
++           "free": "after",
+            "tree": [
+                {
+                    "tags": ["c"]
+                }
+            ]
+        }
+    ]
+}
+```
+
+The syntax around `@put` is notably stricter than with either `@set` or `@new`, since `@put` requires clearer delineation between the elements of a module. For one, it is not possible to use raw input with `@put` since raw input can be structured arbitrarily, and it would be less well-defined what should happen upon merging it with an existing module. Second, shortcuts like implicit `@of`/`@as` are not possible either. Thus, using `@of`, `@as`, `@is`, or `@has` are requirements in this case.
+
+<br>
+
+<div id="syntax-tag"/>
+
+### **Operation: `@tag`**
+
+`@tag` is an operation that allows appending tags to an existing module, and as the same module which is matched in a context expression. The right-hand side, as with `@as` or implicit `@of`/`@as`, is used to provide new tags to the module in a space-delimited fashion. Any new tags become part of the module's tagset after the operation, while duplicate tags are ignored.
+
+```
+# Before
+@new @as foo bar;
+
+# After
+@in foo @tag bar baz
+```
+
+```diff
+{
+    "tree": [
+        {
+-           "tags": ["foo", "bar"]
++           "tags": ["foo", "bar", "baz"]
+        }
+    ]
+}
+```
+
+The difference it has with using `@set` or `@put` to do the same is that this is an operation that is granular with respect to the tagset array, while any similar operation done using `@set` or `@put` would require saving the contents of the tagset externally since these operations both replace the full elements.
+
+`@none` may be used in place of any arguments, though while having no effect over simply ommitting any tags.
+
+<br>
+
+<div id="syntax-untag"/>
+
+### **Operation: `@untag`**
+
+`@tag` is an operation that allows deleting tags from an existing module, and as the same module which is matched in a context expression. The right-hand side, similar to `@as` or implicit `@of`/`@as`, is used to name existing tags of the module to be removed in a space-delimited fashion.
+
+```
+# Before
+@new @as foo bar;
+
+# After
+@in foo @untag bar baz
+```
+
+```diff
+{
+    "tree": [
+        {
+-           "tags": ["foo", "bar"]
++           "tags": ["foo"]
+        }
+    ]
+}
+```
+
+Any tags not named with `@untag` are retained, while duplicate tags, if they exist in the module (only a possibility with raw input), would be removed as many times as they appear in the module. Non-existant tags named for removal are ignored.
+
+`@none` may be used in place of any arguments, though while having no effect over simply ommitting any tags.
 
 <br>
 
@@ -1982,7 +2097,7 @@ Thus, relative to a nested statement, the module represented by the parent state
 
 ### **Definition Operand: `@none`**
 
-`@none` is used as a definition placeholder for all of the Tridy (non-raw) definition clauses where the clause's respective affected section is empty or unincluded, for instance, in the form "`@as @none`", "`@is @none`", or "`@has @none`". Once again, the purpose of using this is simply as an explicit way of stating the absence of either of these elements when simply leaving the clauses out fully would have the same effect. Likewise, it has no effect on the statement over this alternative.
+`@none` is used as a definition placeholder for all of the Tridy (non-raw) definition clauses where the clause's respective affected section is empty or unincluded, for instance, in the form "`@as @none`", "`@is @none`", or "`@has @none`". Once again, the purpose of using this is simply as an explicit way of stating the absence of either of these elements when simply leaving the clauses out fully would have the same effect. Likewise, it has no effect on the statement over this alternative, usually (with the exception of when used with `@put`).
 
 ```
 # After
@@ -2409,8 +2524,8 @@ The syntax rules are detailed below using Microsoft's command line syntax:
         }
     |
         [@in <context expression>]
-        {@new | @set}
-        [
+        {
+            {@new | @set}
             {
                 {
                     [{<tags> | @none}]
@@ -2424,7 +2539,15 @@ The syntax rules are detailed below using Microsoft's command line syntax:
             |
                 {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}
             }
-        ]
+        |
+            @put
+            [@of {'<type identifier string>' | "<type identifier string>" | @none}]
+            [@as {<tags> | @none}]
+            [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
+            [@has {\{ <tridy statements> \} | @none}]
+        |
+            {@tag | @untag} [{<tags> | @none}]
+        }
     }
     [{@once | @many}]
 |

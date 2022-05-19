@@ -1,0 +1,9 @@
+@tridy;
+
+@new @as a;
+
+@in a @tag @none;
+
+@in a @untag @none;
+
+@get;

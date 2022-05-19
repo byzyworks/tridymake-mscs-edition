@@ -1,0 +1,7 @@
+@tridy;
+
+@new @json {"tags":["a","b","b","c"]} @end;
+
+@in a @untag b c;
+
+@get;

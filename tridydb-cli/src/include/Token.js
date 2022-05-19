@@ -150,6 +150,14 @@ export class Token {
         ;
     }
 
+    isControlOpToken() {
+        return false ||
+            this.is('key', 'tridy') ||
+            this.is('key', 'clear') ||
+            this.is('key', 'exit')
+        ;
+    }
+
     isDefiningOpToken() {
         return false ||
             this.is('key', 'set') ||
@@ -170,10 +178,23 @@ export class Token {
         ;
     }
 
-    isTagModdingOpToken() {
+    isGeneralEditingOpToken() {
+        return false ||
+            this.is('key', 'put')
+        ;
+    }
+
+    isTagEditingOpToken() {
         return false ||
             this.is('key', 'tag') ||
             this.is('key', 'untag')
+        ;
+    }
+
+    isEditingOpToken() {
+        return false ||
+            this.isGeneralEditingOpToken() ||
+            this.isTagEditingOpToken()
         ;
     }
 
@@ -193,14 +214,6 @@ export class Token {
         ;
     }
 
-    isControlOpToken() {
-        return false ||
-            this.is('key', 'tridy') ||
-            this.is('key', 'clear') ||
-            this.is('key', 'exit')
-        ;
-    }
-
     isGetParameterToken() {
         return false ||
             this.is('key', 'raw') ||
@@ -209,6 +222,13 @@ export class Token {
             this.is('key', 'trimmed') ||
             this.is('key', 'merged') ||
             this.is('key', 'final')
+        ;
+    }
+
+    isTagsetToken() {
+        return false ||
+            this.is('tag') ||
+            this.is('key', 'uuid')
         ;
     }
 }

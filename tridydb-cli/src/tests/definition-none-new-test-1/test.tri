@@ -2,4 +2,6 @@
 
 @new @of @none @as @none @is @none @has @none;
 
+@new @none;
+
 @get;

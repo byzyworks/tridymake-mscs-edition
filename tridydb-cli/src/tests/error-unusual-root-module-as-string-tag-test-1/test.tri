@@ -1,0 +1,7 @@
+@tridy;
+
+@set "I am not a proper module.";
+
+@tag a;
+
+@get;

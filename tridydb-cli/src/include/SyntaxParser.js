@@ -291,26 +291,36 @@ class SyntaxParser {
     
     _handleOperation() {
         const current = this._tokens.next();
-        if (current.is('key', 'set')) {
-            this._astree.enterSetAndLeave('operation', 'edit');
-        } else if (current.is('key', 'new')) {
-            this._astree.enterSetAndLeave('operation', 'module');
-        } else if (current.is('key', 'get')) {
-            this._astree.enterSetAndLeave('operation', 'print');
-        } else if (current.is('key', 'del')) {
-            this._astree.enterSetAndLeave('operation', 'delete');
-        } else {
-            this._handleUnexpected(current);
-        }
-
         if (current.isDefiningOpToken()) {
+            if (current.is('key', 'set')) {
+                this._astree.enterSetAndLeave('operation', 'overwrite');
+            } else if (current.is('key', 'new')) {
+                this._astree.enterSetAndLeave('operation', 'compose');
+            }
+            
             if (this._tokens.peek().isRawInputToken()) {
                 this._astree.enterPos('raw');
             } else {
                 this._astree.enterPos('definition');
             }
-        } else if (current.isTagModdingOpToken()) {
-            this._astree.enterPos('tags');
+        } else if (current.isAffectingOpToken()) {
+            if (current.is('key', 'get')) {
+                this._astree.enterSetAndLeave('operation', 'print');
+            } else if (current.is('key', 'del')) {
+                this._astree.enterSetAndLeave('operation', 'delete');
+            }
+        } else if (current.isEditingOpToken()) {
+            if (current.is('key', 'put')) {
+                this._astree.enterSetAndLeave('operation', 'edit');
+            } else if (current.is('key', 'tag')) {
+                this._astree.enterSetAndLeave('operation', 'tag');
+            } else if (current.is('key', 'untag')) {
+                this._astree.enterSetAndLeave('operation', 'untag');
+            }
+
+            this._astree.enterPos('definition');
+        } else {
+            this._handleUnexpected(current);
         }
     }
 
@@ -318,7 +328,7 @@ class SyntaxParser {
         const tags = [ ];
 
         let current = this._tokens.peek();
-        while (current.is('tag') || current.is('key', 'uuid')) {
+        while (current.isTagsetToken()) {
             // There is no reason one would want to post duplicate tags in the same module.
             // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
             let new_tag = current.val;
@@ -348,15 +358,11 @@ class SyntaxParser {
     _handleTagsDefinition(opts = { }) {
         opts.require = opts.require ?? false;
 
-        if (this._tokens.peek().is('key', 'none')) {
-            this._tokens.next();
-        } else {
-            const tags = this._readWhileTag();
-            if (!isEmpty(tags)) {
-                this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
-            } else if (opts.require) {
-                this._handleUnexpected();
-            }
+        const tags = this._readWhileTag();
+        if (!isEmpty(tags)) {
+            this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
+        } else if (opts.require) {
+            this._handleUnexpected();
         }
     }
 
@@ -368,27 +374,19 @@ class SyntaxParser {
     }
 
     _handleTypeDefinitionExplicit() {
-        if (this._tokens.peek().is('key', 'none')) {
-            this._tokens.next();
-        } else {
-            const type = this._readWhileRawAndParse({ string_only: true });
-            if (type === undefined) {
-                this._handleUnexpected();
-            }
-            this._astree.enterSetAndLeave(global.defaults.alias.type, type);
+        const type = this._readWhileRawAndParse({ string_only: true });
+        if (type === undefined) {
+            this._handleUnexpected();
         }
+        this._astree.enterSetAndLeave(global.defaults.alias.type, type);
     }
 
     _handleStateDefinition() {
-        if (this._tokens.peek().is('key', 'none')) {
-            this._tokens.next();
-        } else {
-            const free = this._readWhileRawAndParse({ string_only: false });
-            if (free === undefined) {
-                this._handleUnexpected();
-            }
-            this._astree.enterSetAndLeave(global.defaults.alias.state, free);
+        const free = this._readWhileRawAndParse({ string_only: false });
+        if (free === undefined) {
+            this._handleUnexpected();
         }
+        this._astree.enterSetAndLeave(global.defaults.alias.state, free);
     }
 
     _handleNestedDefinition() {
@@ -418,31 +416,55 @@ class SyntaxParser {
 
             if (this._tokens.peek().is('key', 'of')) {
                 this._tokens.next();
+
+                if (this._tokens.peek().is('key', 'none')) {
+                    this._tokens.next();
+                } else {
+                    this._handleTypeDefinitionExplicit();
+                }
+            }
+
+            if (this._tokens.peek().is('key', 'as')) {
+                this._tokens.next();
+
+                if (this._tokens.peek().is('key', 'none')) {
+                    this._tokens.next();
+                } else {
+                    this._handleTagsDefinition({ require: true });
+                }
+            }
+        } else if (this._tokens.peek().is('key', 'of')) {
+            this._tokens.next();
     
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+            } else {
                 this._handleTypeDefinitionExplicit();
             }
 
             if (this._tokens.peek().is('key', 'as')) {
                 this._tokens.next();
 
-                this._handleTagsDefinition({ require: true });
-            }
-        } else if (this._tokens.peek().is('key', 'of')) {
-            this._tokens.next();
-    
-            this._handleTypeDefinitionExplicit();
-
-            if (this._tokens.peek().is('key', 'as')) {
-                this._tokens.next();
-
-                this._handleTagsDefinition({ require: true });
+                if (this._tokens.peek().is('key', 'none')) {
+                    this._tokens.next();
+                } else {
+                    this._handleTagsDefinition({ require: true });
+                }
             }
         } else if (this._tokens.peek().is('key', 'as')) {
             this._tokens.next();
 
-            this._handleTagsDefinition({ require: true });
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+            } else {
+                this._handleTagsDefinition({ require: true });
+            }
         } else {
-            this._handleTagsDefinition({ require: false });
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+            } else {
+                this._handleTagsDefinition({ require: false });
+            }
 
             this._handleTypeDefinitionImplicit();
         }
@@ -450,44 +472,76 @@ class SyntaxParser {
         if (this._tokens.peek().is('key', 'is')) {
             this._tokens.next();
 
-            this._handleStateDefinition();
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+            } else {
+                this._handleStateDefinition();
+            }
         }
 
         if (this._tokens.peek().is('key', 'has')) {
             this._tokens.next();
 
-            this._handleNestedDefinition();
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+            } else {
+                this._handleNestedDefinition();
+            }
         }
 
         this._astree.leavePos();
     }
 
-    _handleTagModding() {
-        if (this._tokens.peek().is('key', 'tridy')) {
+    _handleEditDefinition() {
+        if (this._tokens.peek().is('key', 'of')) {
             this._tokens.next();
-
-            if (this._tokens.peek().is('key', 'of')) {
-                this._tokens.next();
     
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.type], true);
+            } else {
                 this._handleTypeDefinitionExplicit();
             }
-
-            if (this._tokens.peek().is('key', 'as')) {
-                this._tokens.next();
-
-                this._handleTagsDefinition({ require: true });
-            }
-        } else if (this._tokens.peek().is('key', 'of')) {
+        }
+        
+        if (this._tokens.peek().is('key', 'as')) {
             this._tokens.next();
-    
-            this._handleTypeDefinitionExplicit();
 
-            if (this._tokens.peek().is('key', 'as')) {
+            if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.tags], true);
+            } else {
                 this._handleTagsDefinition({ require: true });
             }
         }
+
+        if (this._tokens.peek().is('key', 'is')) {
+            this._tokens.next();
+
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.state], true);
+            } else {
+                this._handleStateDefinition();
+            }
+        }
+
+        if (this._tokens.peek().is('key', 'has')) {
+            this._tokens.next();
+
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.nested], true);
+            } else {
+                this._handleNestedDefinition();
+            }
+        }
+
+        this._astree.leavePos();
     }
 
     _handleStatement() {
@@ -515,10 +569,20 @@ class SyntaxParser {
                 context_defined = true;
             }
 
-            current = this._tokens.peek();
-            if (current.isAffectingOpToken()) {
-                const operation_token = current;
+            const operation_token = this._tokens.peek();
+            
+            if (operation_token.isDefiningOpToken()) {
+                this._handleOperation();
 
+                switch (this._astree.getTopPos()) {
+                    case 'raw':
+                        this._handleRawDefinition();
+                        break;
+                    case 'definition':
+                        this._handleDefinition();
+                        break;
+                }
+            } else if (operation_token.isAffectingOpToken()) {
                 this._handleOperation();
 
                 if (!context_defined) {
@@ -557,19 +621,17 @@ class SyntaxParser {
                         this._tokens.next();
                     }
                 }
-            } else if (current.isDefiningOpToken()) {
+            } else if (operation_token.isGeneralEditingOpToken()) {
                 this._handleOperation();
-    
-                switch (this._astree.getTopPos()) {
-                    case 'raw':
-                        this._handleRawDefinition();
-                        break;
-                    case 'definition':
-                        this._handleDefinition();
-                        break;
-                    case 'tags':
-                        this._handleTagModding();
-                        break;
+
+                this._handleEditDefinition();
+            } else if (operation_token.isTagEditingOpToken()) {
+                this._handleOperation();
+
+                if (this._tokens.peek().is('key', 'none')) {
+                    this._tokens.next();
+                } else {
+                    this._handleTagsDefinition({ require: false });
                 }
             }
     
