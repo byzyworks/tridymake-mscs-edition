@@ -1,0 +1,15 @@
+@tridy;
+
+@new map @is @json { "0": "a", "1": "b" } @end;
+
+@new map @is @json { "0": "a" } @end;
+
+@new map @is @json { } @end;
+
+@new array @is @json [ "a" ] @end;
+
+@new array @is @json [ ] @end;
+
+@new scalar @is `null`;
+
+@get @merged;

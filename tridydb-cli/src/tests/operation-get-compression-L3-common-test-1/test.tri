@@ -1,7 +1,13 @@
 @tridy;
 
-@new a @is @json { "0": "b" } @end;
+@new a;
+
+@in a @new @none @is "b";
 
 @in a @new c;
+
+@in a/c @new @none @is @json { } @end;
+
+@in a/c @new @none @is @json { "0": "d" } @end;
 
 @get @trimmed;

@@ -1,0 +1,15 @@
+@tridy;
+
+@new map-1 @is @json { } @end;
+
+@new map-2 @is @json { } @end;
+
+@in map-1 | map-2 @new @none @is "a";
+
+@in map-1 @new @none @is "b";
+
+@new array-1 @is @json [ ] @end;
+
+@in array-1 @new @none @is "a";
+
+@get @final;

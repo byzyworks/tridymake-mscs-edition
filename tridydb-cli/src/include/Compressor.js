@@ -50,13 +50,18 @@ class Compressor {
          * The free data structure is meant to contain arbitrary user data that should be altered by TridyDB as little as possible.
          */
         let free                = target[common.global.alias.state];
-        let reduce_to_primitive = true;
         let reduce_to_array     = true;
+        let reduce_to_primitive = true;
+        let reduce_to_nothing   = true;
         if (!opts.strict) {
-            if (common.isArray(free) && (common.isEmpty(free) || common.isBasic(free))) {
-                reduce_to_primitive = false;
-            } else if (common.isDictionary(free) && common.isArrayableObject(free)) {
-                reduce_to_array = false;
+            if (free !== undefined) {
+                reduce_to_nothing = false;
+
+                if (common.isDictionary(free)) {
+                    reduce_to_array = false;
+                } else if (common.isArray(free)) {
+                    reduce_to_primitive = false;
+                }
             }
         }
         free = common.toDictionary(free);
@@ -70,6 +75,9 @@ class Compressor {
             type = common.isDictionary(sub) ? sub[common.global.alias.type] : null;
 
             sub = this._compressModuleHeavy(sub, opts);
+            if (sub === undefined) {
+                continue;
+            }
             
             if (common.isPrimitive(type)) {
                 target.enterPos(type);
@@ -108,18 +116,19 @@ class Compressor {
 
         target = target.getRaw();
 
-        if (!opts.strict && reduce_to_array && !common.isEmpty(target) && common.isArrayableObject(target)) {
-            let reduced;
+        if (!opts.strict) {
+            if (reduce_to_array && common.isArrayableObject(target)) {
+                const reduced = [ ];
+                for (const part of Object.values(target)) {
+                    reduced.push(part);
+                }
+                target = reduced;
 
-            reduced = [ ];
-            for (const part of Object.values(target)) {
-                reduced.push(part);
-            }
-            target = reduced;
-
-            if (reduce_to_primitive && (reduced.length === 1)) {
-                reduced = reduced[0];
-                target  = reduced;
+                if (reduce_to_primitive && (reduced.length === 1)) {
+                    target = reduced[0];
+                } else if (reduce_to_nothing && (reduced.length === 0)) {
+                    target = undefined;
+                }
             }
         }
 

@@ -1,0 +1,24 @@
+@tridy;
+
+@new nothing;
+
+@new scalar
+@has {
+	@new @is "a";
+};
+
+@new array
+@has {
+	@new @is "a";
+	@new @is "b";
+};
+
+@new map
+@has {
+	@new @is "a";
+	@new @is "b";
+	@new c @is @json { } @end;
+	@new d @is @json [ ] @end;
+};
+
+@get @final;

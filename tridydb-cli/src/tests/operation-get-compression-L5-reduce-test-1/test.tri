@@ -1,5 +1,0 @@
-@tridy;
-
-@new a @is @json [ "b" ] @end;
-
-@get @final;
