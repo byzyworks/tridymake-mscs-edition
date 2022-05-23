@@ -1,0 +1,30 @@
+[
+    {
+        "tags": [
+            "e",
+            "of-a"
+        ],
+        "tree": [
+            {
+                "tags": [
+                    "f",
+                    "ignored"
+                ]
+            }
+        ]
+    },
+    {
+        "tags": [
+            "e",
+            "of-d-child-c"
+        ],
+        "tree": [
+            {
+                "tags": [
+                    "g",
+                    "ignored"
+                ]
+            }
+        ]
+    }
+]

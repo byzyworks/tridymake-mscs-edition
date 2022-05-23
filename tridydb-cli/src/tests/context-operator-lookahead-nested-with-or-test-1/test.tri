@@ -1,0 +1,13 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@new @as c;
+
+@in c @new @as d;
+
+@new @as c ignored;
+
+@get a|(c>d);

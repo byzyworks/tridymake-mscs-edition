@@ -1,0 +1,19 @@
+@tridy;
+
+@new @as a;
+
+@new @as z invisible;
+
+@in a @new @as b of-a;
+
+@in z @new @as b of-z;
+
+@in (a|z)/b @new @as c ignored;
+
+@in (a|z) @new @as d invisible;
+
+@in a/d @new @as e of-a-to-d;
+
+@in z/d @new @as e of-z-to-d;
+
+@get *//((b|(d/e))<<a);

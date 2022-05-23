@@ -1,0 +1,21 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@new @as c;
+
+@in c @new @as d;
+
+@in a @new @as e;
+
+@in a/e @new @as f ignored;
+
+@in c/d @new @as e;
+
+@in c/d/e @new @as g ignored;
+
+@in c @new @as e invisible;
+
+@get (a|(c/d))/e;

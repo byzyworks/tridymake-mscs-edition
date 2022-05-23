@@ -6,6 +6,8 @@ import { StateTree }  from './StateTree.js';
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
+import { Token } from './Token.js';
+import { token } from 'morgan';
 
 class Composer {
     constructor() {
@@ -85,30 +87,32 @@ class Composer {
     }
 
     _isTag(obj) {
-        return (typeof obj === 'string');
+        return common.isDictionary(obj) && (obj.val !== undefined);
     }
 
-    _matchingTag(test, tested, lvl) {
-        const answers = { };
+    _matchingTag(test, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
 
-        switch (test) {
+        let answer;
+
+        switch (test.val) {
             case '*': // from @any
-                answers.value = true;
+                answer = true;
                 break;
             case '~': // from @root
-                answers.value = lvl === 0;
+                answer = lvl === 0;
                 break;
             case '%': // from @leaf
-                answers.value = common.isEmpty(this._target.peek().enterGetAndLeave(common.global.alias.nested));
+                answer = common.isEmpty(this._target.peek().enterGetAndLeave(common.global.alias.nested));
                 break;
             case '?': // from @random
-                answers.value = (Math.random() >= 0.5);
+                answer = (Math.random() >= 0.5);
                 break;
             default: // assumed to be a regular old tag
-                answers.value = false;
+                answer = false;
                 for (const tag of tested[lvl]) {
-                    if (test == tag) {
-                        answers.value = true;
+                    if (test.val == tag) {
+                        answer = true;
                         break;
                     }
                 }
@@ -116,71 +120,81 @@ class Composer {
         }
 
         /**
-         * Important line here: We want to verify, in addition to if an expression matches, that the expression also reaches the last element of the current module's context.
+         * The output of this depends on whether the context is "intermediate" (like a in "a/b") or "final" (like b in "a/b").
+         * The expression tree contains generated position helpers ("test.end") determining which one the terminal is.
+         * It's required that the terminal is evaluated at the last level of the context if the terminal is final.
          * If whether it reaches the last element or not isn't verified, then the expression becomes true not only for the module, but also all of its sub-modules.
          * We want "a/b" to change "a/b", but not "a/b/c" as well, even though "a/b" is all true for the first part of "a/b/c"'s context.
          * That's also because it may be that we're testing the expression against a module with the context "a/b/c", and not "a/b".
-         * Thus, we need to see that there would not be additional levels of nesting left unverified for the current context before the expression is assumed correct.
-         * The value is computed similarly to the expression's answer itself, and only combined at the very end.
-         * That's because, for some sub-expressions (like the operand on the parent side of @child), the value of it isn't important or used.
-         * Likewise, it shouldn't be mixed in with the actual answer immediately, if it ever does get mixed in.
+         * Otherwise, if it's intermediate, it should not matter.
+         * 
+         * You might think "why not just answer &&= lvl <= tested.length - 1?", and why the position helpers?
+         * That's because tested.length is dynamic depending on the module being addressed.
+         * If the module is a child module of a correct one, then tested.length is already larger than what the level is, so the comparison would always be true for child modules.
+         * That makes the comparison, in effect, pointless.
+         * The best way to determine finality appears to be from the expression tree's end, not the module's.
          */
-        answers.ended = lvl === (tested.length - 1);
+        answer &&= !test.end || (lvl === (tested.length - 1));
 
-        return answers;
+        /**
+         * The need for this is because of the confusing reality of some expressions.
+         * Consider "(a|(b/c))/d", which is expandable as "a/d" and "b/c/d". Question is, in the original expression, if "(a|(b/c))" is true, at what level should "d" be evaluated at?
+         * Normally, the "next level down" is sufficient, but the entirety of "(a|(b/c))" starts at level 0, and "d" at level 1 only includes "a/d" and thus ignores "b/c/d" at level 2.
+         * As a result, the level stopped at is important for the calling operation to know.
+         */
+        if ((answer === true) && (opts.tracked instanceof Set)) {
+            opts.tracked.add(lvl);
+        }
+
+        return answer;
     }
 
-    _testNot(a, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
+    _testNot(a, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
 
-        return {
-            value: !a_answers.value,
-            ended: a_answers.ended
-        };
+        const a_answer = this._matchingExpression(a, tested, lvl, opts);
+
+        return !a_answer;
     }
 
-    _testAnd(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
+    _testAnd(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        const a_answer = this._matchingExpression(a, tested, lvl, opts);
         
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === true) || (a_answers.ended === false)) {
-            b_answers = this._matchingExpression(b, tested, lvl);
+        let b_answer = false;
+        if (a_answer === true) {
+            b_answer = this._matchingExpression(b, tested, lvl, opts);
         }
 
-        return {
-            value: a_answers.value && b_answers.value,
-            ended: a_answers.ended && b_answers.ended
-        };
+        return a_answer && b_answer;
     }
 
-    _testXor(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
-        const b_answers = this._matchingExpression(b, tested, lvl);
+    _testXor(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
 
-        return {
-            value: (!a_answers.value && b_answers.value) || (a_answers.value && !b_answers.value),
-            ended: a_answers.value ? a_answers.ended : b_answers.ended
-        };
+        const a_answer = this._matchingExpression(a, tested, lvl, opts);
+        const b_answer = this._matchingExpression(b, tested, lvl, opts);
+
+        return (!a_answer && b_answer) || (a_answer && !b_answer);
     }
 
-    _testOr(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
+    _testOr(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
 
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === false) || (a_answers.ended === false)) {
-            b_answers = this._matchingExpression(b, tested, lvl);
+        const a_answer = this._matchingExpression(a, tested, lvl, opts);
+
+        let b_answer = false;
+        if (a_answer === false) {
+            b_answer = this._matchingExpression(b, tested, lvl, opts);
         }
 
-        // The value of "ended" should generally correspond to the same value causing an expression to be true, and which one it is matters with @or.
-        // Don't ask why this particular configuration seems to work...
-        return {
-            value: a_answers.value || b_answers.value,
-            ended: (a_answers.value && a_answers.ended) || (b_answers.value && b_answers.ended) || a_answers.ended || b_answers.ended
-        };
+        return a_answer || b_answer;
     }
 
     _testParentMain(b, tested, lvl, opts = { }) {
         opts.recurse = opts.recurse ?? false;
+        opts.tracked = opts.tracked ?? null;
 
         const target = this._target.peek();
 
@@ -194,18 +208,18 @@ class Composer {
             child_subcontext.push(target.leavePos());
         }
 
-        let answers = { value: false, ended: true };
+        let answer = false;
 
         target.enterPos(common.global.alias.nested);
         if (!target.isPosEmpty()) {
             target.enterPos(0);
             while (!target.isPosUndefined()) {
-                tested  = this._getContext();
-                answers = this._matchingExpression(b, tested, lvl);
-                if (opts.recurse && (answers.value === false)) {
-                    answers = this._testParentMain(b, tested, lvl + 1, opts);
+                tested = this._getContext();
+                answer = this._matchingExpression(b, tested, lvl, { tracked: opts.tracked });
+                if (opts.recurse && (answer === false)) {
+                    answer = this._testParentMain(b, tested, lvl + 1, opts);
                 }
-                if (answers.value === true) {
+                if (answer === true) {
                     break;
                 }
 
@@ -219,150 +233,186 @@ class Composer {
             target.enterPos(child_subcontext.pop());
         }
 
-        return answers;
+        return answer;
     }
 
-    _testParent(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
+    _testParent(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
 
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === true) || (a_answers.ended === false)) {
-            b_answers = this._testParentMain(b, tested, lvl + 1, { recurse: false });
-        }
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
 
-        return {
-            value: a_answers.value && b_answers.value,
-            ended: a_answers.ended // We're only affecting the parent module.
-        };
-    }
-
-    _testAscend(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
-
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === true) || (a_answers.ended === false)) {
-            b_answers = this._testParentMain(b, tested, lvl + 1, { recurse: true });
-        }
-
-        return {
-            value: a_answers.value && b_answers.value,
-            ended: a_answers.ended // We're only affecting the parent module.
-        };
-    }
-
-    _testChild(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
-
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === true) || (a_answers.ended === false)) {
-            b_answers = this._matchingExpression(b, tested, lvl - 1);
-        }
-
-        return {
-            value: a_answers.value && b_answers.value,
-            ended: a_answers.ended // We're only affecting the child module.
-        };
-    }
-
-    _testDescend(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
-
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === true) || (a_answers.ended === false)) {
-            lvl--;
-            while ((b_answers.value === false) && (lvl >= 0)) {
-                b_answers = this._matchingExpression(b, tested, lvl);
-                lvl--;
+        const b_opts       = { recurse: false, tracked: new Set() };
+        let   a_lvl_answer = false;
+        let   b_answer     = false;
+        if (a_answer === true) {
+            for (const a_lvl of a_opts.tracked) {
+                a_lvl_answer = this._testParentMain(b, tested, a_lvl + 1, b_opts);
+                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
+                    opts.tracked.add(a_lvl);
+                }
+                b_answer ||= a_lvl_answer;
             }
         }
 
-        return {
-            value: a_answers.value && b_answers.value,
-            ended: a_answers.ended // We're only affecting the child module.
-        };
+        return a_answer && b_answer;
     }
 
-    _testTo(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
+    _testAscend(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
 
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === true) || (a_answers.ended === false)) {
-            b_answers = this._matchingExpression(b, tested, lvl + 1);
-        }
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
 
-        return {
-            value: a_answers.value && b_answers.value,
-            ended: b_answers.ended // We're only affecting the child module, but it's to the right of the operator now.
-        };
-    }
-
-    _testToward(a, b, tested, lvl) {
-        const a_answers = this._matchingExpression(a, tested, lvl);
-
-        let b_answers = { value: false, ended: true };
-        if ((a_answers.value === true) || (a_answers.ended === false)) {
-            lvl++;
-            while (((b_answers.value === false) || (b_answers.ended === false)) && (lvl < tested.length)) {
-                b_answers = this._matchingExpression(b, tested, lvl);
-                lvl++;
+        const b_opts       = { recurse: true, tracked: new Set() };
+        let   a_lvl_answer = false;
+        let   b_answer     = false;
+        if (a_answer === true) {
+            for (const a_lvl of a_opts.tracked) {
+                a_lvl_answer = this._testParentMain(b, tested, a_lvl + 1, b_opts);
+                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
+                    opts.tracked.add(a_lvl);
+                }
+                b_answer ||= a_lvl_answer;
             }
         }
 
-        return {
-            value: a_answers.value && b_answers.value,
-            ended: b_answers.ended // We're only affecting the child module, but it's to the right of the operator now.
-        };
+        return a_answer && b_answer;
     }
 
-    _matchingExpression(test, tested, lvl) {
-        let answers;
+    _testChild(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
+
+        const b_opts       = { tracked: new Set() };
+        let   a_lvl_answer = false;
+        let   b_answer     = false;
+        if (a_answer === true) {
+            for (const a_lvl of a_opts.tracked) {
+                a_lvl_answer = this._matchingExpression(b, tested, a_lvl - 1, b_opts);
+                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
+                    opts.tracked.add(a_lvl);
+                }
+                b_answer ||= a_lvl_answer;
+            }
+        }
+
+        return a_answer && b_answer;
+    }
+
+    _testDescend(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
+
+        const b_opts       = { tracked: new Set() };
+        let   a_lvl_answer = false;
+        let   b_answer     = false;
+        if (a_answer === true) {
+            for (let a_lvl of a_opts.tracked) {
+                a_lvl--;
+                while ((a_lvl_answer === false) && (a_lvl >= 0)) {
+                    a_lvl_answer = this._matchingExpression(b, tested, a_lvl, b_opts);
+                    a_lvl--;
+                }
+                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
+                    opts.tracked.add(a_lvl);
+                }
+                b_answer ||= a_lvl_answer;
+            }
+        }
+
+        return a_answer && b_answer;
+    }
+
+    _testTo(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
+
+        let b_answer     = false;
+        if (a_answer === true) {
+            for (const a_lvl of a_opts.tracked) {
+                b_answer ||= this._matchingExpression(b, tested, a_lvl + 1, opts);
+            }
+        }
+
+        return a_answer && b_answer;
+    }
+
+    _testToward(a, b, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
+
+        let a_lvl_answer = false;
+        let b_answer     = false;
+        if (a_answer === true) {
+            for (let a_lvl of a_opts.tracked) {
+                a_lvl++;
+                while ((a_lvl_answer === false) && (a_lvl < tested.length)) {
+                    a_lvl_answer = this._matchingExpression(b, tested, a_lvl, opts);
+                    a_lvl++;
+                }
+                b_answer ||= a_lvl_answer;
+            }
+        }
+
+        return a_answer && b_answer;
+    }
+
+    _matchingExpression(test, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        let answer;
 
         if (common.isEmpty(test)) {
-            answers       = { };
-            answers.value = common.isEmpty(tested);
-            answers.ended = answers.value;
+            answer = common.isEmpty(tested);
         } else if (common.isEmpty(tested) || (lvl < 0) || (lvl >= tested.length)) {
-            answers       = { };
-            answers.value = false;
-            answers.ended = true;
+            answer = false;
         } else if (this._isTag(test)) {
-            answers = this._matchingTag(test, tested, lvl);
+            answer = this._matchingTag(test, tested, lvl, opts);
         } else {
             switch (test.op) {
                 case '!':
-                    answers = this._testNot(test.a, tested, lvl);
+                    answer = this._testNot(test.a, tested, lvl, opts);
                     break;
                 case '&':
-                    answers = this._testAnd(test.a, test.b, tested, lvl);
+                    answer = this._testAnd(test.a, test.b, tested, lvl, opts);
                     break;
                 case '^':
-                    answers = this._testXor(test.a, test.b, tested, lvl);
+                    answer = this._testXor(test.a, test.b, tested, lvl, opts);
                     break;
                 case '|':
-                    answers = this._testOr(test.a, test.b, tested, lvl);
+                    answer = this._testOr(test.a, test.b, tested, lvl, opts);
                     break;
                 case '>':
-                    answers = this._testParent(test.a, test.b, tested, lvl);
+                    answer = this._testParent(test.a, test.b, tested, lvl, opts);
                     break;
                 case '>>':
-                    answers = this._testAscend(test.a, test.b, tested, lvl);
+                    answer = this._testAscend(test.a, test.b, tested, lvl, opts);
                     break;
                 case '<':
-                    answers = this._testChild(test.a, test.b, tested, lvl);
+                    answer = this._testChild(test.a, test.b, tested, lvl, opts);
                     break;
                 case '<<':
-                    answers = this._testDescend(test.a, test.b, tested, lvl);
+                    answer = this._testDescend(test.a, test.b, tested, lvl, opts);
                     break;
                 case '/':
-                    answers = this._testTo(test.a, test.b, tested, lvl);
+                    answer = this._testTo(test.a, test.b, tested, lvl, opts);
                     break;
                 case '//':
-                    answers = this._testToward(test.a, test.b, tested, lvl);
+                    answer = this._testToward(test.a, test.b, tested, lvl, opts);
                     break;
             }
         }
 
-        return answers;
+        return answer;
     }
 
     _uniqueCopy(template) {
@@ -605,9 +655,11 @@ class Composer {
         opts.template = opts.template ?? null;
         opts.greedy   = opts.greedy   ?? false;
 
-        const answers = this._matchingExpression(test, this._getContext(), 0);
+        const context = this._getContext();
 
-        let   matched      = answers.value && answers.ended;
+        const answer = this._matchingExpression(test, context, 0);
+
+        let   matched      = answer;
         const matched_this = matched;
         if (((max_depth === null) || (depth < max_depth)) && (!opts.greedy || !matched)) {
             const target = this._target.peek();
@@ -634,10 +686,88 @@ class Composer {
         return matched;
     }
 
+    _createExpressionPositionHelpersRecursive(test, end = null) {
+        const token = new Token('o', test.op);
+
+        if (end === null) {
+            if (token.isNestedOpContextToken()) {
+                let evaluated = 'a';
+                let affected  = 'b';
+                if (token.isNonTransitiveNestedOpContextToken()) {
+                    evaluated = 'b';
+                    affected  = 'a';
+                }
+    
+                if (common.isDictionary(test[evaluated])) {
+                    this._createExpressionPositionHelpersRecursive(test[evaluated], false);
+                } else {
+                    test[evaluated] = { val: test[evaluated], end: false };
+                }
+
+                if (common.isDictionary(test[affected])) {
+                    this._createExpressionPositionHelpersRecursive(test[affected], null);
+                } else {
+                    test[affected] = { val: test[affected], end: true };
+                }
+            } else {
+                if (common.isDictionary(test.a)) {
+                    this._createExpressionPositionHelpersRecursive(test.a, null);
+                } else {
+                    test.a = { val: test.a, end: true };
+                }
+
+                if (!token.isUnaryOpContextToken()) {
+                    if (common.isDictionary(test.b)) {
+                        this._createExpressionPositionHelpersRecursive(test.b, null);
+                    } else {
+                        test.b = { val: test.b, end: true };
+                    }
+                }
+            }
+        } else {
+            if (common.isDictionary(test.a)) {
+                this._createExpressionPositionHelpersRecursive(test.a, end);
+            } else {
+                test.a = { val: test.a, end: end };
+            }
+            
+            if (!token.isUnaryOpContextToken()) {
+                if (common.isDictionary(test.b)) {
+                    this._createExpressionPositionHelpersRecursive(test.b, end);
+                } else {
+                    test.b = { val: test.b, end: end };
+                }
+            }
+        }
+    }
+
+    /**
+     * Adding "position helpers" to the expression's terminals is to determine which sub-expressions are "intermediate" (like a in "a/b") of "final" (like b in "a/b").
+     * We want to verify, in addition to if an expression matches, that the expression also reaches the last element of the current module's context.
+     * If whether it reaches the last element or not isn't verified, then the expression becomes true not only for the module, but also all of its sub-modules.
+     * We want "a/b" to change "a/b", but not "a/b/c" as well, even though "a/b" is all true for the first part of "a/b/c"'s context.
+     * That's also because it may be that we're testing the expression against a module with the context "a/b/c", and not "a/b".
+     * Fortunately, it's easy from the expression to determine if a terminal is final or not, based on it containing sub-expressions with transitive operators.
+     * It can be made a requirement specifically that "final" terminals are evaluated at a last level of the context being evaluated, and not before or after.
+     */
+    _createExpressionPositionHelpers(test) {
+        if (!common.isDictionary(test)) {
+            return { val: test, end: true };
+        }
+
+        if (!common.isEmpty(test)) {
+            this._createExpressionPositionHelpersRecursive(test, null);
+        }
+
+        return test;
+    }
+
     _parseStatement() {
         const context    = this._astree.enterGetAndLeave('context');
-        const expression = context ? context.expression : [ ];
+        let   expression = context ? context.expression : { };
         const greedy     = context ? context.greedy ?? false : false;
+
+        expression = this._createExpressionPositionHelpers(expression);
 
         const command = this._astree.enterGetAndLeave('operation');
 
@@ -646,7 +776,9 @@ class Composer {
             template = this._createModule();
         }
 
-        this._traverseModule(expression, command, 0, this._getMaximumDepth(expression), { template: template, greedy: greedy });
+        const max_depth = this._getMaximumDepth(expression);
+
+        this._traverseModule(expression, command, 0, max_depth, { template: template, greedy: greedy });
     }
 
     _parse() {

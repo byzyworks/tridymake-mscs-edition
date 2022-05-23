@@ -40,3 +40,4 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed a bug where the database would attempt to check the tags of a primitive raw input module.
 * Fixed a bug where the database would fail to catch errors when attempting `@new` against a root module already changed to a primitive type using `@set` with raw input.
 * Fixed a bug where (in particular) empty strings entered as module raw input would be converted to map objects.
+* Fixed a series of bugs affecting how expressions with more than one branch coming out at different levels would evaluate when combined using operators such as `@or`.

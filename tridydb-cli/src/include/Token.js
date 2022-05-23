@@ -70,6 +70,13 @@ export class Token {
         ;
     }
 
+    isNestedOpContextToken() {
+        return false ||
+            this.isNonTransitiveNestedOpContextToken() ||
+            this.isTransitiveNestedOpContextToken()
+        ;
+    }
+
     isBinaryOpContextToken() {
         return false ||
             this.isBasicBinaryOpContextToken() ||

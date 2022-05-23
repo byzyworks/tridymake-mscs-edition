@@ -1,0 +1,19 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as e of-a;
+
+@new @as a ignored;
+
+@in a ignored @new @as b;
+
+@new @as c;
+
+@in c @new @as d;
+
+@in c/d @new @as e of-c-to-d;
+
+@in c @new @as d ignored;
+
+@get (a|(c/d))>e;
