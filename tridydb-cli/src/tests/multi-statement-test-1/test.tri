@@ -1,0 +1,16 @@
+@tridy;
+
+@new @as a;
+
+@in a {
+	@new @as b
+	@has {
+		@new @as c;
+	};
+	
+	@in b {
+		@new @as d;
+	};
+};
+
+@get;

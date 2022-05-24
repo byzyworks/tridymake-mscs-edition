@@ -569,81 +569,95 @@ class SyntaxParser {
                 context_defined = true;
             }
 
-            const operation_token = this._tokens.peek();
+            if (this._tokens.peek().is('punc', '{')) {
+                this._astree.enterSetAndLeave('operation', 'multi');
+                
+                this._tokens.next();
+                this._astree.enterPos('definition');
+                this._astree.enterNested();
+                while (!this._tokens.peek().is('punc', '}')) {
+                    this._handleStatement();
+                }
+                this._astree.leaveNested();
+                this._astree.leavePos();
+                this._tokens.next();
+            } else {
+                const operation_token = this._tokens.peek();
             
-            if (operation_token.isDefiningOpToken()) {
-                this._handleOperation();
-
-                switch (this._astree.getTopPos()) {
-                    case 'raw':
-                        this._handleRawDefinition();
-                        break;
-                    case 'definition':
-                        this._handleDefinition();
-                        break;
-                }
-            } else if (operation_token.isAffectingOpToken()) {
-                this._handleOperation();
-
-                if (!context_defined) {
-                    current = this._tokens.peek();
-                    if (current.isContextToken()) {
-                        this._handleContext();
-                        context_defined = true;
-                    }
-                }
-
-                if (operation_token.isReadOpToken()) {
-                    current = this._tokens.peek();
-                    if (current.is('key', 'raw')) {
-                        this._astree.enterSetAndLeave(['compression'], 0);
-                        
-                        this._tokens.next();
-                    } else if (current.is('key', 'typeless')) {
-                        this._astree.enterSetAndLeave(['compression'], 1);
-
-                        this._tokens.next();
-                    } else if (current.is('key', 'tagless')) {
-                        this._astree.enterSetAndLeave(['compression'], 2);
-
-                        this._tokens.next();
-                    } else if (current.is('key', 'trimmed')) {
-                        this._astree.enterSetAndLeave(['compression'], 3);
-
-                        this._tokens.next();
-                    } else if (current.is('key', 'merged')) {
-                        this._astree.enterSetAndLeave(['compression'], 4);
-
-                        this._tokens.next();
-                    } else if (current.is('key', 'final')) {
-                        this._astree.enterSetAndLeave(['compression'], 5);
-
-                        this._tokens.next();
-                    }
-                }
-            } else if (operation_token.isGeneralEditingOpToken()) {
-                this._handleOperation();
-
-                this._handleEditDefinition();
-            } else if (operation_token.isTagEditingOpToken()) {
-                this._handleOperation();
-
-                if (this._tokens.peek().is('key', 'none')) {
-                    this._tokens.next();
-                } else {
-                    this._handleTagsDefinition({ require: false });
-                }
-            }
+                if (operation_token.isDefiningOpToken()) {
+                    this._handleOperation();
     
-            current = this._tokens.peek();
-            if (current.is('key', 'once')) {
-                this._astree.enterSetAndLeave(['context', 'greedy'], true);
-
-                this._tokens.next();
-            } else if (current.is('key', 'many')) {
-                this._astree.enterSetAndLeave(['context', 'greedy'], false);
-
-                this._tokens.next();
+                    switch (this._astree.getTopPos()) {
+                        case 'raw':
+                            this._handleRawDefinition();
+                            break;
+                        case 'definition':
+                            this._handleDefinition();
+                            break;
+                    }
+                } else if (operation_token.isAffectingOpToken()) {
+                    this._handleOperation();
+    
+                    if (!context_defined) {
+                        current = this._tokens.peek();
+                        if (current.isContextToken()) {
+                            this._handleContext();
+                            context_defined = true;
+                        }
+                    }
+    
+                    if (operation_token.isReadOpToken()) {
+                        current = this._tokens.peek();
+                        if (current.is('key', 'raw')) {
+                            this._astree.enterSetAndLeave(['compression'], 0);
+                            
+                            this._tokens.next();
+                        } else if (current.is('key', 'typeless')) {
+                            this._astree.enterSetAndLeave(['compression'], 1);
+    
+                            this._tokens.next();
+                        } else if (current.is('key', 'tagless')) {
+                            this._astree.enterSetAndLeave(['compression'], 2);
+    
+                            this._tokens.next();
+                        } else if (current.is('key', 'trimmed')) {
+                            this._astree.enterSetAndLeave(['compression'], 3);
+    
+                            this._tokens.next();
+                        } else if (current.is('key', 'merged')) {
+                            this._astree.enterSetAndLeave(['compression'], 4);
+    
+                            this._tokens.next();
+                        } else if (current.is('key', 'final')) {
+                            this._astree.enterSetAndLeave(['compression'], 5);
+    
+                            this._tokens.next();
+                        }
+                    }
+                } else if (operation_token.isGeneralEditingOpToken()) {
+                    this._handleOperation();
+    
+                    this._handleEditDefinition();
+                } else if (operation_token.isTagEditingOpToken()) {
+                    this._handleOperation();
+    
+                    if (this._tokens.peek().is('key', 'none')) {
+                        this._tokens.next();
+                    } else {
+                        this._handleTagsDefinition({ require: false });
+                    }
+                }
+        
+                current = this._tokens.peek();
+                if (current.is('key', 'once')) {
+                    this._astree.enterSetAndLeave(['context', 'greedy'], true);
+    
+                    this._tokens.next();
+                } else if (current.is('key', 'many')) {
+                    this._astree.enterSetAndLeave(['context', 'greedy'], false);
+    
+                    this._tokens.next();
+                }
             }
         }
 

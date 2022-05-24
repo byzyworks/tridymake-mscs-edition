@@ -1,0 +1,7 @@
+@tridy;
+
+@new @as @none @has {
+    @del;
+};
+
+@get;

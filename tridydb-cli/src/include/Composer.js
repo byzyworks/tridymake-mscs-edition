@@ -14,8 +14,10 @@ class Composer {
         this._target = new Stack();
     }
     
-    _createModule() {
-        const module = new StateTree(null, common.global.alias);
+    _createModule(module = null) {
+        if (module === null) {
+            module = new StateTree(module, common.global.alias);
+        }
 
         this._astree.enterPos('raw');
         if (!this._astree.isPosUndefined()) {
@@ -28,23 +30,29 @@ class Composer {
             // The order of assignment below affects the final output.
             // Don't switch it up unless you're prepared to change the expected test case outputs, too.
 
-            module.enterPos(common.global.alias.type);
             this._astree.enterPos(common.global.defaults.alias.type);
-            this._astree.copyPosValue(module);
+            if (!this._astree.isPosUndefined()) {
+                module.enterPos(common.global.alias.type);
+                this._astree.copyPosValue(module);
+                module.leavePos();
+            }
             this._astree.leavePos();
-            module.leavePos();
 
-            module.enterPos(common.global.alias.tags);
             this._astree.enterPos(common.global.defaults.alias.tags);
-            this._astree.copyPosValue(module);
+            if (!this._astree.isPosUndefined()) {
+                module.enterPos(common.global.alias.tags);
+                this._astree.copyPosValue(module);
+                module.leavePos();
+            }
             this._astree.leavePos();
-            module.leavePos();
 
-            module.enterPos(common.global.alias.state);
             this._astree.enterPos(common.global.defaults.alias.state);
-            this._astree.copyPosValue(module);
+            if (!this._astree.isPosUndefined()) {
+                module.enterPos(common.global.alias.state);
+                this._astree.copyPosValue(module);
+                module.leavePos();
+            }
             this._astree.leavePos();
-            module.leavePos();
 
             this._astree.enterPos(common.global.defaults.alias.nested);
             if (!this._astree.isPosEmpty()) {
@@ -581,6 +589,16 @@ class Composer {
         target.leavePos();
     }
 
+    _multiModule() {
+        let target = this._target.peek();
+
+        let template;
+        template = new StateTree(target.getPosValue(), common.global.alias);
+        template = this._createModule(template);
+
+        target.setPosValue(template);
+    }
+
     _operateModule(command, opts = { }) {
         opts.template = opts.template ?? null;
         if (opts.template !== null) {
@@ -608,6 +626,9 @@ class Composer {
                 break;
             case 'untag':
                 this._untagModule(opts.template);
+                break;
+            case 'multi':
+                this._multiModule();
                 break;
         }
     }
@@ -767,13 +788,20 @@ class Composer {
         let   expression = context ? context.expression : { };
         const greedy     = context ? context.greedy ?? false : false;
 
-        expression = this._createExpressionPositionHelpers(expression);
+        if (!common.isEmpty(expression)) {
+            expression = this._createExpressionPositionHelpers(expression);
+        }
 
         const command = this._astree.enterGetAndLeave('operation');
 
         let template = null;
-        if (command !== 'print') {
-            template = this._createModule();
+        switch (command) {
+            case 'print':
+            case 'delete':
+            case 'multi':
+                break;
+            default:
+                template = this._createModule();
         }
 
         const max_depth = this._getMaximumDepth(expression);

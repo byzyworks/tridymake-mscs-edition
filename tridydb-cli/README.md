@@ -58,25 +58,26 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 9.  [@put](#syntax-put)
                 10. [@tag](#syntax-tag)
                 11. [@untag](#syntax-untag)
-                12. [Explicit @of](#syntax-of)
-                13. [Explicit @as](#syntax-as)
-                14. [Implicit @of/@as](#syntax-implicit)
-                15. [@uuid](#syntax-uuid)
-                16. [@is](#syntax-is)
-                17. [Strings](#syntax-string)
-                18. [@json](#syntax-json)
-                19. [@yaml](#syntax-yaml)
-                20. [@end](#syntax-end)
-                21. [@has](#syntax-has)
-                22. [@none](#syntax-none)
-                23. [@once](#syntax-once)
-                24. [@many](#syntax-many)
-                25. [@raw](#syntax-raw)
-                26. [@typeless](#syntax-typeless)
-                27. [@tagless](#syntax-tagless)
-                28. [@trimmed](#syntax-trimmed)
-                29. [@merged](#syntax-merged)
-                30. [@final](#syntax-final)
+                12. [Multi-Statements](#syntax-multi)
+                13. [Explicit @of](#syntax-of)
+                14. [Explicit @as](#syntax-as)
+                15. [Implicit @of/@as](#syntax-implicit)
+                16. [@uuid](#syntax-uuid)
+                17. [@is](#syntax-is)
+                18. [Strings](#syntax-string)
+                19. [@json](#syntax-json)
+                20. [@yaml](#syntax-yaml)
+                21. [@end](#syntax-end)
+                22. [@has](#syntax-has)
+                23. [@none](#syntax-none)
+                24. [@once](#syntax-once)
+                25. [@many](#syntax-many)
+                26. [@raw](#syntax-raw)
+                27. [@typeless](#syntax-typeless)
+                28. [@tagless](#syntax-tagless)
+                29. [@trimmed](#syntax-trimmed)
+                30. [@merged](#syntax-merged)
+                31. [@final](#syntax-final)
             3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
@@ -1620,6 +1621,14 @@ The difference it has with using `@set` or `@put` to do the same is that this is
 Any tags not named with `@untag` are retained, while duplicate tags, if they exist in the module (only a possibility with raw input), would be removed as many times as they appear in the module. Non-existant tags named for removal are ignored.
 
 `@none` may be used in place of any arguments, though while having no effect over simply ommitting any tags.
+
+<br>
+
+<div id="syntax-multi"/>
+
+### **Operation: Multi-Statements**
+
+WIP
 
 <br>
 

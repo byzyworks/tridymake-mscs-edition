@@ -49,10 +49,17 @@ class StatementParser {
             pool.push(token);
         }
 
+        this._last_depth = 0;
+        this._last_ended = false;
+
         let stmt_cutoff = null;
         for (idx = 0; idx < pool.length; idx++) {
-            // Nested Tridy statements have to be executed with their parent statements, so the statement isn't complete until the root statement is reached again.
-            // That's why the brackets are checked for in addition to the semicolons.
+            /**
+             * Nested Tridy statements have to be executed with their parent statements, so the statement isn't complete until the root statement is reached again.
+             * That's why the brackets are checked for in addition to the semicolons.
+             * Also, start at 0 instead of this._carry.length, as there may be complete statements inside the carry that need to be run first.
+             * This parser only goes one statement at a time, and one input might have many.
+             */
             if (pool[idx].is('punc', '{')) {
                 this._last_depth++;
             } else if (pool[idx].is('punc', '}')) {

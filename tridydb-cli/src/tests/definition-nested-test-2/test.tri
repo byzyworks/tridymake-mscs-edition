@@ -1,0 +1,7 @@
+@tridy;
+
+@new @as @none @has {
+    @set @as a;
+};
+
+@get;

@@ -1,0 +1,9 @@
+@tridy;
+
+@new @as a;
+
+@in a {
+	@set @as b;
+};
+
+@get;
