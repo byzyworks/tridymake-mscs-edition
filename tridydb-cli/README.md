@@ -1628,7 +1628,45 @@ Any tags not named with `@untag` are retained, while duplicate tags, if they exi
 
 ### **Operation: Multi-Statements**
 
-WIP
+As a method to minimize restating common sub-contexts over and over again inside of context expressions shared by multiple statements, brackets can be used to tie multiple operations to a single context expression, whereby statements inside of the brackets will treat modules that match the outside expression as their root module. Since what's inside the brackets is yet more Tridy statements nested recursively, they can include their own localized context expressions or be multi-statements themselves, so long as the first statement follows an opening bracket (`{`) and a closing bracket (`}`) follows the last nested statement per degree of nesting.
+
+As an important aspect of multi-statements, the nested Tridy statements provided inside the brackets are created *prior* to the modules being placed in the database. What this means, inevitably, is that statements provided through multi-statements exhibit a unique property whereby they are **context-locked**, meaning that context expressions inside of these nested statements have no view of the database outside the matched modules until the full, unnested statement has already been executed, and yet, nested statements are executed prior to their parent statement being executed. Thus, context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation).
+
+The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as a root. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without be able to access the wider database.
+
+```
+# Before
+@new @as a;
+
+# After
+@in a {
+    @new @as b;
+
+    @in b {
+        @new @as c;
+    };
+};
+```
+
+```diff
+{
+    "tree": [
+        {
+            "tags": ["a"],
+            "tree": [
++               {
++                   "tags": ["b"],
++                   "tree": [
++                       {
++                           "tags": ["c"]
++                       }
++                   ]
++               }
+            ]
+        }
+    ]
+}
+```
 
 <br>
 
@@ -2534,29 +2572,34 @@ The syntax rules are detailed below using Microsoft's command line syntax:
     |
         [@in <context expression>]
         {
-            {@new | @set}
             {
+                {@new | @set}
                 {
-                    [{<tags> | @none}]
+                    {
+                        [{<tags> | @none}]
+                    |
+                        [@tridy]
+                        [@of {'<type identifier string>' | "<type identifier string>" | @none}]
+                        [@as {<tags> | @none}]
+                    }
+                    [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
+                    [@has {\{ <tridy statements> \} | @none}]
                 |
-                    [@tridy]
-                    [@of {'<type identifier string>' | "<type identifier string>" | @none}]
-                    [@as {<tags> | @none}]
+                    {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}
                 }
+            |
+                @put
+                [@of {'<type identifier string>' | "<type identifier string>" | @none}]
+                [@as {<tags> | @none}]
                 [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
                 [@has {\{ <tridy statements> \} | @none}]
             |
-                {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}
+                {@tag | @untag} [{<tags> | @none}]
             }
         |
-            @put
-            [@of {'<type identifier string>' | "<type identifier string>" | @none}]
-            [@as {<tags> | @none}]
-            [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
-            [@has {\{ <tridy statements> \} | @none}]
-        |
-            {@tag | @untag} [{<tags> | @none}]
+            \{ <tridy statements> \}
         }
+        
     }
     [{@once | @many}]
 |
@@ -3071,7 +3114,7 @@ The context of a module is a module's tagset, along with the tagset of all its a
 A boolean-style expression that, when placed inside of a Tridy statement, uses context terminals and operators to determine whether a module should be affected or not by a statement, i.e. by evaluating the expression against the module's context.
 
 ### **Context-Locking**
-A property specific to the `@has` definition clause whereby a statement nested under another statement via. this clause is prevented from having access outside the module created by the statement it is nested under, since it is seen by the nested statement as the root module.
+A property specific to both multi-statements and the `@has` definition clause whereby a statement nested under another statement via. either means is prevented from having access outside the context of the statement it is nested under, since it is seen by the nested statement as the root module.
 
 ### **Context Operand**
 A context terminal or sub-expression.
@@ -3114,6 +3157,9 @@ A manner of running or using the TridyDB application that affects its general be
 
 ### **Module**
 A self-contained unit of information that is individually-addressable by the Tridy composer, and organized in Tridy's particular format consisting of three sections: a tagset, a free data structure, and a tree data structure.
+
+### **Multi-Statement**
+A special type of Tridy statement where a common context expression is shared as though it were the root module, among which one or more nested statements surrounded by brackets are executed relative to.
 
 ### **Operation Clause**
 A clause which determines the type of action taken by a Tridy statement towards a module when that module is identified with a context matching a particular context expression.

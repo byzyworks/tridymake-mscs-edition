@@ -1,0 +1,5 @@
+@tridy;
+
+@new @as a;
+
+@in a { new @as machine @has @new @as machine;;
