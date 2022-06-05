@@ -1,8 +1,8 @@
 import express from 'express';
 
-import { routes }                               from './routes/index.js';
-import { error_handler, ServerSideServerError } from './utility/error.js';
-import { logger, httpLogger }                   from './utility/logger.js';
+import { routes }             from './routes/index.js';
+import { error_handler }      from './utility/error.js';
+import { logger, httpLogger } from './utility/logger.js';
 
 export const server = async (opts = { }) => {
     const app = express();
@@ -22,14 +22,14 @@ export const server = async (opts = { }) => {
     });
     
     if (opts.ipv6Only !== true) {
-        let address = opts.localhost ? '127.0.0.1' : '0.0.0.0';
+        const address = opts.localhost ? '127.0.0.1' : '0.0.0.0';
         app.listen(opts.serverPort, address, () => {
             logger.info(`Server started listening on ${address}:${opts.serverPort}.`);
         });
     }
 
     if (opts.ipv4Only !== true) {
-        let address = opts.localhost ? '::1' : '::';
+        const address = opts.localhost ? '::1' : '::';
         app.listen(opts.serverPort, address, () => {
             logger.info(`Server started listening on ${address}:${opts.serverPort}.`);
         });

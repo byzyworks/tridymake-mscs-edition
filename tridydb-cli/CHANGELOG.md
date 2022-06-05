@@ -43,3 +43,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed a bug where (in particular) empty strings entered as module raw input would be converted to map objects.
 * Fixed a series of bugs affecting how expressions with more than one branch coming out at different levels would evaluate when combined using operators such as `@or`.
 * Fixed a bug where incomplete statements containing brackets wouldn't be carried correctly.
+
+## Version 1.2.0
+
+* Improved TridyDB's flexibility when used as an NPM package; Tridy is now exported as a class as opposed to a singleton, so multiple Tridy instances are possible now.

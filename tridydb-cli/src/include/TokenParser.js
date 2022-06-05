@@ -1,13 +1,13 @@
-import { parser as charParser } from './CharParser.js';
-import { Token }                from './Token.js';
+import { CharParser } from './CharParser.js';
+import { Token }      from './Token.js';
 
 import { isEmpty }     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
 
-class TokenParser {
+export class TokenParser {
     constructor() {
-        this._parser = charParser;
+        this._parser = new CharParser();
 
         this._mode    = new Stack();
         this._current = null;
@@ -25,7 +25,7 @@ class TokenParser {
     }
 
     next() {
-        const token  = this._current;
+        const token   = this._current;
         this._current = null;
 
         return token || this._readNext();
@@ -342,5 +342,3 @@ class TokenParser {
         return { line: this._parser.getLine(), col: this._parser.getCol() };
     }
 }
-
-export const parser = new TokenParser();

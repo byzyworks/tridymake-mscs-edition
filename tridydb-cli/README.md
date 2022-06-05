@@ -2635,35 +2635,49 @@ The easiest method of using TridyDB, and the most preferrable if the application
 So long as the package is installed into one's own inside `node_modules`, here is how one can import and use TridyDB in their own project.
 
 ```javascript
-import { tridy } from 'tridydb-cli';
+import { Tridy } from 'tridydb-cli';
 
-const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
+const db1 = new Tridy();
+const db2 = new Tridy();
 
-tridy.query(input);
+const input = '@set @as @none @is @json { "foo": "bar" } @end;';
+
+db1.query(input);
+
+db1.query('@get;');
 // Returns [{"free":{"foo":"bar"}}] as an object.
+
+db2.query('@get;');
+// Returns [{}] as an object.
 ```
 
-As can be seen, the `tridy.query(...)` method is the entry point to working with the package. The first argument can be sent as any string of valid Tridy code. Meanwhile, the second argument is where the user can specify options according to their needs.
+As can be seen, the user imports a class, and each new instance of this class represents a different database altogether. 
 
-Another method, `tridy.stringify(...)`, can be used to convert the output of `tridy.query(...)` to a string. Notably, NodeJS's native `JSON.stringify(...)` can be used in place of it, and in fact, `tridy.stringify(...)` uses this method internally. However, using `JSON.stringify(...)` directly means potentially extra work to account for backslashes when `tridy.stringify(...)`, along with its reverse `tridy.objectify(...)`, were created as convenience methods to avoid this.
+As can be seen, the `Tridy.query(...)` method is the entry point to working with the package. The first argument can be sent as any string of valid Tridy code. Meanwhile, the second argument is where the user can specify options according to their needs.
+
+Another method called `Tridy.stringify(...)` can be used to convert the output of `Tridy.query(...)` to a string. Notably, NodeJS's native `JSON.stringify(...)` can be used in place of it, and in fact, `Tridy.stringify(...)` uses this method internally. However, using `JSON.stringify(...)` directly means potentially extra work to account for backslashes when `Tridy.stringify(...)`, along with its reverse `Tridy.objectify(...)`, were created as convenience methods to avoid this.
 
 ```javascript
-import { tridy } from 'tridydb-cli';
+import { Tridy } from 'tridydb-cli';
+
+const db = new Tridy();
 
 const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
 
-tridy.stringify(tridy.query(input));
+Tridy.stringify(db.query(input));
 // Returns [{"free":{"foo":"bar"}}] as a string.
 ```
 
-`tridy.stringify(...)` has one option named `pretty`. This will present the output in a way that's indented / more human-readable, though which is hard-coded to 4 spaces per indent.
+`Tridy.stringify(...)` has one option named `pretty`. This will present the output in a way that's indented / more human-readable, though which is hard-coded to 4 spaces per indent.
 
 ```javascript
-import { tridy } from 'tridydb-cli';
+import { Tridy } from 'tridydb-cli';
+
+const db = new Tridy();
 
 const input = '@set @as @none @is @json { "foo": "bar" } @end; @get;';
 
-tridy.stringify(tridy.query(input), { pretty: true });
+Tridy.stringify(db.query(input), { pretty: true });
 // [
 //     {
 //         "free": {
@@ -2673,25 +2687,27 @@ tridy.stringify(tridy.query(input), { pretty: true });
 // ]
 ```
 
-An important point about using `tridy.query(...)` in general is that it is a *stateful* method. Therefore, where two or more calls to the method are issued in a sequence, the input of later calls will use the output of previous calls implicitly. Thus, *under some circumstances*, statements are factorable into multiple calls while having the same results. In other words, the state of the database after `tridy.query('@get; @del;');` is the same as after `tridy.query('@get;'); tridy.query('@del;');`. However, just as it would matter elsewhere, Tridy commands are not commutative, and `tridy.query('@get; @del;');` will have different results from `tridy.query('@del; @get;');`.
+An important point about using `Tridy.query(...)` in general is that it is a *stateful* method. Therefore, where two or more calls to the method are issued in a sequence, the input of later calls will use the output of previous calls implicitly. Thus, *under some circumstances*, statements are factorable into multiple calls while having the same results. In other words, the state of the database after `Tridy.query('@get; @del;');` is the same as after `Tridy.query('@get;'); Tridy.query('@del;');`. However, just as it would matter elsewhere, Tridy commands are not commutative, and `Tridy.query('@get; @del;');` will have different results from `Tridy.query('@del; @get;');`.
 
-Another available option to control the stateful of Tridy is `accept_carry`. If `accept_carry` is enabled, then statements can be provided to `tridy.query()` in an incomplete form that is measured token-by-token rather than statement-by-statement.
+Another available option to control the stateful of Tridy is `accept_carry`. If `accept_carry` is enabled, then statements can be provided to `Tridy.query()` in an incomplete form that is measured token-by-token rather than statement-by-statement.
 
 ```javascript
-import { tridy } from 'tridydb-cli';
+import { Tridy } from 'tridydb-cli';
+
+const db = new Tridy();
 
 const input1 = '@set @as @none @is @json';
 const input2 = '{ "foo": "bar" }';
 const input3 = '@end;';
 const input4 = '@get;';
 
-tridy.query(input1, { accept_carry: false });
+db.query(input1, { accept_carry: false });
 // Throws an error since input1 is an incomplete statement.
 
-tridy.query(input1, { accept_carry: true });
-tridy.query(input2, { accept_carry: true });
-tridy.query(input3, { accept_carry: true });
-tridy.query(input4, { accept_carry: true });
+db.query(input1, { accept_carry: true });
+db.query(input2, { accept_carry: true });
+db.query(input3, { accept_carry: true });
+db.query(input4, { accept_carry: true });
 // Returns [{"free":{"foo":"bar"}}].
 ```
 
@@ -2703,23 +2719,25 @@ const input2 = 'json { "foo": "bar" }';
 const input3 = '@e';
 const input4 = 'nd; @get;';
 
-tridy.query(input1);
+db.query(input1);
 ```
 
 ... would still throw errors regardless.
 
-It should be pointed out, however, that even though using TridyDB like this is *stateful*, it is not, at the same time, *persistent*. Whenever Tridy is used as a package, the first call to `tridy.query(...)` is always one that is working with a fresh object/root module, or in other words, one that is totally empty. Generally speaking, TridyDB as a package is not meant to directly deal with persistent data; instead, the application should be built to handle that on its own, or should alternatively try to interface with TridyDB using one of the available methods more suited to work with persistent data. As detailed below, Tridy provides a separate CLI application/client and HTTP server, which both allow TridyDB to work independently as a separate process, and handle persistence to varying degrees.
+It should be pointed out, however, that even though using TridyDB like this is *stateful*, it is not, at the same time, *persistent*. Whenever Tridy is used as a package, the first call to `Tridy.query(...)` is always one that is working with a fresh object/root module, or in other words, one that is totally empty. Generally speaking, TridyDB as a package is not meant to directly deal with persistent data; instead, the application should be built to handle that on its own, or should alternatively try to interface with TridyDB using one of the available methods more suited to work with persistent data. As detailed below, Tridy provides a separate CLI application/client and HTTP server, which both allow TridyDB to work independently as a separate process, and handle persistence to varying degrees.
 
-Speaking of this, if `tridy.query(...)` should attempt to contact a server for data storage and retrieval, it also has options for that. `host` controls the hostname to connect to (which is localhost by default), `port` controls the port number to connect to (21780 by default), and `timeout` controls the number of milliseconds to wait for the host to respond back when a request is sent to it (before assuming a 404). The default for this is 3 seconds. Last, `client_mode` controls whether to enable this network-based paradigm at all or not. If `client_mode` *isn't* enabled (as it is by default), then everything will be processed within the one method call, without trying to contact a server to perform the last step of executing and storing the results of the statements. More information surrounding client mode can be found [here](#cli-common-client).
+Speaking of this, if `Tridy.query(...)` should attempt to contact a server for data storage and retrieval, it also has options for that. `host` controls the hostname to connect to (which is localhost by default), `port` controls the port number to connect to (21780 by default), and `timeout` controls the number of milliseconds to wait for the host to respond back when a request is sent to it (before assuming a 404). The default for this is 3 seconds. Last, `client_mode` controls whether to enable this network-based paradigm at all or not. If `client_mode` *isn't* enabled (as it is by default), then everything will be processed within the one method call, without trying to contact a server to perform the last step of executing and storing the results of the statements. More information surrounding client mode can be found [here](#cli-common-client).
 
-Finally, `tridy.query(...)` has options to alias the keys associated to the various data structures that Tridy uses, which is as well provided with the independent program versions.
+Finally, `Tridy.query(...)` has options to alias the keys associated to the various data structures that Tridy uses, which is as well provided with the independent program versions.
 
 ```javascript
-import { tridy } from 'tridydb-cli';
+import { Tridy } from 'tridydb-cli';
+
+const db = new Tridy();
 
 const input = '@set @as tag @is @json { "key": "value" } @end; @get;';
 
-tridy.query(input1, { tags_key: foo, free_key: bar } });
+db.query(input, { tags_key: foo, free_key: bar } });
 // Returns [{"foo":["tag"],"bar":{"key":"value"}}].
 ```
 
@@ -2739,7 +2757,7 @@ This isn't totally sufficient, however, as there are multiple sub-variants that 
 
 ### **Inline Mode**
 
-Inline mode is arguably the simplest, and the one that is most similar to using `tridy.query(...)` directly, since it acts in many ways the same as this when paired with an `exec(...)` call (language-agnostic), but of course, as something that is allocated to a separate process, unlike when being used as a package.
+Inline mode is arguably the simplest, and the one that is most similar to using `Tridy.query(...)` directly, since it acts in many ways the same as this when paired with an `exec(...)` call (language-agnostic), but of course, as something that is allocated to a separate process, unlike when being used as a package.
 
 Inline mode relies on and even requires the user to call either `--command` or `--file` (but not both) as arguments to the program when it is started, since it would have no other means of grabbing input. Of course, both `--command` and `--file` require inputs of their own, as either Tridy code passed in the form of a string, or inside of script files whose pathnames are given variadically to `--file`. More details about this specifically can be found under "**Common Options**" below.
 

@@ -1,15 +1,14 @@
 import uuid from 'uuid-random';
 
-import { compressor } from './Compressor.js';
+import { Compressor } from './Compressor.js';
 import { StateTree }  from './StateTree.js';
+import { Token }      from './Token.js';
 
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
-import { Token } from './Token.js';
-import { token } from 'morgan';
 
-class Composer {
+export class Composer {
     constructor() {
         this._target = new Stack();
     }
@@ -460,7 +459,7 @@ class Composer {
     _printModule() {
         const target = this._target.peek();
 
-        const copy = compressor.compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
+        const copy = (new Compressor()).compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
         if (copy === undefined) {
             return;
         }
@@ -837,5 +836,3 @@ class Composer {
         return this._output;
     }
 }
-
-export const composer = new Composer();

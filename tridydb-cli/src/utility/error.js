@@ -1,7 +1,5 @@
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
-import { parser as tokenizer } from '../include/StatementParser.js';
-
 import { isNullish } from './common.js';
 import { logger }    from './logger.js';
 
@@ -13,8 +11,6 @@ export class SyntaxError extends Error {
         Object.setPrototypeOf(this, new.target.prototype);
 
         Error.captureStackTrace(this);
-
-        tokenizer.clear();
     }
 }
 

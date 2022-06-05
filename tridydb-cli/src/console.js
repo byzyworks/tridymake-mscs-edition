@@ -2,20 +2,21 @@ import * as readline from 'readline/promises';
 
 import chalk from 'chalk';
 
-import { tridy }               from './include/Interpreter.js';
-import { parser as tokenizer } from './include/StatementParser.js';
+import { Tridy } from './include/Interpreter.js';
 
 import { global, isEmpty }                                   from './utility/common.js';
 import { error_handler, SyntaxError, ClientSideServerError } from './utility/error.js';
+
+import { db } from './database.js';
 
 const getPrompt = () => {
     let prompt = '@TridyDB';
     if (global.remote.enable) {
         prompt += ' @' + global.remote.host;
     }
-    prompt += '>'
+    prompt += '>';
     
-    if (!tokenizer.isCarryEmpty() && !tokenizer.isStatementComplete()) {
+    if (db.isCarrying()) {
         prompt = '.'.repeat(prompt.length);
     }
 
@@ -32,7 +33,7 @@ export const cli = async (opts = { }) => {
     });
 
     rl.on("SIGINT", () => {
-        tokenizer.clear()
+        db.clearCarry();
         rl.setPrompt(getPrompt());
 
         rl.write(chalk.red("^C"));
@@ -48,9 +49,11 @@ export const cli = async (opts = { }) => {
         let out;
         let retry = false;
         try {
-            out = await tridy.query(answers, { accept_carry: true });
+            out = await db.query(answers, { accept_carry: true });
         } catch (err) {
-            if (!(err instanceof SyntaxError) && !(err instanceof ClientSideServerError)) {
+            if (err instanceof SyntaxError) {
+                db.clearCarry();
+            } else if (!(err instanceof ClientSideServerError)) {
                 throw err;
             }
             error_handler.handle(err);
@@ -58,7 +61,7 @@ export const cli = async (opts = { }) => {
         }
 
         if (!retry && !isEmpty(out)) {
-            out = tridy.stringify(out, { pretty: opts.pretty });
+            out = Tridy.stringify(out, { pretty: opts.pretty });
 
             console.log(out);
         }

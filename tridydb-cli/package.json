@@ -1,6 +1,6 @@
 {
   "name": "tridydb-cli",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Interpreter for composing general tree-like data objects using boolean expressions and a specially-built data language.",
   "main": "src/app.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "file": "node src/app.js file",
     "console": "node src/app.js console",
     "web": "node src/app.js web",
-    "test": "powershell -file src/test.ps1 || pwsh -file test.ps1"
+    "test": "powershell -file src/test.ps1 || pwsh -file test.ps1",
+	"jsdoc": "jsdoc src/include/Interpreter.js -d docs"
   },
   "author": "J. E. Ellis",
   "license": "MIT",

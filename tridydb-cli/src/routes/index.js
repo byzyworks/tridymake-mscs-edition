@@ -1,7 +1,7 @@
 import express         from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { tridy } from '../include/Interpreter.js';
+import { db } from '../database.js';
 
 import { SyntaxError, ServerSideServerError } from '../utility/error.js';
 import { logger }                             from '../utility/logger.js';
@@ -183,12 +183,14 @@ const handleRoute = async (method, req, res, next) => {
     try {
         // We do not want to accept carry on the server-side since managing token carry is the client's job.
         // However, it makes no difference if the client sends a syntax tree directly.
-        out = await tridy.query(cmd, {
+        out = await db.query(cmd, {
             tokenless:    opts.format === 'astree',
             accept_carry: false
         });
     } catch (err) {
         if (err instanceof SyntaxError) {
+            db.clearCarry();
+
             return next(new ServerSideServerError('The previous request contains unusable input.', err, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false, is_wrapper: true }));
         }
         throw err;

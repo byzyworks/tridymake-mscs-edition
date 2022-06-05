@@ -4,13 +4,15 @@ import fs from 'fs';
 
 import { Option, program } from 'commander';
 
-import { tridy }  from './include/Interpreter.js';
-import { cli }    from './console.js';
-import { server } from './server.js';
+import { Tridy } from './include/Interpreter.js';
 
 import { APP, global }                    from './utility/common.js';
 import { error_handler }                  from './utility/error.js';
 import { transports, logger, log_levels } from './utility/logger.js';
+
+import { db }     from './database.js';
+import { cli }    from './console.js';
+import { server } from './server.js';
 
 process.exitCode = 0;
 
@@ -110,7 +112,7 @@ program
         logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         
         if (opts.command) {
-            preset = await tridy.query(opts.command, { accept_carry: false });
+            preset = await db.query(opts.command, { accept_carry: false });
         } else if (opts.file) {
             preset = [ ];
         
@@ -122,7 +124,7 @@ program
                     throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
                 }
         
-                input = await tridy.query(input, { accept_carry: false });
+                input = await db.query(input, { accept_carry: false });
                 
                 for (const part of input) {
                     preset.push(part);
@@ -142,7 +144,7 @@ program
             program.error('error: either --command or --file need to be given inside of inline mode.');
         }
 
-        console.log(tridy.stringify(preset, { pretty: opts.pretty }));
+        console.log(Tridy.stringify(preset, { pretty: opts.pretty }));
     })
 ;
 

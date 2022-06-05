@@ -1,12 +1,12 @@
-import { parser as tokenParser } from './TokenParser.js';
+import { TokenParser } from './TokenParser.js';
 
 import { isEmpty }     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { List }        from '../utility/List.js';
 
-class StatementParser {
+export class StatementParser {
     constructor() {
-        this._parser = tokenParser;
+        this._parser = new TokenParser();
 
         this._carry      = [ ];
         this._last_depth = 0;
@@ -25,12 +25,16 @@ class StatementParser {
         this._last_ended = false;
     }
 
-    isStatementComplete() {
+    _isStatementComplete() {
         return (this._last_depth === 0) && (this._last_ended === true);
     }
 
-    isCarryEmpty() {
+    _isCarryEmpty() {
         return isEmpty(this._carry);
+    }
+
+    isCarrying() {
+        return (!this._isCarryEmpty() && !this._isStatementComplete());
     }
 
     _readNext() {
@@ -76,7 +80,7 @@ class StatementParser {
                 this._last_ended = false;
             }
 
-            if (this.isStatementComplete()) {
+            if (this._isStatementComplete()) {
                 stmt_cutoff = idx;
                 break;
             }
@@ -103,12 +107,12 @@ class StatementParser {
     next(opts = { }) {
         const tokens = this._readNext();
 
-        if (!opts.accept_carry && !this.isCarryEmpty() && !this.isStatementComplete()) {
+        if (!opts.accept_carry && this.isCarrying()) {
             throw new SyntaxError(`The input given contains an incomplete statement (missing final ";" or "}").`);
         }
 
         // Clearing is done so the line and col can be made with respect to any new statement that comes next.
-        if (this.isCarryEmpty()) {
+        if (this._isCarryEmpty()) {
             this.clear();
         }
 
@@ -118,5 +122,3 @@ class StatementParser {
         return tokens;
     }
 }
-
-export const parser = new StatementParser();

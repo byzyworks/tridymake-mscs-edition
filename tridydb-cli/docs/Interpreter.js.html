@@ -27,17 +27,17 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>/**
- * TridyDB interpreter and TridyDB CLI exported module.
+ * TridyDB database class and TridyDB CLI exported module.
  * 
  * @module
  */
 
 import axios from 'axios';
 
-import { composer }            from './Composer.js';
-import { parser }              from './SyntaxParser.js';
-import { parser as tokenizer } from './StatementParser.js';
-import { StateTree }           from './StateTree.js';
+import { Composer }        from './Composer.js';
+import { SyntaxParser }    from './SyntaxParser.js';
+import { StatementParser } from './StatementParser.js';
+import { StateTree }       from './StateTree.js';
 
 import { global }                             from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
@@ -52,7 +52,7 @@ const sendTridyRequest = async (data) => {
             method: 'put',
             url: 'http://' + global.remote.host + ':' + global.remote.port,
             params: {
-                type: 'astree',
+                format: 'astree',
                 data: data
             },
             timeout: global.remote.timeout
@@ -62,16 +62,15 @@ const sendTridyRequest = async (data) => {
     } catch (err) {
         if (err.response) {
             throw new ClientSideServerError(err.response.data);
-        } else {
-            throw new ClientSideServerError();
         }
+        throw new ClientSideServerError();
     }
 }
 
 /**
- * Interpreter class for Tridy commands/statements.
+ * Database class for interpreting Tridy commands/statements.
  * 
- * A Tridy interpreter includes three parts: a tokenizer, parser, and composer.
+ * A Tridy database includes three parts: a tokenizer, parser, and composer.
  * Each may be stateful to varying degrees.
  * 
  * Interacting with this class is all done through the query() method, which automatically pipes the input through these separate components in order.
@@ -81,11 +80,11 @@ const sendTridyRequest = async (data) => {
  * @property {SyntaxParser}    _parser    Processes tokens into an abstract syntax tree.
  * @property {Composer}        _composer  Maintains and appends an object database using instructions received from the parser.
  */
-class Interpreter {
+export class Tridy {
     constructor() {
-        this._tokenizer = tokenizer;
-        this._parser    = parser;
-        this._composer  = composer;
+        this._tokenizer = new StatementParser();
+        this._parser    = new SyntaxParser();
+        this._composer  = new Composer();
     }
 
     /**
@@ -103,7 +102,8 @@ class Interpreter {
      * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
      * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
      * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
-     * @param   {Boolean} opts.tree_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @param   {Boolean} opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @param   {Boolean} opts.type_key     The key used to classify modules when printing compressed output using @done. Default is 'type'.
      * @returns {Array&lt;Object>}             The output of the statement(s).
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.
@@ -113,6 +113,7 @@ class Interpreter {
         opts.accept_carry = opts.accept_carry ?? false;
 
         global.alias        = global.alias  ?? { };
+        global.alias.type   = opts.type_key ?? global.alias.type   ?? global.defaults.alias.type;
         global.alias.tags   = opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags;
         global.alias.state  = opts.free_key ?? global.alias.state  ?? global.defaults.alias.state;
         global.alias.nested = opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested;
@@ -154,6 +155,7 @@ class Interpreter {
                     if (code.peek().is('key', 'clear')) {
                         output = [ ];
                         console.clear();
+                        continue;
                     } else if (code.peek().is('key', 'exit')) {
                         global.exit = true;
                         break;
@@ -178,34 +180,56 @@ class Interpreter {
     }
 
     /**
-     * Converts the JSON output of tridy.parse() or tridy.objectify() to a string (accounting for escaped backslashes).
+     * Returns true if this interpreter instance is carrying incomplete statements, false otherwise.
      * 
      * @public
+     * @method
+     * @returns {Boolean} True if carrying, false if not.
+     */
+    isCarrying() {
+        return this._tokenizer.isCarrying();
+    }
+
+    /**
+     * Clears the input buffer, thereby removing any incomplete statements that are being carried.
+     * 
+     * @public
+     * @method
+     */
+    clearCarry() {
+        this._tokenizer.clear();
+    }
+
+    /**
+     * Converts the JSON output of query() or objectify() to a string (accounting for escaped backslashes).
+     * 
+     * @public
+     * @static
      * @method
      * @param   {Object}  input       Tridy JSON output.
      * @param   {Boolean} opts.pretty True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Default is false.
      * @returns {String}              Input object as a JSON string.
      */
-    stringify(input, opts = { }) {
+    static stringify(input, opts = { }) {
         opts.pretty = opts.pretty ?? global.defaults.output.pretty;
 
         if (opts.pretty) {
             return JSON.stringify(input, null, 4).replace(/\\\\/g, '\\');
-        } else {
-            return JSON.stringify(input).replace(/\\\\/g, '\\');
         }
+        return JSON.stringify(input).replace(/\\\\/g, '\\');
     }
 
     /**
-     * Converts the string output of tridy.stringify() back to a JSON (accounting for escaped backslashes).
+     * Converts the string output of stringify() back to a JSON (accounting for escaped backslashes).
      * 
      * @public
+     * @static
      * @method
      * @param   {String} input Tridy JSON string output.
      * @returns {Object}       Input string as a JSON object.
      * @throws  {SyntaxError}  Thrown if the input isn't valid JSON.
      */
-    objectify(input) {
+    static objectify(input) {
         try {
             return JSON.parse(input.replace(/\\/g, '\\\\'));
         } catch (err) {
@@ -213,16 +237,6 @@ class Interpreter {
         }
     }
 }
-
-/**
- * Singleton export of a TridyDB interpreter instance.
- * 
- * @public
- * @constant
- * @static
- * @type {Interpreter}
- */
-export const tridy = new Interpreter();
 </code></pre>
         </article>
     </section>
@@ -233,13 +247,13 @@ export const tridy = new Interpreter();
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Interpreter.html">Interpreter</a></li></ul><h3>Classes</h3><ul><li><a href="module-Interpreter-Interpreter.html">Interpreter</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Interpreter.html">Interpreter</a></li></ul><h3>Classes</h3><ul><li><a href="module-Interpreter.Tridy.html">Tridy</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Apr 24 2022 14:55:35 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Jun 05 2022 00:01:52 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

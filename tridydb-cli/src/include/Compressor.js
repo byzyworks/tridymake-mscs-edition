@@ -2,7 +2,7 @@ import { StateTree } from './StateTree.js';
 
 import * as common from '../utility/common.js';
 
-class Compressor {
+export class Compressor {
     constructor() { }
 
     _compressModuleLite(target, opts = { }) {
@@ -165,5 +165,3 @@ class Compressor {
         return module;
     }
 }
-
-export const compressor = new Compressor();

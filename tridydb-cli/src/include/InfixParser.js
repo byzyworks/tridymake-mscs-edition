@@ -1,7 +1,7 @@
 import { Stack } from '../utility/Stack.js';
 import { Queue } from '../utility/Queue.js';
 
-class InfixParser {
+export class InfixParser {
     constructor() { }
 
     /**
@@ -88,5 +88,3 @@ class InfixParser {
         return this._toTree(this._toPostfix(input));
     }
 }
-
-export const parser = new InfixParser();

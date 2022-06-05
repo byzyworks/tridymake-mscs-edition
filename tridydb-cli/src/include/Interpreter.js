@@ -1,15 +1,15 @@
 /**
- * TridyDB interpreter and TridyDB CLI exported module.
+ * TridyDB database class and TridyDB CLI exported module.
  * 
  * @module
  */
 
 import axios from 'axios';
 
-import { composer }            from './Composer.js';
-import { parser }              from './SyntaxParser.js';
-import { parser as tokenizer } from './StatementParser.js';
-import { StateTree }           from './StateTree.js';
+import { Composer }        from './Composer.js';
+import { SyntaxParser }    from './SyntaxParser.js';
+import { StatementParser } from './StatementParser.js';
+import { StateTree }       from './StateTree.js';
 
 import { global }                             from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
@@ -40,9 +40,9 @@ const sendTridyRequest = async (data) => {
 }
 
 /**
- * Interpreter class for Tridy commands/statements.
+ * Database class for interpreting Tridy commands/statements.
  * 
- * A Tridy interpreter includes three parts: a tokenizer, parser, and composer.
+ * A Tridy database includes three parts: a tokenizer, parser, and composer.
  * Each may be stateful to varying degrees.
  * 
  * Interacting with this class is all done through the query() method, which automatically pipes the input through these separate components in order.
@@ -52,11 +52,11 @@ const sendTridyRequest = async (data) => {
  * @property {SyntaxParser}    _parser    Processes tokens into an abstract syntax tree.
  * @property {Composer}        _composer  Maintains and appends an object database using instructions received from the parser.
  */
-class Interpreter {
+export class Tridy {
     constructor() {
-        this._tokenizer = tokenizer;
-        this._parser    = parser;
-        this._composer  = composer;
+        this._tokenizer = new StatementParser();
+        this._parser    = new SyntaxParser();
+        this._composer  = new Composer();
     }
 
     /**
@@ -152,15 +152,37 @@ class Interpreter {
     }
 
     /**
-     * Converts the JSON output of tridy.parse() or tridy.objectify() to a string (accounting for escaped backslashes).
+     * Returns true if this interpreter instance is carrying incomplete statements, false otherwise.
      * 
      * @public
+     * @method
+     * @returns {Boolean} True if carrying, false if not.
+     */
+    isCarrying() {
+        return this._tokenizer.isCarrying();
+    }
+
+    /**
+     * Clears the input buffer, thereby removing any incomplete statements that are being carried.
+     * 
+     * @public
+     * @method
+     */
+    clearCarry() {
+        this._tokenizer.clear();
+    }
+
+    /**
+     * Converts the JSON output of query() or objectify() to a string (accounting for escaped backslashes).
+     * 
+     * @public
+     * @static
      * @method
      * @param   {Object}  input       Tridy JSON output.
      * @param   {Boolean} opts.pretty True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Default is false.
      * @returns {String}              Input object as a JSON string.
      */
-    stringify(input, opts = { }) {
+    static stringify(input, opts = { }) {
         opts.pretty = opts.pretty ?? global.defaults.output.pretty;
 
         if (opts.pretty) {
@@ -170,15 +192,16 @@ class Interpreter {
     }
 
     /**
-     * Converts the string output of tridy.stringify() back to a JSON (accounting for escaped backslashes).
+     * Converts the string output of stringify() back to a JSON (accounting for escaped backslashes).
      * 
      * @public
+     * @static
      * @method
      * @param   {String} input Tridy JSON string output.
      * @returns {Object}       Input string as a JSON object.
      * @throws  {SyntaxError}  Thrown if the input isn't valid JSON.
      */
-    objectify(input) {
+    static objectify(input) {
         try {
             return JSON.parse(input.replace(/\\/g, '\\\\'));
         } catch (err) {
@@ -186,13 +209,3 @@ class Interpreter {
         }
     }
 }
-
-/**
- * Singleton export of a TridyDB interpreter instance.
- * 
- * @public
- * @constant
- * @static
- * @type {Interpreter}
- */
-export const tridy = new Interpreter();

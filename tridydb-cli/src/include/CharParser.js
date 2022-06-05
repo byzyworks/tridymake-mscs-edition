@@ -1,4 +1,4 @@
-class CharParser {
+export class CharParser {
     constructor() {
         this._input = '';
 
@@ -47,5 +47,3 @@ class CharParser {
         return this._col;
     }
 }
-
-export const parser = new CharParser();
