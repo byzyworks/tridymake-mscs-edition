@@ -49,7 +49,7 @@ export const cli = async (opts = { }) => {
         let out;
         let retry = false;
         try {
-            out = await db.query(answers, { accept_carry: true });
+            out = await db.query(answers, { accept_carry: true, random_seed: opts.random_seed });
         } catch (err) {
             if (err instanceof SyntaxError) {
                 db.clearCarry();

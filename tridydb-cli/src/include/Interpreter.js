@@ -14,7 +14,7 @@ import { StateTree }       from './StateTree.js';
 import { global }                             from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
 
-const sendTridyRequest = async (data) => {
+const sendTridyRequest = async (data, remote) => {
     try {
         const out = await axios({
             headers: {
@@ -22,12 +22,12 @@ const sendTridyRequest = async (data) => {
                 'Content-Type': 'application/json'
             },
             method: 'put',
-            url: 'http://' + global.remote.host + ':' + global.remote.port,
+            url: 'http://' + remote.host + ':' + remote.port,
             params: {
                 format: 'astree',
                 data: data
             },
-            timeout: global.remote.timeout
+            timeout: remote.timeout
         });
 
         return out.data;
@@ -72,10 +72,10 @@ export class Tridy {
      * @param   {Boolean} opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
      * @param   {Boolean} opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
      * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
+     * @param   {Boolean} opts.type_key     The key used to classify modules when printing compressed output using @done. Default is 'type'.
      * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
      * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
      * @param   {Boolean} opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
-     * @param   {Boolean} opts.type_key     The key used to classify modules when printing compressed output using @done. Default is 'type'.
      * @returns {Array<Object>}             The output of the statement(s).
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.
@@ -84,17 +84,19 @@ export class Tridy {
         opts.tokenless    = opts.tokenless    ?? false;
         opts.accept_carry = opts.accept_carry ?? false;
 
-        global.alias        = global.alias  ?? { };
-        global.alias.type   = opts.type_key ?? global.alias.type   ?? global.defaults.alias.type;
-        global.alias.tags   = opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags;
-        global.alias.state  = opts.free_key ?? global.alias.state  ?? global.defaults.alias.state;
-        global.alias.nested = opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested;
+        const alias = {
+            type:   opts.type_key ?? global.alias.type   ?? global.defaults.alias.type,
+            tags:   opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags,
+            state:  opts.free_key ?? global.alias.state  ?? global.defaults.alias.state,
+            nested: opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested
+        };
 
-        global.remote         = global.remote    ?? { };
-        global.remote.enable  = opts.client_mode ?? global.remote.enable  ?? global.defaults.remote.enable;
-        global.remote.host    = opts.host        ?? global.remote.host    ?? global.defaults.remote.host;
-        global.remote.port    = opts.port        ?? global.remote.port    ?? global.defaults.remote.port;
-        global.remote.timeout = opts.timeout     ?? global.remote.timeout ?? global.defaults.remote.timeout;
+        const remote = {
+            enable:  opts.client_mode ?? global.remote.client_mode ?? global.defaults.remote.client_mode,
+            host:    opts.host        ?? global.remote.host        ?? global.defaults.remote.host,
+            post:    opts.post        ?? global.remote.post        ?? global.defaults.remote.post,
+            timeout: opts.timeout     ?? global.remote.timeout     ?? global.defaults.remote.timeout
+        };
 
         let output = [ ];
 
@@ -111,10 +113,10 @@ export class Tridy {
             }
             code = new StateTree(input);
 
-            if (global.remote.enable) {
-                code = await sendTridyRequest(code.getRaw());
+            if (remote.enable) {
+                code = await sendTridyRequest(code.getRaw(), remote);
             } else {
-                code = this._composer.compose(code);
+                code = this._composer.compose(code, alias);
             }
 
             for (const part of code) {
@@ -136,10 +138,10 @@ export class Tridy {
 
                 code = this._parser.parse(code);
 
-                if (global.remote.enable) {
-                    code = await sendTridyRequest(code.getRaw());
+                if (remote.enable) {
+                    code = await sendTridyRequest(code.getRaw(), remote);
                 } else {
-                    code = this._composer.compose(code);
+                    code = this._composer.compose(code, alias);
                 }
 
                 for (const part of code) {

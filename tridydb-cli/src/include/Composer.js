@@ -15,7 +15,7 @@ export class Composer {
     
     _createModule(module = null) {
         if (module === null) {
-            module = new StateTree(module, common.global.alias);
+            module = new StateTree(module, this._alias);
         }
 
         this._astree.enterPos('raw');
@@ -31,7 +31,7 @@ export class Composer {
 
             this._astree.enterPos(common.global.defaults.alias.type);
             if (!this._astree.isPosUndefined()) {
-                module.enterPos(common.global.alias.type);
+                module.enterPos(this._alias.type);
                 this._astree.copyPosValue(module);
                 module.leavePos();
             }
@@ -39,7 +39,7 @@ export class Composer {
 
             this._astree.enterPos(common.global.defaults.alias.tags);
             if (!this._astree.isPosUndefined()) {
-                module.enterPos(common.global.alias.tags);
+                module.enterPos(this._alias.tags);
                 this._astree.copyPosValue(module);
                 module.leavePos();
             }
@@ -47,7 +47,7 @@ export class Composer {
 
             this._astree.enterPos(common.global.defaults.alias.state);
             if (!this._astree.isPosUndefined()) {
-                module.enterPos(common.global.alias.state);
+                module.enterPos(this._alias.state);
                 this._astree.copyPosValue(module);
                 module.leavePos();
             }
@@ -83,10 +83,10 @@ export class Composer {
          */
         for (let i = 0; i < indices.length; i += 2) {
             ptr = ptr[indices[i]][indices[i + 1]];
-            if (!common.isDictionary(ptr) || common.isEmpty(ptr[common.global.alias.tags])) {
+            if (!common.isDictionary(ptr) || common.isEmpty(ptr[this._alias.tags])) {
                 current.push([ ]);
             } else {
-                current.push(ptr[common.global.alias.tags]);
+                current.push(ptr[this._alias.tags]);
             }
         }
 
@@ -110,7 +110,7 @@ export class Composer {
                 answer = lvl === 0;
                 break;
             case '%': // from @leaf
-                answer = common.isEmpty(this._target.peek().enterGetAndLeave(common.global.alias.nested));
+                answer = common.isEmpty(this._target.peek().enterGetAndLeave(this._alias.nested));
                 break;
             case '?': // from @random
                 answer = (Math.random() >= 0.5);
@@ -217,7 +217,7 @@ export class Composer {
 
         let answer = false;
 
-        target.enterPos(common.global.alias.nested);
+        target.enterPos(this._alias.nested);
         if (!target.isPosEmpty()) {
             target.enterPos(0);
             while (!target.isPosUndefined()) {
@@ -427,7 +427,7 @@ export class Composer {
 
         // A UUID needs to be unique for every copy of a module, even if generated in the same statement.
         if (common.isDictionary(template)) {
-            const tags = copy[common.global.alias.tags];
+            const tags = copy[this._alias.tags];
             if (common.isArray(tags)) {
                 for (const i in tags) {
                     if (tags[i] === '@uuid') {
@@ -453,7 +453,7 @@ export class Composer {
             throw new SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        target.enterPutAndLeave(common.global.alias.nested, template);
+        target.enterPutAndLeave(this._alias.nested, template);
     }
 
     _printModule() {
@@ -492,8 +492,8 @@ export class Composer {
     }
 
     _editModulePart(target, template, nulled, key) {
-        if ((template[common.global.alias[key]] !== undefined) || (common.isDictionary(nulled) && (nulled[common.global.defaults.alias[key]] === true))) {
-            target.enterSetAndLeave(common.global.alias[key], template[common.global.alias[key]]);
+        if ((template[this._alias[key]] !== undefined) || (common.isDictionary(nulled) && (nulled[common.global.defaults.alias[key]] === true))) {
+            target.enterSetAndLeave(this._alias[key], template[this._alias[key]]);
         }
     }
 
@@ -519,7 +519,7 @@ export class Composer {
             throw new SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        target.enterPos(common.global.alias.tags);
+        target.enterPos(this._alias.tags);
 
         let tags = target.getPosValue();
 
@@ -532,11 +532,11 @@ export class Composer {
             target.setPosValue(tags);
         }
 
-        if (common.isArray(template[common.global.alias.tags])) {
+        if (common.isArray(template[this._alias.tags])) {
             const tagslen = tags.length; // Because the length of the tags array changes as tags are added, and the syntax parser already does a duplicate check.
 
             let duplicate;
-            for (const added of template[common.global.alias.tags]) {
+            for (const added of template[this._alias.tags]) {
                 duplicate = false;
                 for (let i = 0; i < tagslen; i++) {
                     if (tags[i] === added) {
@@ -561,7 +561,7 @@ export class Composer {
             throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        target.enterPos(common.global.alias.tags);
+        target.enterPos(this._alias.tags);
 
         const tags = target.getPosValue();
 
@@ -570,8 +570,8 @@ export class Composer {
             throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        if (common.isArray(template[common.global.alias.tags])) {
-            for (const removed of template[common.global.alias.tags]) {
+        if (common.isArray(template[this._alias.tags])) {
+            for (const removed of template[this._alias.tags]) {
                 for (let i = 0; i < tags.length; i++) {
                     if (tags[i] === removed) {
                         tags.splice(i, 1);
@@ -592,7 +592,7 @@ export class Composer {
         let target = this._target.peek();
 
         let template;
-        template = new StateTree(target.getPosValue(), common.global.alias);
+        template = new StateTree(target.getPosValue(), this._alias);
         template = this._createModule(template);
 
         target.setPosValue(template);
@@ -683,7 +683,7 @@ export class Composer {
         const matched_this = matched;
         if (((max_depth === null) || (depth < max_depth)) && (!opts.greedy || !matched)) {
             const target = this._target.peek();
-            target.enterPos(common.global.alias.nested);
+            target.enterPos(this._alias.nested);
             if (!target.isPosEmpty()) {
                 target.enterPos(0);
                 while (!target.isPosUndefined()) {
@@ -822,11 +822,13 @@ export class Composer {
         this._astree.leavePos();
     }
 
-    compose(input, opts = { }) {
+    compose(input, alias, opts = { }) {
         this._astree = input;
 
+        this._alias = alias;
+
         if (this._target.isEmpty()) {
-            this._target.push(new StateTree(null, common.global.alias));
+            this._target.push(new StateTree(null, this._alias));
         }
         
         this._output = [ ];
