@@ -1,4 +1,5 @@
-import uuid from 'uuid-random';
+import seedrandom from 'seedrandom';
+import uuid       from 'uuid-random';
 
 import { Compressor } from './Compressor.js';
 import { StateTree }  from './StateTree.js';
@@ -11,6 +12,18 @@ import { Stack }       from '../utility/Stack.js';
 export class Composer {
     constructor() {
         this._target = new Stack();
+
+        this.setRandomSeed();
+    }
+
+    getRandomSeed() {
+        return this._random.seed;
+    }
+
+    setRandomSeed(seed) {
+        this._random      = { };
+        this._random.seed = seed ?? seedrandom().int32();
+        this._random.prng = new seedrandom(this._random.seed, { entropy: false });
     }
     
     _createModule(module = null) {
@@ -113,7 +126,7 @@ export class Composer {
                 answer = common.isEmpty(this._target.peek().enterGetAndLeave(this._alias.nested));
                 break;
             case '?': // from @random
-                answer = (Math.random() >= 0.5);
+                answer = (this._random.prng() >= 0.5);
                 break;
             default: // assumed to be a regular old tag
                 answer = false;

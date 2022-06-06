@@ -86,8 +86,9 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 2.  [Console Mode](#cli-console)
                 3.  [Common Options: Input](#cli-common-input)
                 4.  [Common Options: Client Mode](#cli-common-client)
-                5.  [Common Options: Output](#cli-common-output)
-                6.  [Common Options: Logging](#cli-common-logs)
+                5.  [Common Options: Randomization](#cli-common-random)
+                6.  [Common Options: Output](#cli-common-output)
+                7.  [Common Options: Logging](#cli-common-logs)
             3.  [As a Server](#server)
                 1.  [REST Mode](#server-rest)
                 2.  [REST Mode: GET /](#server-rest-get-/)
@@ -2728,6 +2729,19 @@ It should be pointed out, however, that even though using TridyDB like this is *
 
 Speaking of this, if `Tridy.query(...)` should attempt to contact a server for data storage and retrieval, it also has options for that. `host` controls the hostname to connect to (which is localhost by default), `port` controls the port number to connect to (21780 by default), and `timeout` controls the number of milliseconds to wait for the host to respond back when a request is sent to it (before assuming a 404). The default for this is 3 seconds. Last, `client_mode` controls whether to enable this network-based paradigm at all or not. If `client_mode` *isn't* enabled (as it is by default), then everything will be processed within the one method call, without trying to contact a server to perform the last step of executing and storing the results of the statements. More information surrounding client mode can be found [here](#cli-common-client).
 
+The output of randomized clauses can also be controlled by the introduction of a random seed, which necessitates the use of a new function `Tridy.setRandomSeed(...)` after construction, but before `Tridy.query(...)`. If this isn't given, then TridyDB will generate one on its own.
+
+```javascript
+import { Tridy } from 'tridydb-cli';
+
+const db = new Tridy();
+
+db.setRandomSeed('Forty-two');
+
+db.query('@new @as @none; @in ? @new @as 1; @in ? @new @as 2; @get;');
+// Always returns [{"tree":[{"tree":[{"tags":["1"]}]}]}].
+```
+
 Finally, `Tridy.query(...)` has options to alias the keys associated to the various data structures that Tridy uses, which is as well provided with the independent program versions.
 
 ```javascript
@@ -2737,7 +2751,7 @@ const db = new Tridy();
 
 const input = '@set @as tag @is @json { "key": "value" } @end; @get;';
 
-db.query(input, { tags_key: foo, free_key: bar } });
+db.query(input, { tags_key: foo, free_key: bar });
 // Returns [{"foo":["tag"],"bar":{"key":"value"}}].
 ```
 
@@ -2881,11 +2895,38 @@ $ tridydb console --client -h localhost -p 8080 -t 3000
 
 <br>
 
+<div id="cli-common-random"/>
+
+### **Common Options: `--random-seed`**
+
+The output of randomized clauses can be controlled by the introduction of a random seed through the `--random-seed` argument, which takes a seed in the form of a string or otherwise as input. Forcing a seed has the benefit of reproducability, since forcing the same seed multiple times means that randomized clauses, with only the exception of `@uuid`, when used in the same statements in the same order, will always produce the same output for that seed.
+
+```bash
+$ tridydb inline --command '@new @as @none; @in ? @new @as 1; @in ? @new @as 2; @get;' --pretty --random-seed 'Forty-two';
+# [
+#     {
+#         "tree": [
+#             {
+#                 "tree": [
+#                     {
+#                         "tags": [
+#                             "1"
+#                         ]
+#                     }
+#                 ]
+#             }
+#         ]
+#     }
+# ]
+```
+
+<br>
+
 <div id="cli-common-output"/>
 
 ### **Common Options: `--pretty`**
 
-Pretty-printing is provided as the option `--pretty` or `-p` in all cases. Like when the equivalent option is used with `tridy.stringify(...)`, 4 spaces are used per indent.
+Pretty-printing is provided as the option `--pretty` or `-p` in all cases. Like when the equivalent option is used with `Tridy.stringify(...)`, 4 spaces are used per indent.
 
 ```bash
 $ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty;

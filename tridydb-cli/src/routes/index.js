@@ -201,7 +201,7 @@ const handleRoute = async (method, req, res, next) => {
 
 export const routes = express.Router();
 
-routes.get(   '/', async (req, res, next) => await handleRoute('get', req, res, next));
-routes.post(  '/', async (req, res, next) => await handleRoute('post', req, res, next));
-routes.put(   '/', async (req, res, next) => await handleRoute('put', req, res, next));
+routes.get(   '/', async (req, res, next) => await handleRoute('get',    req, res, next));
+routes.post(  '/', async (req, res, next) => await handleRoute('post',   req, res, next));
+routes.put(   '/', async (req, res, next) => await handleRoute('put',    req, res, next));
 routes.delete('/', async (req, res, next) => await handleRoute('delete', req, res, next));

@@ -53,10 +53,34 @@ const sendTridyRequest = async (data, remote) => {
  * @property {Composer}        _composer  Maintains and appends an object database using instructions received from the parser.
  */
 export class Tridy {
-    constructor() {
+    constructor(opts = { }) {
         this._tokenizer = new StatementParser();
         this._parser    = new SyntaxParser();
         this._composer  = new Composer();
+    }
+
+    /**
+     * Returns the database's current random seed.
+     * 
+     * @public
+     * @method
+     * @returns {any} The current random seed.
+     */
+    getRandomSeed() {
+        return this._composer.getRandomSeed();
+    }
+
+    /**
+     * Sets (or resets) the random seed used by the database.
+     * If the same seed as the current one is passed, then only the nonce is reset.
+     * Passing null or undefined causes a new seed to be generated randomly.
+     * 
+     * @public
+     * @method
+     * @param {any} seed Random seed to use with @random or @shuffled.
+     */
+    setRandomSeed(seed) {
+        this._composer.setRandomSeed(seed);
     }
 
     /**
@@ -69,13 +93,13 @@ export class Tridy {
      * @param   {Boolean} opts.tokenless    Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
      * @param   {Boolean} opts.accept_carry True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
      * @param   {Boolean} opts.client_mode  True to run as a client, false to run standalone / as a server. Default is false.
-     * @param   {Boolean} opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
-     * @param   {Boolean} opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
-     * @param   {Boolean} opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
-     * @param   {Boolean} opts.type_key     The key used to classify modules when printing compressed output using @done. Default is 'type'.
-     * @param   {Boolean} opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
-     * @param   {Boolean} opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
-     * @param   {Boolean} opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @param   {String}  opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
+     * @param   {Number}  opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
+     * @param   {Number}  opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
+     * @param   {String}  opts.type_key     The key used to classify modules when printing compressed output using @merged or @final. Default is 'type'.
+     * @param   {String}  opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
+     * @param   {String}  opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
+     * @param   {String}  opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
      * @returns {Array<Object>}             The output of the statement(s).
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.

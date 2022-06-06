@@ -47,3 +47,12 @@ Remember also to set the version number inside package.json and utility/common.
 ## Version 1.2.0
 
 * Improved TridyDB's flexibility when used as an NPM package; Tridy is now exported as a class as opposed to a singleton, so multiple Tridy instances are possible now.
+* Changed `@random` to use a seeded random number generator, as opposed to (as previously used) `Math.random()`.
+* Added `--random-seed` program argument (and argument to `Tridy.query(...)`) to force a random seed.
+* Added `Tridy.setRandomSeed(...)` instance method, to force a random seed.
+* Added `Tridy.getRandomSeed()` instance method, to get the current seed.
+* Added `Tridy.clearCarry()` instance method, to reset the parser state.
+* Added `Tridy.isCarrying()` instance method, to check if there are incomplete statements.
+* Changed `Tridy.stringify(...)` to a static method.
+* Changed `Tridy.objectify(...)` to a static method.
+* Fixed some incorrect documentation that wasn't updated.

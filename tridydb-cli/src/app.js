@@ -6,7 +6,7 @@ import { Option, program } from 'commander';
 
 import { Tridy } from './include/Interpreter.js';
 
-import { APP, global }                    from './utility/common.js';
+import { APP, global, isNullish }         from './utility/common.js';
 import { error_handler }                  from './utility/error.js';
 import { transports, logger, log_levels } from './utility/logger.js';
 
@@ -73,11 +73,14 @@ program
             .default(global.defaults.remote.port)
     )
     .addOption(
+        new Option('-s, --random-seed <seed>', 'Forces a random seed to use with @random or @shuffled.')
+    )
+    .addOption(
         new Option('-t, --remote-timeout <timeout>', 'Timeout period (in milliseconds) to wait for responses when in client mode.')
             .default(global.defaults.remote.timeout)
     )
     .addOption(
-        new Option('--type-key <key>', 'The key used to classify modules when printing compressed output using @done.')
+        new Option('--type-key <key>', 'The key used to classify modules when printing compressed output using @merged or @final.')
             .default(global.defaults.alias.type)
     )
     .addOption(
@@ -111,6 +114,10 @@ program
         transports.console.level = opts.logLevel;
         logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         
+        if (!isNullish(opts.randomSeed)) {
+            db.setRandomSeed(opts.randomSeed);
+        }
+
         if (opts.command) {
             preset = await db.query(opts.command, { accept_carry: false });
         } else if (opts.file) {

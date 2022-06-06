@@ -200,10 +200,10 @@ export const parseDynamic = (value) => {
 
 const defaults = Object.freeze({
     alias: {
+        type:   'type',
         tags:   'tags',
         state:  'free',
-        nested: 'tree',
-        type:   'type'
+        nested: 'tree'
     },
     remote: {
         enable:  false,
@@ -212,8 +212,7 @@ const defaults = Object.freeze({
         timeout: 3000
     },
     output: {
-        pretty:   false,
-        compress: false
+        pretty: false
     },
     log_level: 'info'
 });
