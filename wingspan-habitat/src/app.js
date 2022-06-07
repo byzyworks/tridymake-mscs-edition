@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-
-import { Option, program } from 'commander';
+import { Command, Option, program } from 'commander';
 
 import { server } from './server.js';
 
@@ -22,34 +20,100 @@ process.on('unhandledRejection', (err) => {
 
 program
     .version(APP.VERSION)
-    .description('Specialized database management for portable, hierarchical, tree-like data files.')
-    .addOption(
-        new Option('-4, --ipv4-only', 'Disable binding on IPv6 when in server mode.')
-            .conflicts('ipv6Only')
-    )
-    .addOption(
-        new Option('-6, --ipv6-only', 'Disable binding on IPv4 when in server mode.')
-            .conflicts('ipv4Only')
-    )
-    .addOption(
-        new Option('-I, --instances <file>', 'Pre-load a Tridy database from one or several files.')
-            .conflicts('command')
-    )
-    .addOption(
-        new Option('-L, --localhost', 'Bind only to localhost when in server mode; do not expose service to the network.')
-    )
+    .description('Tool for managing disposable lab networks.')
     .addOption(
         new Option('-l, --log-level <level>', 'The log level used, as one of NPM\'s available log levels')
             .choices(Object.keys(log_levels))
             .default(global.defaults.log_level)
     )
     .addOption(
-        new Option('-M, --modules <directory>', 'Pre-load a Tridy database from one or several files.')
-            .conflicts('command')
+        new Option('-T, --templates <directory>', 'Folder to import lab templates from.')
     )
     .addOption(
-        new Option('-P, --port <port>', 'The port number to bind to when in server mode.')
-            .default(global.defaults.remote.port)
+        new Option('-I, --instances <directory>', 'Folder to cache lab instance data to.')
+    )
+    .addCommand(
+        new Command('make')
+            .description('Generate a new lab instance from a given template.')
+            .argument('<template>', 'Lab template to generate a new instance from.')
+    )
+    .addCommand(
+        new Command('start')
+            .description('Start an inactive lab instance.')
+            .argument('<instance>', 'The affected lab instance.')
+    )
+    .addCommand(
+        new Command('pause')
+            .description('Pause an active lab instance.')
+            .argument('<instance>', 'The affected lab instance.')
+    )
+    .addCommand(
+        new Command('stop')
+            .description('Stop an active lab instance.')
+            .argument('<instance>', 'The affected lab instance.')
+    )
+    .addCommand(
+        new Command('restart')
+            .description('Restart a lab instance.')
+            .argument('<instance>', 'The affected lab instance.')
+    )
+    .addCommand(
+        new Command('remake')
+            .description('Re-generate a lab instance (in case using a different random seed).')
+            .argument('<instance>', 'The affected lab instance.')
+    )
+    .addCommand(
+        new Command('destroy')
+            .description('Destroy a lab instance.')
+            .argument('<instance>', 'The affected lab instance.')
+    )
+    .addCommand(
+        new Command('seed')
+            .addCommand(
+                new Command('force')
+                    .description('Use a custom global randomness seed.')
+                    .argument('<seed>', 'The custom seed.')
+            )
+            .addCommand(
+                new Command('random')
+                    .description('Use a randomly-generated global randomness seed.')
+            )
+    )
+    .addCommand(
+        new Command('list')
+            .addCommand(
+                new Command('templates')
+                    .description('List out all loaded lab templates.')
+            )
+            .addCommand(
+                new Command('instances')
+                    .description('List out all loaded lab instances.')
+                    .addOption(
+                        new Option('--active', 'Only list active lab instances.')
+                    )
+            )
+    )
+    .addCommand(
+        new Command('server')
+            .description('Start a Habitat server.')
+            .addOption(
+                new Option('-4, --ipv4-only', 'Disable binding on IPv6 when in server mode.')
+                    .conflicts('ipv6Only')
+            )
+            .addOption(
+                new Option('-6, --ipv6-only', 'Disable binding on IPv4 when in server mode.')
+                    .conflicts('ipv4Only')
+            )
+            .addOption(
+                new Option('-L, --localhost', 'Bind only to localhost when in server mode; do not expose service to the network.')
+            )
+            .addOption(
+                new Option('-P, --port <port>', 'The port number to bind to when in server mode.')
+                    .default(global.defaults.port)
+            )
+            .action(async (opts, command) => {
+                await server(command.optsWithGlobals());
+            })
     )
     .hook('preAction', async (thisCommand, actionCommand) => {
         const opts = program.opts();
@@ -61,5 +125,3 @@ program
 ;
 
 program.parse(process.argv);
-
-await server(command.optsWithGlobals());
