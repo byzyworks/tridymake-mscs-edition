@@ -1,9 +1,9 @@
 import { CharParser } from './CharParser.js';
 import { Token }      from './Token.js';
 
-import { isEmpty }     from '../utility/common.js';
-import { SyntaxError } from '../utility/error.js';
-import { Stack }       from '../utility/Stack.js';
+import { isEmpty, not } from '../utility/common.js';
+import { SyntaxError }  from '../utility/error.js';
+import { Stack }        from '../utility/Stack.js';
 
 export class TokenParser {
     constructor() {
@@ -37,6 +37,54 @@ export class TokenParser {
         return this._current;
     }
 
+    _isWhitespace(ch) {
+        return /\s/g.test(ch);
+    }
+
+    _isKeywordStart(ch) {
+        return ch === '@';
+    }
+
+    _isIdentifier(ch) {
+        return /[-A-Za-z0-9+_.]/g.test(ch);
+    }
+
+    _isTag(ch) {
+        return this._isIdentifier(ch);
+    }
+
+    _isSymbol(ch) {
+        return /[~!$%^&*()=\[\]{}|;,<>?/]/g.test(ch);
+    }
+
+    _isNumberStart(ch) {
+        return ch === ':';
+    }
+
+    _isSingleLineStringQuote(ch) {
+        return ch === "'";
+    }
+
+    _isMultiLineStringQuote(ch) {
+        return ch === '"';
+    }
+
+    _isDynamicStringQuote(ch) {
+        return ch === '`';
+    }
+
+    _isEscape(ch) {
+        return ch === '\\';
+    }
+
+    _isCommentStart(ch) {
+        return ch === '#';
+    }
+
+    _getPos() {
+        return { line: this._parser.getLine(), col: this._parser.getCol() };
+    }
+
     _readWhilePred(pred) {
         let str = '';
         while (!this._parser.isEOF() && pred(this._parser.peek())) {
@@ -52,29 +100,32 @@ export class TokenParser {
         let ch;
 
         while (!this._parser.isEOF()) {
-            ch = this._parser.next();
+            ch = this._parser.peek();
 
             if (is_escaped) {
+                this._parser.next();
                 str += ch;
                 is_escaped = false;
             } else if (this._isEscape(ch)) {
+                this._parser.next();
                 is_escaped = true;
-            } else if (ch === '#') {
-                this._mode.push('com');
+            } else if (this._isKeywordStart(ch) || this._isCommentStart(ch)) {
+                this._mode.push('normal');
                 break;
-            } else if (ch === '@') {
-                this._mode.push('key');
-                break;
-            } else if ((ch === "'") && (this._mode.peek() === 'sqstring')) {
+            } else if (this._isSingleLineStringQuote(ch) && (this._mode.peek() === 'line')) {
+                this._parser.next();
                 this._mode.pop();
                 break;
-            } else if ((ch === '"') && (this._mode.peek() === 'dqstring')) {
+            } else if (this._isMultiLineStringQuote(ch) && (this._mode.peek() === 'multiline')) {
+                this._parser.next();
                 this._mode.pop();
                 break;
-            } else if ((ch === '`') && (this._mode.peek() === 'btstring')) {
+            } else if (this._isDynamicStringQuote(ch) && (this._mode.peek() === 'dynamic')) {
+                this._parser.next();
                 this._mode.pop();
                 break;
             } else {
+                this._parser.next();
                 str += ch;
             }
         }
@@ -82,123 +133,20 @@ export class TokenParser {
         return str;
     }
 
-    _readNext() {
-        switch (this._mode.peek()) {
-            case 'yaml':
-            case 'sqstring':
-            case 'dqstring':
-            case 'btstring':
-                break;
-            default:
-                this._readWhilePred(this._isWhitespace);
-        }
-
-        if (this._parser.isEOF()) {
-            return null;
-        }
-
-        const ch = this._parser.peek();
-
-        if (ch === '#') {
-            this._mode.push('com');
-            this._parser.next();
-        }
-        if (this._mode.peek() === 'com') {
-            this._mode.pop();
-            this._readComment();
-
-            return this._readNext();
-        }
-
-        if (ch === '@') {
-            this._mode.push('key');
-            this._parser.next();
-        }
-        if (this._mode.peek() === 'key') {
-            this._mode.pop();
-            const keyword = this._readKeyword();
-
-            return keyword;
-        }
-
-        if (this._isQuoteMark(ch)) {
-            this._readLiteral();
-        }
-
-        switch (this._mode.peek()) {
-            case 'json':
-            case 'yaml':
-            case 'sqstring':
-            case 'dqstring':
-            case 'btstring':
-                return this._readRaw();
-        }
-
-        if (this._isIdentifier(ch) || this._isVariableStart(ch)) {
-            return this._readTag();
-        }
-
-        if (this._isPunc(ch)) {
-            return this._readPunc();
-        }
-
-        if (this._isMultiPunc(ch)) {
-            return this._readMultiPunc();
-        }
-
-        const pos = this._getPos();
-        const anomaly = this._readWhilePred(this._isNonWhitespace);
-        throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Unknown token type of "${anomaly}".`);
-    }
-
-    _readComment() {
-        this._readWhilePred((ch) => {
-            return ch != "\n";
-        });
-        this._parser.next();
-    }
-
-    _readRaw() {
-        const pos = this._getPos();
-
-        let type;
-        switch (this._mode.peek()) {
-            case 'sqstring':
-                type = 'lpart';
-                break;
-            case 'dqstring':
-                type = 'mlpart';
-                break;
-            case 'btstring':
-                type = 'dynpart';
-                break;
-            default:
-                type = 'mlpart';
-                break;
-        }
-
-        return new Token(type, this._readWhileEscaped(), pos);
-    }
-
     _readKeyword() {
         const pos = this._getPos();
         pos.col--;
 
-        const keyword = this._readWhilePred(this._isIdentifier).toLowerCase();
-
+        const keyword = this._readWhilePred(this._isIdentifier.bind(this)).toLowerCase();
         if (isEmpty(keyword)) {
             throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "@".`);
         }
 
         switch (keyword) {
             case 'json':
-                if (this._mode.peek() !== 'json') {
-                    this._mode.push('json');
-                }
-                break;
             case 'yaml':
-                if (this._mode.peek() !== 'yaml') {
-                    this._mode.push('yaml');
+                if (this._mode.peek() !== keyword) {
+                    this._mode.push(keyword);
                 }
                 break;
             case 'end':
@@ -213,132 +161,172 @@ export class TokenParser {
         return new Token('key', keyword, pos);
     }
 
-    _readTagRecursive(pos) {
-        let tag = '';
-
-        let is_enclosed = false;
-
-        tag += this._readWhilePred((ch) => {
-            return ch === '$';
-        });
-
-        if (!isEmpty(tag)) {
-            if (!this._parser.isEOF() && (this._parser.peek() === '{')) {
-                tag += this._parser.next();
-    
-                is_enclosed = true;
-            }
-        }
-
-        let ch;
-        while (true) {
-            ch = this._parser.peek();
-            if (this._isVariableStart(ch)) {
-                tag += this._readTagRecursive();
-            } else if (this._isIdentifier(ch)) {
-                tag += this._readWhilePred(this._isIdentifier);
-            } else {
-                break;
-            }
-        }
-
-        if (is_enclosed) {
-            if (this._parser.isEOF() || (this._parser.peek() !== '}')) {
-                throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Missing closing bracket in variable "${tag}".`);
-            }
-            tag += this._parser.next();
-        }
-
-        return tag;
-    }
-
     _readTag() {
         const pos = this._getPos();
 
-        let tag = '';
-        do {
-            tag += this._readTagRecursive(pos);
-        } while (this._isTag(this._parser.peek()));
+        const tag = this._readWhilePred(this._isTag.bind(this));
 
         return new Token('tag', tag, pos);
     }
 
-    _readPunc() {
-        return new Token('punc', this._parser.next(), this._getPos());
-    }
+    _readSymbols() {
+        const pos = this._getPos();
 
-    _readMultiPunc() {
-        const curr = this._parser.peek();
-
-        let punc = this._readWhilePred((ch) => {
-            return ch === curr;
-        });
-
-        if (curr === '!') {
-            punc = punc.replace(/!!/g, '');
-            if (punc === '') {
-                return this._readNext();
-            }
+        let sym = '';
+        let ch  = this._parser.peek();
+        let pre;
+        switch (ch) {
+            case '!':
+            case '=':
+                sym += this._parser.next();
+                ch  =  this._parser.peek();
+                if (ch === '=') {
+                    sym += this._parser.next();
+                }
+                break;
+            case '<':
+            case '>':
+                sym += this._parser.next();
+                pre =  ch;
+                ch  =  this._parser.peek();
+                if (ch === '=') {
+                    sym += this._parser.next();
+                } else if (ch === pre) {
+                    sym += this._parser.next();
+                }
+                break;
+            case '/':
+                sym += this._parser.next();
+                pre =  ch;
+                ch  =  this._parser.peek();
+                if (ch === pre) {
+                    sym += this._parser.next();
+                }
+                break;
+            default:
+                sym += this._parser.next();
         }
-        
-        return new Token('punc', punc, this._getPos());
+
+        return new Token('sym', sym, pos);
     }
 
-    _readLiteral() {
+    _readNumber() {
+        const pos = this._getPos();
+        pos.col--;
+
+        const num = this._readWhilePred(this._isIdentifier.bind(this));
+        if (isEmpty(num)) {
+            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid number after ":".`);
+        } else if (isNaN(num)) {
+            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: A number was expected, but "${num}" doesn't appear to be one.`);
+        }
+
+        return new Token('num', num, pos);
+    }
+
+    _readRaw() {
+        const pos = this._getPos();
+
+        let type;
+        switch (this._mode.peek()) {
+            case 'line':
+                type = 'lpart';
+                break;
+            case 'multiline':
+                type = 'mlpart';
+                break;
+            case 'dynamic':
+                type = 'dynpart';
+                break;
+            default:
+                type = 'mlpart';
+                break;
+        }
+
+        return new Token(type, this._readWhileEscaped(), pos);
+    }
+
+    _readComment() {
+        this._readWhilePred((ch) => {
+            return ch != "\n";
+        });
+        this._parser.next();
+    }
+    
+    _readNext() {
+        if (this._parser.isEOF()) {
+            return null;
+        }
+
         switch (this._mode.peek()) {
             case 'json':
             case 'yaml':
-                break;
-            default:
-                const ch = this._parser.next();
-                if (ch === "'") {
-                    this._mode.push('sqstring');
-                } else if (ch === '"') {
-                    this._mode.push('dqstring');
-                } else if (ch === '`') {
-                    this._mode.push('btstring');
-                }
+            case 'line':
+            case 'multiline':
+            case 'dynamic':
+                return this._readRaw();
         }
-    }
-    
-    _isWhitespace(ch) {
-        return /\s/g.test(ch);
-    }
 
-    _isNonWhitespace(ch) {
-        return !/\s/g.test(ch);
-    }
+        this._readWhilePred(this._isWhitespace.bind(this));
+        
+        if (this._mode.peek() === 'normal') {
+            this._mode.pop();
+        }
 
-    _isEscape(ch) {
-        return /\\/g.test(ch);
-    }
+        const ch = this._parser.peek();
 
-    _isIdentifier(ch) {
-        return /[-A-Za-z0-9_.]/g.test(ch);
-    }
+        if (this._isKeywordStart(ch)) {
+            this._parser.next();
+            return this._readKeyword();
+        }
 
-    // Not all of these punctuation symbols are used, but they are included in case one day they are (avoids having to change this bit of code in the future).
-    _isPunc(ch) {
-        return /[~%^&*()+=\[\]{}|:;,?]/g.test(ch);
-    }
+        if (this._isIdentifier(ch)) {
+            return this._readTag();
+        }
 
-    _isMultiPunc(ch) {
-        return /[!></]/g.test(ch);
-    }
+        if (this._isSymbol(ch)) {
+            return this._readSymbols();
+        }
 
-    _isVariableStart(ch) {
-        return /[$]/g.test(ch);
-    }
+        if (this._isNumberStart(ch)) {
+            this._parser.next();
+            return this._readNumber();
+        }
 
-    _isQuoteMark(ch) {
-        return /['"`]/g.test(ch);
-    }
+        if (this._isSingleLineStringQuote(ch)) {
+            this._parser.next();
+            this._mode.push('line');
+            return this._readRaw();
+        }
 
-    _isTag(ch) {
-        return this._isIdentifier(ch) || this._isVariableStart(ch);
-    }
+        if (this._isMultiLineStringQuote(ch)) {
+            this._parser.next();
+            this._mode.push('multiline');
+            return this._readRaw();
+        }
 
-    _getPos() {
-        return { line: this._parser.getLine(), col: this._parser.getCol() };
+        if (this._isDynamicStringQuote(ch)) {
+            this._parser.next();
+            this._mode.push('dynamic');
+            return this._readRaw();
+        }
+
+        // This function needs to return something always, at least until it reaches the end of the input.
+        // The statement parser will stop checking for new tokens once this function returns null or undefined.
+        if (this._isCommentStart(ch)) {
+            this._parser.next();
+            this._readComment();
+            return this._readNext();
+        }
+
+        this._readWhilePred(this._isWhitespace.bind(this));
+
+        if (this._parser.isEOF()) {
+            return null;
+        }
+
+        const pos = this._getPos();
+        const anomaly = this._readWhilePred(not(this._isWhitespace.bind(this)));
+        throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Unknown token type of "${anomaly}".`);
     }
 }

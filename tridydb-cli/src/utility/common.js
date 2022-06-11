@@ -198,6 +198,12 @@ export const parseDynamic = (value) => {
     }
 }
 
+export const not = (fn, ...args) => {
+    return () => {
+        return !fn(args);
+    }
+}
+
 const defaults = Object.freeze({
     alias: {
         type:   'type',

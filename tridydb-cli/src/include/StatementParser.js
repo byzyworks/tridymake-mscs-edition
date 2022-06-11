@@ -64,9 +64,9 @@ export class StatementParser {
              * Also, start at 0 instead of this._carry.length, as there may be complete statements inside the carry that need to be run first.
              * This parser only goes one statement at a time, and one input might have many.
              */
-            if (pool[idx].is('punc', '{')) {
+            if (pool[idx].is('sym', '{')) {
                 this._last_depth++;
-            } else if (pool[idx].is('punc', '}')) {
+            } else if (pool[idx].is('sym', '}')) {
                 this._last_depth--;
 
                 if (this._last_depth < 0) {
@@ -74,7 +74,7 @@ export class StatementParser {
                 }
             }
 
-            if (pool[idx].is('punc', ';')) {
+            if (pool[idx].is('sym', ';')) {
                 this._last_ended = true;
             } else {
                 this._last_ended = false;

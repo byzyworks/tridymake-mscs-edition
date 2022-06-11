@@ -15,6 +15,8 @@ export class SyntaxParser {
         switch (token.debug.type) {
             case 'key':
                 throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected clause "@${token.debug.val}".`);
+            case 'num':
+                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected number "${token.debug.val}".`);
             default:
                 throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected token "${token.debug.val}".`);
         }
@@ -23,23 +25,81 @@ export class SyntaxParser {
     // The operator given below is what the parser assumes the user means when two operands are separated by no operand other than a whitespace.
     // Why is this chosen? Semantically, the assumption is that if a module is described with two words (tags) alone, then it should match both.
     _getContextImplicitBinaryOp () {
-        return new Token('o', '&');
+        return new Token('ctxt_op', '&');
+    }
+
+    _handleContextNumberExpression(context) {
+        let current;
+
+        current = this._tokens.peek().toContextToken();
+        if (!current.is('ctxt_misc', '(')) {
+            this._handleUnexpected();
+        }
+        context.push(current);
+        this._tokens.next();
+        
+        current = this._tokens.peek().toContextToken();
+        if (!current.is('ctxt_term')) {
+            this._handleUnexpected();
+        }
+        context.push(current);
+        this._tokens.next();
+
+        current = this._tokens.peek();
+        if (current.is('sym')) {
+            current.val = '$' + current.val; // The '$' prevents confusion with @parent (>) or @child (<).
+        }
+        current = current.toContextToken();
+        if (!current.isBinaryNumberOpContextToken()) {
+            this._handleUnexpected();
+        }
+        context.push(current);
+        this._tokens.next();
+
+        current = this._tokens.peek().toContextToken();
+        if (!current.is('ctxt_term') || isNaN(current.val)) {
+            this._handleUnexpected();
+        }
+        context.push(current);
+        this._tokens.next();
+
+        current = this._tokens.peek().toContextToken();
+        if (!current.is('ctxt_misc', ')')) {
+            this._handleUnexpected();
+        }
+        context.push(current);
+        this._tokens.next();
     }
 
     _handleWhileContextTerminal(context) {
         let current = this._tokens.peek().toContextToken();
 
-        if (current.is('t')) {
-            context.push(current);
-            this._tokens.next();
+        if (current.is('ctxt_term') || current.is('ctxt_misc', '$')) {
+            if (current.is('ctxt_term')) {
+                context.push(current);
+
+                this._tokens.next();
+            } else if (current.is('ctxt_misc', '$')) {
+                this._tokens.next();
+
+                this._handleContextNumberExpression(context);
+            }
 
             current = this._tokens.peek().toContextToken();
         }
 
-        while (current.is('t')) {
+        while (current.is('ctxt_term') || current.is('ctxt_misc', '$')) {
             context.push(this._getContextImplicitBinaryOp());
-            context.push(current);
-            this._tokens.next();
+            
+            if (current.is('ctxt_term')) {
+                context.push(current);
+
+                this._tokens.next();
+            } else if (current.is('ctxt_misc', '$')) {
+                this._tokens.next();
+
+                this._handleContextNumberExpression(context);
+            }
 
             current = this._tokens.peek().toContextToken();
         }
@@ -79,9 +139,9 @@ export class SyntaxParser {
                     context.push(this._getContextImplicitBinaryOp());
                 }
 
-                if (current.is('t')) {
+                if (current.is('ctxt_term') || current.is('ctxt_misc', '$')) {
                     this._handleWhileContextTerminal(context);
-                } else if (current.isUnaryOpContextToken() || current.is('o', '(')) {
+                } else {
                     this._handleContextExpressionOuter(context);
                 }
             } else if (current.isBinaryOpContextToken()) {
@@ -107,7 +167,7 @@ export class SyntaxParser {
         let is_enclosed = false;
 
         current = this._tokens.peek().toContextToken();
-        if (current.is('o', '(')) {
+        if (current.is('ctxt_misc', '(')) {
             context.push(current);
             this._tokens.next();
             
@@ -118,7 +178,7 @@ export class SyntaxParser {
 
         if (is_enclosed) {
             current = this._tokens.peek().toContextToken();
-            if (!current.is('o', ')')) {
+            if (!current.is('ctxt_misc', ')')) {
                 this._handleUnexpected();
             }
 
@@ -327,27 +387,39 @@ export class SyntaxParser {
     _readWhileTag() {
         const tags = [ ];
 
+        let new_tag;
+
         let current = this._tokens.peek();
         while (current.isTagsetToken()) {
-            // There is no reason one would want to post duplicate tags in the same module.
-            // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
-            let new_tag = current.val;
-            for (const current_tag of tags) {
-                if (new_tag === current_tag) {
-                    this._handleUnexpected();
-                }
-            }
+            new_tag = current.val;
 
             // When a clause token is produced, the @ at the beginning of it is lost.
             // To continue distinguishing it from regular tags here, it is added back.
             // It is assumed that the outer if-statement will filter out clauses that can't perform as tags.
-            if (current.is('key')) {
-                current.val = '@' + current.val;
+            if (current.is('tag')) {
+                // There is no reason one would want to post duplicate tags in the same module.
+                // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
+                for (const current_tag of tags) {
+                    if (new_tag === current_tag) {
+                        this._handleUnexpected();
+                    }
+                }
+
+                this._tokens.next();
+
+                current = this._tokens.peek();
+                if (current.is('num')) {
+                    new_tag += ':' + current.val;
+
+                    this._tokens.next();
+                }
+            } else if (current.is('key')) {
+                new_tag = '@' + current.val;
+
+                this._tokens.next();
             }
 
-            tags.push(current.val);
-
-            this._tokens.next();
+            tags.push(new_tag);
 
             current = this._tokens.peek();
         }
@@ -393,13 +465,13 @@ export class SyntaxParser {
         if (this._tokens.peek().is('key', 'none')) {
             this._tokens.next();
         } else {
-            if (!this._tokens.peek().is('punc', '{')) {
+            if (!this._tokens.peek().is('sym', '{')) {
                 this._handleUnexpected();
             }
             this._astree.enterNested();
             this._tokens.next();
 
-            while (!this._tokens.peek().is('punc', '}')) {
+            while (!this._tokens.peek().is('sym', '}')) {
                 this._handleStatement();
             }
             this._astree.leaveNested();
@@ -569,13 +641,13 @@ export class SyntaxParser {
                 context_defined = true;
             }
 
-            if (this._tokens.peek().is('punc', '{')) {
+            if (this._tokens.peek().is('sym', '{')) {
                 this._astree.enterSetAndLeave('operation', 'multi');
                 
                 this._tokens.next();
                 this._astree.enterPos('definition');
                 this._astree.enterNested();
-                while (!this._tokens.peek().is('punc', '}')) {
+                while (!this._tokens.peek().is('sym', '}')) {
                     this._handleStatement();
                 }
                 this._astree.leaveNested();
@@ -661,7 +733,7 @@ export class SyntaxParser {
             }
         }
 
-        if (!this._tokens.peek().is('punc', ';')) {
+        if (!this._tokens.peek().is('sym', ';')) {
             this._handleUnexpected();
         }
 

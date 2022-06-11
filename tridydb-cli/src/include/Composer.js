@@ -110,6 +110,67 @@ export class Composer {
         return common.isDictionary(obj) && (obj.val !== undefined);
     }
 
+    _getStoredTagID(tag) {
+        return tag.split(':')[0];
+    }
+
+    _getStoredTagValue(tag) {
+        tag = tag.split(':');
+        if ((tag.length !== 2) || (isNaN(tag[1]))) {
+            return 1;
+        }
+        return Number(tag[1]);
+    }
+
+    _matchingTagValue(test, tested, lvl) {
+        switch (test.val) {
+            case '?':
+                return this._random.prng();
+            default:
+                for (const tag of tested[lvl]) {
+                    if (test.val === this._getStoredTagID(tag)) {
+                        return this._getStoredTagValue(tag);
+                    }
+                }
+                return 0;
+        }
+    }
+
+    _matchingNumberExpression(a, b, op, tested, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        let answer;
+
+        switch (op) {
+            case '$==':
+                answer = (this._matchingTagValue(a, tested, lvl) === Number(b.val));
+                break;
+            case '$!=':
+                answer = (this._matchingTagValue(a, tested, lvl) !== Number(b.val));
+                break;
+            case '$<':
+                answer = (this._matchingTagValue(a, tested, lvl) < Number(b.val));
+                break;
+            case '$<=':
+                answer = (this._matchingTagValue(a, tested, lvl) <= Number(b.val));
+                break;
+            case '$>':
+                answer = (this._matchingTagValue(a, tested, lvl) > Number(b.val));
+                break;
+            case '$>=':
+                answer = (this._matchingTagValue(a, tested, lvl) >= Number(b.val));
+                break;
+        }
+
+        answer &&= !a.end || (lvl === (tested.length - 1));
+
+        if ((answer === true) && (opts.tracked instanceof Set)) {
+            opts.tracked.add(lvl);
+        }
+
+        return answer;
+    }
+
     _matchingTag(test, tested, lvl, opts = { }) {
         opts.tracked = opts.tracked ?? null;
 
@@ -131,7 +192,7 @@ export class Composer {
             default: // assumed to be a regular old tag
                 answer = false;
                 for (const tag of tested[lvl]) {
-                    if (test.val == tag) {
+                    if (test.val === this._getStoredTagID(tag)) {
                         answer = true;
                         break;
                     }
@@ -389,50 +450,38 @@ export class Composer {
     _matchingExpression(test, tested, lvl, opts = { }) {
         opts.tracked = opts.tracked ?? null;
 
-        let answer;
-
         if (common.isEmpty(test)) {
-            answer = common.isEmpty(tested);
+            return common.isEmpty(tested);
         } else if (common.isEmpty(tested) || (lvl < 0) || (lvl >= tested.length)) {
-            answer = false;
+            return false;
         } else if (this._isTag(test)) {
-            answer = this._matchingTag(test, tested, lvl, opts);
+            return this._matchingTag(test, tested, lvl, opts);
+        } else if (test.num === true) {
+            return this._matchingNumberExpression(test.a, test.b, test.op, tested, lvl, opts);
         } else {
             switch (test.op) {
                 case '!':
-                    answer = this._testNot(test.a, tested, lvl, opts);
-                    break;
+                    return this._testNot(test.a, tested, lvl, opts);
                 case '&':
-                    answer = this._testAnd(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testAnd(test.a, test.b, tested, lvl, opts);
                 case '^':
-                    answer = this._testXor(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testXor(test.a, test.b, tested, lvl, opts);
                 case '|':
-                    answer = this._testOr(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testOr(test.a, test.b, tested, lvl, opts);
                 case '>':
-                    answer = this._testParent(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testParent(test.a, test.b, tested, lvl, opts);
                 case '>>':
-                    answer = this._testAscend(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testAscend(test.a, test.b, tested, lvl, opts);
                 case '<':
-                    answer = this._testChild(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testChild(test.a, test.b, tested, lvl, opts);
                 case '<<':
-                    answer = this._testDescend(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testDescend(test.a, test.b, tested, lvl, opts);
                 case '/':
-                    answer = this._testTo(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testTo(test.a, test.b, tested, lvl, opts);
                 case '//':
-                    answer = this._testToward(test.a, test.b, tested, lvl, opts);
-                    break;
+                    return this._testToward(test.a, test.b, tested, lvl, opts);
             }
         }
-
-        return answer;
     }
 
     _uniqueCopy(template) {
@@ -720,7 +769,7 @@ export class Composer {
     }
 
     _createExpressionPositionHelpersRecursive(test, end = null) {
-        const token = new Token('o', test.op);
+        const token = new Token('ctxt_op', test.op);
 
         if (end === null) {
             if (token.isNestedOpContextToken()) {

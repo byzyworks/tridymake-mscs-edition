@@ -11,34 +11,39 @@ export class InfixParser {
      */
     _toPostfix(input) {
         const prec = {
-            '!':  0,
-            '&':  1,
-            '^':  2,
-            '|':  3,
-            '<':  4,
-            '<<': 4,
-            '>':  4,
-            '>>': 4,
-            '/':  5,
-            '//': 5
-        };
+            '$==': 0,
+            '$!=': 0,
+            '$<':  0,
+            '$<=': 0,
+            '$>':  0,
+            '$>=': 0,
+            '!':   1,
+            '&':   2,
+            '^':   3,
+            '|':   4,
+            '<':   5,
+            '<<':  5,
+            '>':   5,
+            '>>':  5,
+            '/':   6,
+            '//':  6
+        }
 
         const out = new Queue();
         const ops = new Stack();
 
         for (const token of input) {
-            if (token.type == 't') {
+            if (token.type === 'ctxt_term') {
                 out.enqueue(token);
-            } else if (token.val == '(') {
+            } else if (token.val === '(') {
                 ops.push(token);
-            } else if (token.val == ')') {
-                while (!ops.isEmpty() && (ops.peek().val != '(')) {
+            } else if (token.val === ')') {
+                while (!ops.isEmpty() && (ops.peek().val !== '(')) {
                     out.enqueue(ops.pop());
                 }
                 ops.pop();
-            } else {
-                // token is operator that isn't parantheses
-                while (!ops.isEmpty() && (prec[ops.peek().val] < prec[token.val])) {
+            } else if (token.type === 'ctxt_op') {
+                while (!ops.isEmpty() && (ops.peek().val !== '(') && (prec[ops.peek().val] < prec[token.val])) {
                     out.enqueue(ops.pop());
                 }
                 ops.push(token);
@@ -67,17 +72,26 @@ export class InfixParser {
         let current;
         while (!postfix.isEmpty()) {
             current = postfix.dequeue();
-            if (current.type == 't') {
+            if (current.type === 'ctxt_term') {
                 out.push(current.val);
             } else if (current.isUnaryOpContextToken()) {
                 const a = out.pop();
 
-                out.push({ a: a, op: current.val });
-            } else {
+                out.push({
+                    a:   a,
+                    op:  current.val,
+                    num: false
+                });
+            } else if (current.isBinaryOpContextToken()) {
                 const b = out.pop();
                 const a = out.pop();
 
-                out.push({ a: a, op: current.val, b: b });
+                out.push({
+                    a:   a,
+                    op:  current.val,
+                    b:   b,
+                    num: current.isBinaryNumberOpContextToken()
+                });
             }
         }
 

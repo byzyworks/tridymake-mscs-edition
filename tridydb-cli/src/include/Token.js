@@ -9,50 +9,59 @@ export class Token {
         }
     }
 
+    getTokenType() {
+        return this.type;
+    }
+
+    getTokenValue() {
+        return this.val;
+    }
+
     is(type = null, value = null) {
         return (((this.type == type) || (type === null)) && ((this.val == value) || (value === null)));
     }
 
     isUnaryOpContextToken() {
         return false ||
-            this.is('o', '!')
+            this.is('ctxt_op', '!')
         ;
     }
 
     isExpressionStarterContextToken() {
         return false ||
-            this.is('t') ||
+            this.is('ctxt_term') ||
             this.isUnaryOpContextToken() ||
-            this.is('o', '(')
+            this.is('ctxt_misc', '(') ||
+            this.is('ctxt_misc', '$')
         ;
     }
 
     isExpressionEnderContextToken() {
         return false ||
-            this.is('t') ||
-            this.is('o', ')')
+            this.is('ctxt_term') ||
+            this.is('ctxt_misc', ')')
         ;
     }
 
     isBasicBinaryOpContextToken() {
         return false ||
-            this.is('o', '&') ||
-            this.is('o', '^') ||
-            this.is('o', '|')
+            this.is('ctxt_op', '&') ||
+            this.is('ctxt_op', '^') ||
+            this.is('ctxt_op', '|')
         ;
     }
 
     isLookaheadNestedOpContextToken() {
         return false ||
-            this.is('o', '>') ||
-            this.is('o', '>>')
+            this.is('ctxt_op', '>') ||
+            this.is('ctxt_op', '>>')
         ;
     }
 
     isLookbehindNestedOpContextToken() {
         return false ||
-            this.is('o', '<') ||
-            this.is('o', '<<')
+            this.is('ctxt_op', '<') ||
+            this.is('ctxt_op', '<<')
         ;
     }
 
@@ -65,8 +74,8 @@ export class Token {
 
     isTransitiveNestedOpContextToken() {
         return false ||
-            this.is('o', '/') ||
-            this.is('o', '//')
+            this.is('ctxt_op', '/') ||
+            this.is('ctxt_op', '//')
         ;
     }
 
@@ -77,11 +86,29 @@ export class Token {
         ;
     }
 
-    isBinaryOpContextToken() {
+    isBinaryTagOpContextToken() {
         return false ||
             this.isBasicBinaryOpContextToken() ||
             this.isNonTransitiveNestedOpContextToken() ||
             this.isTransitiveNestedOpContextToken()
+        ;
+    }
+
+    isBinaryNumberOpContextToken() {
+        return false ||
+            this.is('ctxt_op', '$==') ||
+            this.is('ctxt_op', '$!=') ||
+            this.is('ctxt_op', '$<') ||
+            this.is('ctxt_op', '$<=') ||
+            this.is('ctxt_op', '$>') ||
+            this.is('ctxt_op', '$>=')
+        ;
+    }
+
+    isBinaryOpContextToken() {
+        return false ||
+            this.isBinaryTagOpContextToken() ||
+            this.isBinaryNumberOpContextToken()
         ;
     }
 
@@ -90,70 +117,94 @@ export class Token {
     }
 
     toContextToken() {
-        if (this.type == 'tag') {
-            return this.to('t', this.val);
-        } else if ((this.type == 'key') || (this.type == 'punc')) {
-            switch (this.val) {
-                case 'any':
-                case '*':
-                    return this.to('t', '*');
-                case 'root':
-                case '~':
-                    return this.to('t', '~');
-                case 'leaf':
-                case '%':
-                    return this.to('t', '%');
-                case 'random':
-                case '?':
-                    return this.to('t', '?');
-                case 'not':
-                case '!':
-                    return this.to('o', '!');
-                case 'and':
-                case '&':
-                    return this.to('o', '&');
-                case 'xor':
-                case '^':
-                    return this.to('o', '^');
-                case 'or':
-                case '|':
-                case ',':
-                    return this.to('o', '|');
-                case 'parent':
-                case '>':
-                    return this.to('o', '>');
-                case 'ascend':
-                case '>>':
-                    return this.to('o', '>>');
-                case 'child':
-                case '<':
-                    return this.to('o', '<');
-                case 'descend':
-                case '<<':
-                    return this.to('o', '<<');
-                case 'to':
-                case '/':
-                    return this.to('o', '/');
-                case 'toward':
-                case '//':
-                    return this.to('o', '//');
-                case '(':
-                    return this.to('o', '(');
-                case ')':
-                    return this.to('o', ')');
-                default:
-                    return this.to(this.type, this.val);
-            }
-        } else {
-            return this.to(this.type, this.val);
+        switch (this.type) {
+            case 'tag':
+            case 'num':
+                return this.to('ctxt_term', this.val);
+            case 'key':
+            case 'sym':
+                switch (this.val) {
+                    case 'any':
+                    case '*':
+                        return this.to('ctxt_term', '*');
+                    case 'root':
+                    case '~':
+                        return this.to('ctxt_term', '~');
+                    case 'leaf':
+                    case '%':
+                        return this.to('ctxt_term', '%');
+                    case 'random':
+                    case '?':
+                        return this.to('ctxt_term', '?');
+                    case 'not':
+                    case '!':
+                        return this.to('ctxt_op', '!');
+                    case 'and':
+                    case '&':
+                        return this.to('ctxt_op', '&');
+                    case 'xor':
+                    case '^':
+                        return this.to('ctxt_op', '^');
+                    case 'or':
+                    case '|':
+                    case ',':
+                        return this.to('ctxt_op', '|');
+                    case 'parent':
+                    case '>':
+                        return this.to('ctxt_op', '>');
+                    case 'ascend':
+                    case '>>':
+                        return this.to('ctxt_op', '>>');
+                    case 'child':
+                    case '<':
+                        return this.to('ctxt_op', '<');
+                    case 'descend':
+                    case '<<':
+                        return this.to('ctxt_op', '<<');
+                    case 'to':
+                    case '/':
+                        return this.to('ctxt_op', '/');
+                    case 'toward':
+                    case '//':
+                        return this.to('ctxt_op', '//');
+                    case '$':
+                        return this.to('ctxt_misc', '$');
+                    case 'eq':
+                    case '$==':
+                        return this.to('ctxt_op', '$==');
+                    case 'ne':
+                    case '$!=':
+                        return this.to('ctxt_op', '$!=');
+                    case 'lt':
+                    case '$<':
+                        return this.to('ctxt_op', '$<');
+                    case 'le':
+                    case '$<=':
+                        return this.to('ctxt_op', '$<=');
+                    case 'gt':
+                    case '$>':
+                        return this.to('ctxt_op', '$>');
+                    case 'ge':
+                    case '$>=':
+                        return this.to('ctxt_op', '$>=');
+                    case '(':
+                        return this.to('ctxt_misc', '(');
+                    case ')':
+                        return this.to('ctxt_misc', ')');
+                    default:
+                        return this.to(this.type, this.val);
+                }
+            default:
+                return this.to(this.type, this.val);
         }
     }
 
     isContextToken() {
         const converted = this.toContextToken();
         return false ||
-            converted.is('t') ||
-            converted.is('o')
+            converted.is('ctxt_term') ||
+            converted.is('ctxt_op') ||
+            converted.is('ctxt_misc')
         ;
     }
 
