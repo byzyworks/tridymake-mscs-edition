@@ -2,6 +2,7 @@ import * as yaml from 'js-yaml';
 
 import { InfixParser } from './InfixParser.js';
 import { StateTree }   from './StateTree.js';
+import { Tag }         from './Tag.js';
 import { Token }       from './Token.js';
 
 import { global, isEmpty, parseDynamic } from '../utility/common.js';
@@ -400,7 +401,7 @@ export class SyntaxParser {
                 // There is no reason one would want to post duplicate tags in the same module.
                 // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
                 for (const current_tag of tags) {
-                    if (new_tag === current_tag) {
+                    if (new_tag === Tag.getIdentifier(current_tag)) {
                         this._handleUnexpected();
                     }
                 }
@@ -441,7 +442,7 @@ export class SyntaxParser {
     _handleTypeDefinitionImplicit() {
         const tags = this._astree.enterGetAndLeave(global.defaults.alias.tags);
         if (!isEmpty(tags)) {
-            this._astree.enterSetAndLeave(global.defaults.alias.type, tags[tags.length - 1]);
+            this._astree.enterSetAndLeave(global.defaults.alias.type, Tag.getIdentifier(tags[tags.length - 1]));
         }
     }
 

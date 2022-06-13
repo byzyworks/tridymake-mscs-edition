@@ -77,21 +77,12 @@ export class InfixParser {
             } else if (current.isUnaryOpContextToken()) {
                 const a = out.pop();
 
-                out.push({
-                    a:   a,
-                    op:  current.val,
-                    num: false
-                });
+                out.push({ a: a, op: current.val });
             } else if (current.isBinaryOpContextToken()) {
                 const b = out.pop();
                 const a = out.pop();
 
-                out.push({
-                    a:   a,
-                    op:  current.val,
-                    b:   b,
-                    num: current.isBinaryNumberOpContextToken()
-                });
+                out.push({ a: a, op: current.val, b: b });
             }
         }
 

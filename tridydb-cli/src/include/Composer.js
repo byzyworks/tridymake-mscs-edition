@@ -1,8 +1,10 @@
 import seedrandom from 'seedrandom';
+import shuffle    from 'knuth-shuffle-seeded';
 import uuid       from 'uuid-random';
 
 import { Compressor } from './Compressor.js';
 import { StateTree }  from './StateTree.js';
+import { Tag }        from './Tag.js';
 import { Token }      from './Token.js';
 
 import * as common     from '../utility/common.js';
@@ -21,11 +23,284 @@ export class Composer {
     }
 
     setRandomSeed(seed) {
-        this._random      = { };
-        this._random.seed = seed ?? seedrandom().int32();
-        this._random.prng = new seedrandom(this._random.seed, { entropy: false });
+        this._random       = { };
+        this._random.seed  = seed ?? seedrandom().int32();
+        this._random.prng  = new seedrandom(''.concat(this._random.seed), { entropy: false });
     }
+
+    _matchingTagValue(test, info, lvl) {
+        switch (test.val) {
+            case '?':
+                return this._random.prng();
+            default:
+                for (const tag of info.index.context[lvl]) {
+                    if (test.val === Tag.getIdentifier(tag)) {
+                        return Tag.getValue(tag);
+                    }
+                }
+                return null;
+        }
+    }
+
+    _verifyMatching(answer, test, info, lvl, opts = { }) {
+        opts.tracked = opts.tracked ?? null;
+
+        /**
+         * The output of this depends on whether the context is "intermediate" (like a in "a/b") or "final" (like b in "a/b").
+         * The expression tree contains generated position helpers ("test.end") determining which one the terminal is.
+         * It's required that the terminal is evaluated at the last level of the context if the terminal is final.
+         * If whether it reaches the last element or not isn't verified, then the expression becomes true not only for the module, but also all of its sub-modules.
+         * We want "a/b" to change "a/b", but not "a/b/c" as well, even though "a/b" is all true for the first part of "a/b/c"'s context.
+         * That's also because it may be that we're testing the expression against a module with the context "a/b/c", and not "a/b".
+         * Otherwise, if it's intermediate, it should not matter.
+         * 
+         * You might think "why not just answer &&= lvl <= info.index.context.length - 1?", and why the position helpers?
+         * That's because info.index.context.length is dynamic depending on the module being addressed.
+         * If the module is a child module of a correct one, then info.index.context.length is already larger than what the level is, so the comparison would always be true for child modules.
+         * That makes the comparison, in effect, pointless.
+         * The best way to determine finality appears to be from the expression tree's end, not the module's.
+         */
+        answer &&= !test.end || (lvl === (info.index.context.length - 1));
+
+        /**
+         * The need for this is because of the confusing reality of some expressions.
+         * Consider "(a|(b/c))/d", which is expandable as "a/d" and "b/c/d". Question is, in the original expression, if "(a|(b/c))" is true, at what level should "d" be evaluated at?
+         * Normally, the "next level down" is sufficient, but the entirety of "(a|(b/c))" starts at level 0, and "d" at level 1 only includes "a/d" and thus ignores "b/c/d" at level 2.
+         * As a result, the level stopped at is important for the calling operation to know.
+         */
+        if ((answer === true) && (opts.tracked instanceof Set)) {
+            opts.tracked.add(lvl);
+        }
+
+        return answer;
+    }
+
+    _matchingTag(test, info, lvl, opts = { }) {
+        let answer;
+
+        switch (test.val) {
+            case '*': // from @any
+                answer = true;
+                break;
+            case '~': // from @root
+                answer = lvl === 0;
+                break;
+            case '%': // from @leaf
+                answer = common.isEmpty(this._target.peek().enterGetAndLeave(this._alias.nested));
+                break;
+            case '?': // from @random
+                answer = (this._random.prng() >= 0.5);
+                break;
+            default: // assumed to be a regular old tag
+                answer = false;
+                for (const tag of info.index.context[lvl]) {
+                    if (test.val === Tag.getIdentifier(tag)) {
+                        answer = true;
+                        break;
+                    }
+                }
+                break;
+        }
+
+        return this._verifyMatching(answer, test, info, lvl, opts);
+    }
+
+    _matchingNumberExpression(a, b, op, info, lvl, opts = { }) {
+        let answer = this._matchingTagValue(a, info, lvl);
+        switch (op) {
+            case '$==':
+                answer = (answer === null) ? false : (answer === Number(b.val));
+                break;
+            case '$!=':
+                answer = (answer === null) ? true : (answer !== Number(b.val));
+                break;
+            case '$<':
+                answer = (answer === null) ? false : (answer < Number(b.val));
+                break;
+            case '$<=':
+                answer = (answer === null) ? false : (answer <= Number(b.val));
+                break;
+            case '$>':
+                answer = (answer === null) ? false : (answer > Number(b.val));
+                break;
+            case '$>=':
+                answer = (answer === null) ? false : (answer >= Number(b.val));
+                break;
+        }
+
+        return this._verifyMatching(answer, a, info, lvl, opts);
+    }
+
+    _testLookaheadRecursive(b, info, lvl, recursive, opts = { }) {
+        const target = this._target.peek();
+
+        const child_subcontext = [ ];
+        
+        // Needed if @parent/@ascend is used with @to/@toward and is in the LHS of the @to/@toward expression.
+        // The target's context needs to be aligned with that of the parent that's supposed to be evaluated.
+        const parent_diff = info.index.context.length - lvl;
+        for (let i = 0; i < parent_diff; i++) {
+            child_subcontext.push(target.leavePos());
+            child_subcontext.push(target.leavePos());
+        }
+
+        let answer = false;
+
+        target.enterPos(this._alias.nested);
+        if (!target.isPosEmpty()) {
+            const shuffle_seed = this._random.prng();
+
+            target.enterPos(0);
+            while (!target.isPosUndefined()) {
+                info = this._getModuleInfo(shuffle_seed);
+
+                answer = this._matchingExpression(b, info, lvl, opts);
+
+                if (recursive && (answer === false)) {
+                    lvl++;
+
+                    answer = this._testLookaheadRecursive(b, info, lvl, recursive, opts);
+                }
+                if (answer === true) {
+                    break;
+                }
+
+                target.nextItem();
+            }
+            target.leavePos();
+        }
+        target.leavePos();
+
+        while (child_subcontext.length > 0) {
+            target.enterPos(child_subcontext.pop());
+        }
+
+        return answer;
+    }
+
+    _testLookahead(a, b, info, lvl, recursive, opts = { }) {
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, info, lvl, a_opts);
+
+        const b_opts        = { recurse: true, tracked: new Set() };
+        let   b_answer_part = false;
+        let   b_answer      = false;
+        if (a_answer === true) {
+            for (let cand_lvl of a_opts.tracked) {
+                lvl = cand_lvl + 1;
+
+                b_answer_part = this._testLookaheadRecursive(b, info, lvl, recursive, b_opts);
+
+                if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
+                    opts.tracked.add(cand_lvl);
+                }
+
+                b_answer ||= b_answer_part;
+            }
+        }
+
+        return a_answer && b_answer;
+    }
+
+    _testLookbehind(a, b, info, lvl, recursive, opts = { }) {
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, info, lvl, a_opts);
+
+        const b_opts        = { tracked: new Set() };
+        let   b_answer_part = false;
+        let   b_answer      = false;
+        if (a_answer === true) {
+            for (let cand_lvl of a_opts.tracked) {
+                lvl = cand_lvl - 1;
+
+                if (recursive) {
+                    while ((b_answer_part === false) && (lvl >= 0)) {
+                        b_answer_part = this._matchingExpression(b, info, lvl, b_opts);
     
+                        lvl--;
+                    }
+                } else {
+                    b_answer_part = this._matchingExpression(b, info, lvl, b_opts);
+                }
+                
+                if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
+                    opts.tracked.add(cand_lvl);
+                }
+
+                b_answer ||= b_answer_part;
+            }
+        }
+
+        return a_answer && b_answer;
+    }
+
+    _testTransitive(a, b, info, lvl, recursive, opts = { }) {
+        const a_opts   = { tracked: new Set() };
+        const a_answer = this._matchingExpression(a, info, lvl, a_opts);
+
+        let b_answer_part = false;
+        let b_answer      = false;
+        if (a_answer === true) {
+            for (let cand_lvl of a_opts.tracked) {
+                lvl = cand_lvl + 1;
+
+                if (recursive) {
+                    while ((b_answer_part === false) && (lvl < info.index.context.length)) {
+                        b_answer_part = this._matchingExpression(b, info, lvl, opts);
+
+                        lvl++;
+                    }
+                    b_answer ||= b_answer_part;
+                } else {
+                    b_answer ||= this._matchingExpression(b, info, lvl, opts);
+                }
+            }
+        }
+
+        return a_answer && b_answer;
+    }
+
+    _isExpressionTreeLeaf(obj) {
+        return common.isDictionary(obj) && (obj.val !== undefined);
+    }
+
+    _matchingExpression(test, info, lvl, opts = { }) {
+        if (common.isEmpty(test)) {
+            return common.isEmpty(info.index.context);
+        } else if (common.isEmpty(info.index.context) || (lvl < 0) || (lvl >= info.index.context.length)) {
+            return false;
+        } else if (this._isExpressionTreeLeaf(test)) {
+            return this._matchingTag(test, info, lvl, opts);
+        } else if (test.op[0] === '$') {
+            return this._matchingNumberExpression(test.a, test.b, test.op, info, lvl, opts);
+        } else {
+            switch (test.op) {
+                case '!':
+                    return !this._matchingExpression(test.a, info, lvl, opts);
+                case '&':
+                    return this._matchingExpression(test.a, info, lvl, opts) && this._matchingExpression(test.b, info, lvl, opts);
+                case '^':
+                    const a = this._matchingExpression(test.a, info, lvl, opts);
+                    const b = this._matchingExpression(test.b, info, lvl, opts);
+                    return (a & !b) || (b & !a);
+                case '|':
+                    return this._matchingExpression(test.a, info, lvl, opts) || this._matchingExpression(test.b, info, lvl, opts);
+                case '>':
+                    return this._testLookahead(test.a, test.b, info, lvl, false, opts);
+                case '>>':
+                    return this._testLookahead(test.a, test.b, info, lvl, true, opts);
+                case '<':
+                    return this._testLookbehind(test.a, test.b, info, lvl, false, opts);
+                case '<<':
+                    return this._testLookbehind(test.a, test.b, info, lvl, true, opts);
+                case '/':
+                    return this._testTransitive(test.a, test.b, info, lvl, false, opts);
+                case '//':
+                    return this._testTransitive(test.a, test.b, info, lvl, true, opts);
+            }
+        }
+    }
+
     _createModule(module = null) {
         if (module === null) {
             module = new StateTree(module, this._alias);
@@ -80,408 +355,6 @@ export class Composer {
         this._astree.leavePos();
 
         return module.getRaw();
-    }
-
-    _getContext() {
-        let current = [ ];
-
-        const target  = this._target.peek();
-        const indices = target.getFullPos();
-        let   ptr     = target.getRaw();
-        
-        /**
-         * Note: the indices are how the JSON database is structured at a low level.
-         * For instance, the coordinates of the first module under the root module would normally be ['tree'][0].
-         * Since it's 2 indices ('tree' and 0) from the perspective of the parent module, we need to make 2 jumps each time.
-         */
-        for (let i = 0; i < indices.length; i += 2) {
-            ptr = ptr[indices[i]][indices[i + 1]];
-            if (!common.isDictionary(ptr) || common.isEmpty(ptr[this._alias.tags])) {
-                current.push([ ]);
-            } else {
-                current.push(ptr[this._alias.tags]);
-            }
-        }
-
-        return current;
-    }
-
-    _isTag(obj) {
-        return common.isDictionary(obj) && (obj.val !== undefined);
-    }
-
-    _getStoredTagID(tag) {
-        return tag.split(':')[0];
-    }
-
-    _getStoredTagValue(tag) {
-        tag = tag.split(':');
-        if ((tag.length !== 2) || (isNaN(tag[1]))) {
-            return 1;
-        }
-        return Number(tag[1]);
-    }
-
-    _matchingTagValue(test, tested, lvl) {
-        switch (test.val) {
-            case '?':
-                return this._random.prng();
-            default:
-                for (const tag of tested[lvl]) {
-                    if (test.val === this._getStoredTagID(tag)) {
-                        return this._getStoredTagValue(tag);
-                    }
-                }
-                return 0;
-        }
-    }
-
-    _matchingNumberExpression(a, b, op, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        let answer;
-
-        switch (op) {
-            case '$==':
-                answer = (this._matchingTagValue(a, tested, lvl) === Number(b.val));
-                break;
-            case '$!=':
-                answer = (this._matchingTagValue(a, tested, lvl) !== Number(b.val));
-                break;
-            case '$<':
-                answer = (this._matchingTagValue(a, tested, lvl) < Number(b.val));
-                break;
-            case '$<=':
-                answer = (this._matchingTagValue(a, tested, lvl) <= Number(b.val));
-                break;
-            case '$>':
-                answer = (this._matchingTagValue(a, tested, lvl) > Number(b.val));
-                break;
-            case '$>=':
-                answer = (this._matchingTagValue(a, tested, lvl) >= Number(b.val));
-                break;
-        }
-
-        answer &&= !a.end || (lvl === (tested.length - 1));
-
-        if ((answer === true) && (opts.tracked instanceof Set)) {
-            opts.tracked.add(lvl);
-        }
-
-        return answer;
-    }
-
-    _matchingTag(test, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        let answer;
-
-        switch (test.val) {
-            case '*': // from @any
-                answer = true;
-                break;
-            case '~': // from @root
-                answer = lvl === 0;
-                break;
-            case '%': // from @leaf
-                answer = common.isEmpty(this._target.peek().enterGetAndLeave(this._alias.nested));
-                break;
-            case '?': // from @random
-                answer = (this._random.prng() >= 0.5);
-                break;
-            default: // assumed to be a regular old tag
-                answer = false;
-                for (const tag of tested[lvl]) {
-                    if (test.val === this._getStoredTagID(tag)) {
-                        answer = true;
-                        break;
-                    }
-                }
-                break;
-        }
-
-        /**
-         * The output of this depends on whether the context is "intermediate" (like a in "a/b") or "final" (like b in "a/b").
-         * The expression tree contains generated position helpers ("test.end") determining which one the terminal is.
-         * It's required that the terminal is evaluated at the last level of the context if the terminal is final.
-         * If whether it reaches the last element or not isn't verified, then the expression becomes true not only for the module, but also all of its sub-modules.
-         * We want "a/b" to change "a/b", but not "a/b/c" as well, even though "a/b" is all true for the first part of "a/b/c"'s context.
-         * That's also because it may be that we're testing the expression against a module with the context "a/b/c", and not "a/b".
-         * Otherwise, if it's intermediate, it should not matter.
-         * 
-         * You might think "why not just answer &&= lvl <= tested.length - 1?", and why the position helpers?
-         * That's because tested.length is dynamic depending on the module being addressed.
-         * If the module is a child module of a correct one, then tested.length is already larger than what the level is, so the comparison would always be true for child modules.
-         * That makes the comparison, in effect, pointless.
-         * The best way to determine finality appears to be from the expression tree's end, not the module's.
-         */
-        answer &&= !test.end || (lvl === (tested.length - 1));
-
-        /**
-         * The need for this is because of the confusing reality of some expressions.
-         * Consider "(a|(b/c))/d", which is expandable as "a/d" and "b/c/d". Question is, in the original expression, if "(a|(b/c))" is true, at what level should "d" be evaluated at?
-         * Normally, the "next level down" is sufficient, but the entirety of "(a|(b/c))" starts at level 0, and "d" at level 1 only includes "a/d" and thus ignores "b/c/d" at level 2.
-         * As a result, the level stopped at is important for the calling operation to know.
-         */
-        if ((answer === true) && (opts.tracked instanceof Set)) {
-            opts.tracked.add(lvl);
-        }
-
-        return answer;
-    }
-
-    _testNot(a, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_answer = this._matchingExpression(a, tested, lvl, opts);
-
-        return !a_answer;
-    }
-
-    _testAnd(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_answer = this._matchingExpression(a, tested, lvl, opts);
-        
-        let b_answer = false;
-        if (a_answer === true) {
-            b_answer = this._matchingExpression(b, tested, lvl, opts);
-        }
-
-        return a_answer && b_answer;
-    }
-
-    _testXor(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_answer = this._matchingExpression(a, tested, lvl, opts);
-        const b_answer = this._matchingExpression(b, tested, lvl, opts);
-
-        return (!a_answer && b_answer) || (a_answer && !b_answer);
-    }
-
-    _testOr(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_answer = this._matchingExpression(a, tested, lvl, opts);
-
-        let b_answer = false;
-        if (a_answer === false) {
-            b_answer = this._matchingExpression(b, tested, lvl, opts);
-        }
-
-        return a_answer || b_answer;
-    }
-
-    _testParentMain(b, tested, lvl, opts = { }) {
-        opts.recurse = opts.recurse ?? false;
-        opts.tracked = opts.tracked ?? null;
-
-        const target = this._target.peek();
-
-        const child_subcontext = [ ];
-        
-        // Needed if @parent/@ascend is used with @to/@toward and is in the LHS of the @to/@toward expression.
-        // The target's context needs to be aligned with that of the parent that's supposed to be evaluated.
-        const parent_diff = tested.length - lvl;
-        for (let i = 0; i < parent_diff; i++) {
-            child_subcontext.push(target.leavePos());
-            child_subcontext.push(target.leavePos());
-        }
-
-        let answer = false;
-
-        target.enterPos(this._alias.nested);
-        if (!target.isPosEmpty()) {
-            target.enterPos(0);
-            while (!target.isPosUndefined()) {
-                tested = this._getContext();
-                answer = this._matchingExpression(b, tested, lvl, { tracked: opts.tracked });
-                if (opts.recurse && (answer === false)) {
-                    answer = this._testParentMain(b, tested, lvl + 1, opts);
-                }
-                if (answer === true) {
-                    break;
-                }
-
-                target.nextItem();
-            }
-            target.leavePos();
-        }
-        target.leavePos();
-
-        while (child_subcontext.length > 0) {
-            target.enterPos(child_subcontext.pop());
-        }
-
-        return answer;
-    }
-
-    _testParent(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
-
-        const b_opts       = { recurse: false, tracked: new Set() };
-        let   a_lvl_answer = false;
-        let   b_answer     = false;
-        if (a_answer === true) {
-            for (const a_lvl of a_opts.tracked) {
-                a_lvl_answer = this._testParentMain(b, tested, a_lvl + 1, b_opts);
-                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
-                    opts.tracked.add(a_lvl);
-                }
-                b_answer ||= a_lvl_answer;
-            }
-        }
-
-        return a_answer && b_answer;
-    }
-
-    _testAscend(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
-
-        const b_opts       = { recurse: true, tracked: new Set() };
-        let   a_lvl_answer = false;
-        let   b_answer     = false;
-        if (a_answer === true) {
-            for (const a_lvl of a_opts.tracked) {
-                a_lvl_answer = this._testParentMain(b, tested, a_lvl + 1, b_opts);
-                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
-                    opts.tracked.add(a_lvl);
-                }
-                b_answer ||= a_lvl_answer;
-            }
-        }
-
-        return a_answer && b_answer;
-    }
-
-    _testChild(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
-
-        const b_opts       = { tracked: new Set() };
-        let   a_lvl_answer = false;
-        let   b_answer     = false;
-        if (a_answer === true) {
-            for (const a_lvl of a_opts.tracked) {
-                a_lvl_answer = this._matchingExpression(b, tested, a_lvl - 1, b_opts);
-                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
-                    opts.tracked.add(a_lvl);
-                }
-                b_answer ||= a_lvl_answer;
-            }
-        }
-
-        return a_answer && b_answer;
-    }
-
-    _testDescend(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
-
-        const b_opts       = { tracked: new Set() };
-        let   a_lvl_answer = false;
-        let   b_answer     = false;
-        if (a_answer === true) {
-            for (let a_lvl of a_opts.tracked) {
-                a_lvl--;
-                while ((a_lvl_answer === false) && (a_lvl >= 0)) {
-                    a_lvl_answer = this._matchingExpression(b, tested, a_lvl, b_opts);
-                    a_lvl--;
-                }
-                if ((a_lvl_answer === true) && (opts.tracked instanceof Set)) {
-                    opts.tracked.add(a_lvl);
-                }
-                b_answer ||= a_lvl_answer;
-            }
-        }
-
-        return a_answer && b_answer;
-    }
-
-    _testTo(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
-
-        let b_answer     = false;
-        if (a_answer === true) {
-            for (const a_lvl of a_opts.tracked) {
-                b_answer ||= this._matchingExpression(b, tested, a_lvl + 1, opts);
-            }
-        }
-
-        return a_answer && b_answer;
-    }
-
-    _testToward(a, b, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, tested, lvl, a_opts);
-
-        let a_lvl_answer = false;
-        let b_answer     = false;
-        if (a_answer === true) {
-            for (let a_lvl of a_opts.tracked) {
-                a_lvl++;
-                while ((a_lvl_answer === false) && (a_lvl < tested.length)) {
-                    a_lvl_answer = this._matchingExpression(b, tested, a_lvl, opts);
-                    a_lvl++;
-                }
-                b_answer ||= a_lvl_answer;
-            }
-        }
-
-        return a_answer && b_answer;
-    }
-
-    _matchingExpression(test, tested, lvl, opts = { }) {
-        opts.tracked = opts.tracked ?? null;
-
-        if (common.isEmpty(test)) {
-            return common.isEmpty(tested);
-        } else if (common.isEmpty(tested) || (lvl < 0) || (lvl >= tested.length)) {
-            return false;
-        } else if (this._isTag(test)) {
-            return this._matchingTag(test, tested, lvl, opts);
-        } else if (test.num === true) {
-            return this._matchingNumberExpression(test.a, test.b, test.op, tested, lvl, opts);
-        } else {
-            switch (test.op) {
-                case '!':
-                    return this._testNot(test.a, tested, lvl, opts);
-                case '&':
-                    return this._testAnd(test.a, test.b, tested, lvl, opts);
-                case '^':
-                    return this._testXor(test.a, test.b, tested, lvl, opts);
-                case '|':
-                    return this._testOr(test.a, test.b, tested, lvl, opts);
-                case '>':
-                    return this._testParent(test.a, test.b, tested, lvl, opts);
-                case '>>':
-                    return this._testAscend(test.a, test.b, tested, lvl, opts);
-                case '<':
-                    return this._testChild(test.a, test.b, tested, lvl, opts);
-                case '<<':
-                    return this._testDescend(test.a, test.b, tested, lvl, opts);
-                case '/':
-                    return this._testTo(test.a, test.b, tested, lvl, opts);
-                case '//':
-                    return this._testToward(test.a, test.b, tested, lvl, opts);
-            }
-        }
     }
 
     _uniqueCopy(template) {
@@ -694,67 +567,93 @@ export class Composer {
         }
     }
 
-    /**
-     * The purpose of this is strictly for optimizing how Tridy handles very large trees.
-     * Without it, all modules in the database will be tested needlessly by a context expression.
-     */
-    _getMaximumDepth(test) {
-        if (common.isEmpty(test)) {
-            return 0;
-        }
-        
-        if (this._isTag(test)) {
-            return 1;
-        }
-        
-        let a_depth = 0;
-        if (test.a !== undefined) {
-            a_depth = this._getMaximumDepth(test.a);
-        }
-        if (a_depth === null) {
-            return a_depth;
+    _getModuleInfo(shuffle_seed) {
+        const info = {
+            index: {
+                context: [ ],
+                real:    [ ],
+                extent:  [ ],
+                random:  [ ]
+            },
+            random: {
+                local:  [ ],
+                global: null
+            }
         }
 
-        let b_depth = 0;
-        if (test.b !== undefined) {
-            b_depth = this._getMaximumDepth(test.b);
-        }
-        if (b_depth === null) {
-            return b_depth;
+        const target = this._target.peek();
+        const raw    = target.getFullPos();
+        let   ptr    = target.getRaw();
+
+        /**
+         * Note: the indices are how the JSON database is structured at a low level.
+         * For instance, the coordinates of the first module under the root module would normally be ['tree'][0].
+         * Since it's 2 indices ('tree' and 0) from the perspective of the parent module, we need to make 2 jumps each time.
+         */
+        for (let i = 0; i < raw.length; i += 2) {
+            ptr = ptr[raw[i]];
+            if (!common.isArray(ptr)) {
+                break;
+            }
+
+            let index  = raw[i + 1];
+            let extent = ptr.length;
+
+            /**
+             * Make sure the shuffled index determination is done before pushing the current index.
+             * The seed needs to kept the same for all modules of the same parent.
+             * If not, the shuffled indeces can conflict.
+             */
+            let new_seed = ''.concat(shuffle_seed, ':', info.index.real.join(':'));
+            let shuffled = shuffle([...Array(extent).keys()], new_seed);
+            info.index.random.push(shuffled[index]);
+
+            info.index.real.push(index);
+
+            info.index.extent.push(extent);
+
+            ptr = ptr[raw[i + 1]];
+            if (!common.isDictionary(ptr)) {
+                break;
+            }
+
+            info.index.context.push(ptr[this._alias.tags] ?? [ ]);
+
+            info.random.local.push(this._random.prng());
         }
 
-        let depth = (a_depth > b_depth) ? a_depth : b_depth;
-        if (test.op === '//') {
-            return null;
-        }
-        if (test.op === '/') {
-            return depth + 1;
-        }
-        return depth;
+        info.random.global = info.random.global ?? this._random.prng();
+
+        return info;
     }
 
-    _traverseModule(test, command, depth, max_depth, opts = { }) {
+    _traverseModule(test, command, lvl, max_lvl, shuffle_seed, opts = { }) {
         opts.template = opts.template ?? null;
         opts.greedy   = opts.greedy   ?? false;
 
-        const context = this._getContext();
+        shuffle_seed = shuffle_seed ?? this._random.prng();
 
-        const answer = this._matchingExpression(test, context, 0);
+        const info = this._getModuleInfo(shuffle_seed);
+
+        const answer = this._matchingExpression(test, info, 0);
 
         let   matched      = answer;
         const matched_this = matched;
-        if (((max_depth === null) || (depth < max_depth)) && (!opts.greedy || !matched)) {
+        if (((max_lvl === null) || (lvl < max_lvl)) && (!opts.greedy || !matched)) {
             const target = this._target.peek();
+
             target.enterPos(this._alias.nested);
             if (!target.isPosEmpty()) {
+                shuffle_seed = this._random.prng();
+
                 target.enterPos(0);
                 while (!target.isPosUndefined()) {
-                    matched = this._traverseModule(test, command, depth + 1, max_depth, opts);
+                    matched = this._traverseModule(test, command, lvl + 1, max_lvl, shuffle_seed, opts);
                     if (opts.greedy && matched) {
                         break;
-                    } else {
-                        target.nextItem();
                     }
+
+                    target.nextItem();
                 }
                 target.leavePos();
             }
@@ -844,6 +743,45 @@ export class Composer {
         return test;
     }
 
+    /**
+     * The purpose of this is strictly for optimizing how Tridy handles very large trees.
+     * Without it, all modules in the database will be tested needlessly by a context expression.
+     */
+    _getMaximumLevel(test) {
+        if (common.isEmpty(test)) {
+            return 0;
+        }
+        
+        if (this._isExpressionTreeLeaf(test)) {
+            return 1;
+        }
+        
+        let a_lvl = 0;
+        if (test.a !== undefined) {
+            a_lvl = this._getMaximumLevel(test.a);
+        }
+        if (a_lvl === null) {
+            return a_lvl;
+        }
+
+        let b_lvl = 0;
+        if (test.b !== undefined) {
+            b_lvl = this._getMaximumLevel(test.b);
+        }
+        if (b_lvl === null) {
+            return b_lvl;
+        }
+
+        let lvl = (a_lvl > b_lvl) ? a_lvl : b_lvl;
+        if (test.op === '//') {
+            return null;
+        }
+        if (test.op === '/') {
+            return lvl + 1;
+        }
+        return lvl;
+    }
+
     _parseStatement() {
         const context    = this._astree.enterGetAndLeave('context');
         let   expression = context ? context.expression : { };
@@ -865,9 +803,9 @@ export class Composer {
                 template = this._createModule();
         }
 
-        const max_depth = this._getMaximumDepth(expression);
+        const max_depth = this._getMaximumLevel(expression);
 
-        this._traverseModule(expression, command, 0, max_depth, { template: template, greedy: greedy });
+        this._traverseModule(expression, command, 0, max_depth, null, { template: template, greedy: greedy });
     }
 
     _parse() {
