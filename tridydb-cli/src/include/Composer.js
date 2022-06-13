@@ -28,12 +28,12 @@ export class Composer {
         this._random.prng  = new seedrandom(''.concat(this._random.seed), { entropy: false });
     }
 
-    _matchingTagValue(test, info, lvl) {
+    _matchingTagValue(test, lvl, index, random) {
         switch (test.val) {
             case '?':
                 return this._random.prng();
             default:
-                for (const tag of info.index.context[lvl]) {
+                for (const tag of index.context[lvl]) {
                     if (test.val === Tag.getIdentifier(tag)) {
                         return Tag.getValue(tag);
                     }
@@ -42,7 +42,7 @@ export class Composer {
         }
     }
 
-    _verifyMatching(answer, test, info, lvl, opts = { }) {
+    _verifyMatching(answer, test, lvl, index, opts = { }) {
         opts.tracked = opts.tracked ?? null;
 
         /**
@@ -60,7 +60,7 @@ export class Composer {
          * That makes the comparison, in effect, pointless.
          * The best way to determine finality appears to be from the expression tree's end, not the module's.
          */
-        answer &&= !test.end || (lvl === (info.index.context.length - 1));
+        answer &&= !test.end || (lvl === (index.context.length - 1));
 
         /**
          * The need for this is because of the confusing reality of some expressions.
@@ -75,7 +75,7 @@ export class Composer {
         return answer;
     }
 
-    _matchingTag(test, info, lvl, opts = { }) {
+    _matchingTag(test, lvl, index, random, opts = { }) {
         let answer;
 
         switch (test.val) {
@@ -93,7 +93,7 @@ export class Composer {
                 break;
             default: // assumed to be a regular old tag
                 answer = false;
-                for (const tag of info.index.context[lvl]) {
+                for (const tag of index.context[lvl]) {
                     if (test.val === Tag.getIdentifier(tag)) {
                         answer = true;
                         break;
@@ -102,11 +102,11 @@ export class Composer {
                 break;
         }
 
-        return this._verifyMatching(answer, test, info, lvl, opts);
+        return this._verifyMatching(answer, test, lvl, index, opts);
     }
 
-    _matchingNumberExpression(a, b, op, info, lvl, opts = { }) {
-        let answer = this._matchingTagValue(a, info, lvl);
+    _matchingNumberExpression(a, b, op, lvl, index, random, opts = { }) {
+        let answer = this._matchingTagValue(a, lvl, index, random);
         switch (op) {
             case '$==':
                 answer = (answer === null) ? false : (answer === Number(b.val));
@@ -128,38 +128,40 @@ export class Composer {
                 break;
         }
 
-        return this._verifyMatching(answer, a, info, lvl, opts);
+        return this._verifyMatching(answer, a, lvl, index, opts);
     }
 
-    _testLookaheadRecursive(b, info, lvl, recursive, opts = { }) {
+    _testLookaheadRecursive(b, lvl, index, random, recursive, opts = { }) {
         const target = this._target.peek();
 
         const child_subcontext = [ ];
         
         // Needed if @parent/@ascend is used with @to/@toward and is in the LHS of the @to/@toward expression.
         // The target's context needs to be aligned with that of the parent that's supposed to be evaluated.
-        const parent_diff = info.index.context.length - lvl;
+        const parent_diff = index.context.length - lvl;
         for (let i = 0; i < parent_diff; i++) {
             child_subcontext.push(target.leavePos());
             child_subcontext.push(target.leavePos());
         }
 
+        let b_index;
+        let b_random;
+
         let answer = false;
 
         target.enterPos(this._alias.nested);
         if (!target.isPosEmpty()) {
-            const shuffle_seed = this._random.prng();
-
             target.enterPos(0);
             while (!target.isPosUndefined()) {
-                info = this._getModuleInfo(shuffle_seed);
+                b_index  = this._getModuleIndex();
+                b_random = this._getModuleRandom(lvl, b_index, random.tree, random.query);
 
-                answer = this._matchingExpression(b, info, lvl, opts);
+                answer = this._matchingExpression(b, lvl, b_index, b_random, opts);
 
                 if (recursive && (answer === false)) {
                     lvl++;
 
-                    answer = this._testLookaheadRecursive(b, info, lvl, recursive, opts);
+                    answer = this._testLookaheadRecursive(b, lvl, b_index, b_random, recursive, opts);
                 }
                 if (answer === true) {
                     break;
@@ -178,9 +180,9 @@ export class Composer {
         return answer;
     }
 
-    _testLookahead(a, b, info, lvl, recursive, opts = { }) {
+    _testLookahead(a, b, lvl, index, random, recursive, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, info, lvl, a_opts);
+        const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
 
         const b_opts        = { recurse: true, tracked: new Set() };
         let   b_answer_part = false;
@@ -189,7 +191,7 @@ export class Composer {
             for (let cand_lvl of a_opts.tracked) {
                 lvl = cand_lvl + 1;
 
-                b_answer_part = this._testLookaheadRecursive(b, info, lvl, recursive, b_opts);
+                b_answer_part = this._testLookaheadRecursive(b, lvl, index, random, recursive, b_opts);
 
                 if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
                     opts.tracked.add(cand_lvl);
@@ -202,10 +204,11 @@ export class Composer {
         return a_answer && b_answer;
     }
 
-    _testLookbehind(a, b, info, lvl, recursive, opts = { }) {
+    _testLookbehind(a, b, lvl, index, random, recursive, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, info, lvl, a_opts);
+        const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
 
+        let   b_random;
         const b_opts        = { tracked: new Set() };
         let   b_answer_part = false;
         let   b_answer      = false;
@@ -213,14 +216,18 @@ export class Composer {
             for (let cand_lvl of a_opts.tracked) {
                 lvl = cand_lvl - 1;
 
+                b_random = this._getModuleRandom(lvl, index, random.tree, random.query);
+
                 if (recursive) {
                     while ((b_answer_part === false) && (lvl >= 0)) {
-                        b_answer_part = this._matchingExpression(b, info, lvl, b_opts);
+                        b_answer_part = this._matchingExpression(b, lvl, index, b_random, b_opts);
     
                         lvl--;
+
+                        b_random = this._getModuleRandom(lvl, index, random.tree, random.query);
                     }
                 } else {
-                    b_answer_part = this._matchingExpression(b, info, lvl, b_opts);
+                    b_answer_part = this._matchingExpression(b, lvl, index, b_random, b_opts);
                 }
                 
                 if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
@@ -234,25 +241,30 @@ export class Composer {
         return a_answer && b_answer;
     }
 
-    _testTransitive(a, b, info, lvl, recursive, opts = { }) {
+    _testTransitive(a, b, lvl, index, random, recursive, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, info, lvl, a_opts);
+        const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
 
+        let b_random;
         let b_answer_part = false;
         let b_answer      = false;
         if (a_answer === true) {
             for (let cand_lvl of a_opts.tracked) {
                 lvl = cand_lvl + 1;
 
+                b_random = this._getModuleRandom(lvl, index, random.tree, random.query);
+
                 if (recursive) {
-                    while ((b_answer_part === false) && (lvl < info.index.context.length)) {
-                        b_answer_part = this._matchingExpression(b, info, lvl, opts);
+                    while ((b_answer_part === false) && (lvl < index.context.length)) {
+                        b_answer_part = this._matchingExpression(b, lvl, index, b_random, opts);
 
                         lvl++;
+
+                        b_random = this._getModuleRandom(lvl, index, random.tree, random.query);
                     }
                     b_answer ||= b_answer_part;
                 } else {
-                    b_answer ||= this._matchingExpression(b, info, lvl, opts);
+                    b_answer ||= this._matchingExpression(b, lvl, index, b_random, opts);
                 }
             }
         }
@@ -264,39 +276,39 @@ export class Composer {
         return common.isDictionary(obj) && (obj.val !== undefined);
     }
 
-    _matchingExpression(test, info, lvl, opts = { }) {
+    _matchingExpression(test, lvl, index, random, opts = { }) {
         if (common.isEmpty(test)) {
-            return common.isEmpty(info.index.context);
-        } else if (common.isEmpty(info.index.context) || (lvl < 0) || (lvl >= info.index.context.length)) {
+            return common.isEmpty(index.context);
+        } else if (common.isEmpty(index.context) || (lvl < 0) || (lvl >= index.context.length)) {
             return false;
         } else if (this._isExpressionTreeLeaf(test)) {
-            return this._matchingTag(test, info, lvl, opts);
+            return this._matchingTag(test, lvl, index, random, opts);
         } else if (test.op[0] === '$') {
-            return this._matchingNumberExpression(test.a, test.b, test.op, info, lvl, opts);
+            return this._matchingNumberExpression(test.a, test.b, test.op, lvl, index, random, opts);
         } else {
             switch (test.op) {
                 case '!':
-                    return !this._matchingExpression(test.a, info, lvl, opts);
+                    return !this._matchingExpression(test.a, lvl, index, random, opts);
                 case '&':
-                    return this._matchingExpression(test.a, info, lvl, opts) && this._matchingExpression(test.b, info, lvl, opts);
+                    return this._matchingExpression(test.a, lvl, index, random, opts) && this._matchingExpression(test.b, lvl, index, random, opts);
                 case '^':
-                    const a = this._matchingExpression(test.a, info, lvl, opts);
-                    const b = this._matchingExpression(test.b, info, lvl, opts);
+                    const a = this._matchingExpression(test.a, lvl, index, random, opts);
+                    const b = this._matchingExpression(test.b, lvl, index, random, opts);
                     return (a & !b) || (b & !a);
                 case '|':
-                    return this._matchingExpression(test.a, info, lvl, opts) || this._matchingExpression(test.b, info, lvl, opts);
+                    return this._matchingExpression(test.a, lvl, index, random, opts) || this._matchingExpression(test.b, lvl, index, random, opts);
                 case '>':
-                    return this._testLookahead(test.a, test.b, info, lvl, false, opts);
+                    return this._testLookahead(test.a, test.b, lvl, index, random, false, opts);
                 case '>>':
-                    return this._testLookahead(test.a, test.b, info, lvl, true, opts);
+                    return this._testLookahead(test.a, test.b, lvl, index, random, true, opts);
                 case '<':
-                    return this._testLookbehind(test.a, test.b, info, lvl, false, opts);
+                    return this._testLookbehind(test.a, test.b, lvl, index, random, false, opts);
                 case '<<':
-                    return this._testLookbehind(test.a, test.b, info, lvl, true, opts);
+                    return this._testLookbehind(test.a, test.b, lvl, index, random, true, opts);
                 case '/':
-                    return this._testTransitive(test.a, test.b, info, lvl, false, opts);
+                    return this._testTransitive(test.a, test.b, lvl, index, random, false, opts);
                 case '//':
-                    return this._testTransitive(test.a, test.b, info, lvl, true, opts);
+                    return this._testTransitive(test.a, test.b, lvl, index, random, true, opts);
             }
         }
     }
@@ -567,18 +579,11 @@ export class Composer {
         }
     }
 
-    _getModuleInfo(shuffle_seed) {
-        const info = {
-            index: {
-                context: [ ],
-                real:    [ ],
-                extent:  [ ],
-                random:  [ ]
-            },
-            random: {
-                local:  [ ],
-                global: null
-            }
+    _getModuleIndex() {
+        const index = {
+            real:    [ ],
+            extent:  [ ],
+            context: [ ]
         }
 
         const target = this._target.peek();
@@ -596,46 +601,51 @@ export class Composer {
                 break;
             }
 
-            let index  = raw[i + 1];
-            let extent = ptr.length;
+            index.real.push(raw[i + 1]);
 
-            /**
-             * Make sure the shuffled index determination is done before pushing the current index.
-             * The seed needs to kept the same for all modules of the same parent.
-             * If not, the shuffled indeces can conflict.
-             */
-            let new_seed = ''.concat(shuffle_seed, ':', info.index.real.join(':'));
-            let shuffled = shuffle([...Array(extent).keys()], new_seed);
-            info.index.random.push(shuffled[index]);
-
-            info.index.real.push(index);
-
-            info.index.extent.push(extent);
+            index.extent.push(ptr.length);
 
             ptr = ptr[raw[i + 1]];
             if (!common.isDictionary(ptr)) {
                 break;
             }
 
-            info.index.context.push(ptr[this._alias.tags] ?? [ ]);
-
-            info.random.local.push(this._random.prng());
+            index.context.push(ptr[this._alias.tags] ?? [ ]);
         }
 
-        info.random.global = info.random.global ?? this._random.prng();
-
-        return info;
+        return index;
     }
 
-    _traverseModule(test, command, lvl, max_lvl, shuffle_seed, opts = { }) {
+    _getModuleRandom(lvl, index, tree_random, query_random) {
+        const random = { };
+        
+        let last_index  = index.real[lvl - 1]   ?? 0;
+        let last_extent = index.extent[lvl - 1] ?? 0;
+
+        random.tree = tree_random ?? this._random.prng();
+
+        random.query = query_random ?? this._random.prng();
+    
+        random.scan = this._random.prng();
+
+        // Doing this ensures all children of the same parent use the same seed.
+        let shuffle_seed = ''.concat(random.tree, ':', index.real.join(':'));
+        shuffle_seed     = /(.*):[^:]*$/.exec(shuffle_seed)[1];
+
+        let shuffled = shuffle([...Array(last_extent).keys()], shuffle_seed);
+        random.index = shuffled[last_index] ?? 0;
+
+        return random;
+    }
+
+    _traverseModule(test, command, lvl, max_lvl, tree_random, opts = { }) {
         opts.template = opts.template ?? null;
         opts.greedy   = opts.greedy   ?? false;
 
-        shuffle_seed = shuffle_seed ?? this._random.prng();
+        const index  = this._getModuleIndex();
+        const random = this._getModuleRandom(lvl, index, tree_random, this._random.prng());
 
-        const info = this._getModuleInfo(shuffle_seed);
-
-        const answer = this._matchingExpression(test, info, 0);
+        const answer = this._matchingExpression(test, 0, index, random);
 
         let   matched      = answer;
         const matched_this = matched;
@@ -644,11 +654,11 @@ export class Composer {
 
             target.enterPos(this._alias.nested);
             if (!target.isPosEmpty()) {
-                shuffle_seed = this._random.prng();
+                tree_random = this._random.prng();
 
                 target.enterPos(0);
                 while (!target.isPosUndefined()) {
-                    matched = this._traverseModule(test, command, lvl + 1, max_lvl, shuffle_seed, opts);
+                    matched = this._traverseModule(test, command, lvl + 1, max_lvl, tree_random, opts);
                     if (opts.greedy && matched) {
                         break;
                     }
