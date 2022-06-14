@@ -16,8 +16,6 @@ export class SyntaxParser {
         switch (token.debug.type) {
             case 'key':
                 throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected clause "@${token.debug.val}".`);
-            case 'num':
-                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected number "${token.debug.val}".`);
             default:
                 throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected token "${token.debug.val}".`);
         }
@@ -409,7 +407,14 @@ export class SyntaxParser {
                 this._tokens.next();
 
                 current = this._tokens.peek();
-                if (current.is('num')) {
+                if (current.is('sym', '=')) {
+                    this._tokens.next();
+
+                    current = this._tokens.peek();
+                    if (!current.is('tag') || isNaN(current.val)) {
+                        this._handleUnexpected();
+                    }
+
                     new_tag += ':' + current.val;
 
                     this._tokens.next();
@@ -421,6 +426,11 @@ export class SyntaxParser {
             }
 
             tags.push(new_tag);
+
+            current = this._tokens.peek();
+            if (current.is('sym', ',')) {
+                this._tokens.next();
+            }
 
             current = this._tokens.peek();
         }

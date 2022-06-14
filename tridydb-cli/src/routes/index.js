@@ -38,7 +38,7 @@ const toTridy = (op, opts = { }) => {
                     }
     
                     if (opts.tags) {
-                        cmd += ` @as ${opts.tags.replace(/,/g, ' ')}`;
+                        cmd += ` @as ${opts.tags}`;
                     }
                 
                     if (opts.statedata) {

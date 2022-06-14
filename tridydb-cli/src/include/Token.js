@@ -145,7 +145,6 @@ export class Token {
     toContextToken() {
         switch (this.type) {
             case 'tag':
-            case 'num':
                 return this.to('ctxt_term', this.val);
             case 'key':
             case 'sym':

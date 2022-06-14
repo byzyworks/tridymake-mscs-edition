@@ -2,11 +2,11 @@
 
 @new a;
 
-@new a:1;
+@new a = 1;
 
-@new a:2;
+@new a = 2;
 
-@new a:3;
+@new a = 3;
 
 @get $(a == 2);
 

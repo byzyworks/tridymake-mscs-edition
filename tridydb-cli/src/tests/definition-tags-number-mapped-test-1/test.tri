@@ -2,14 +2,14 @@
 
 @new @as a;
 
-@new @as a:0.5;
+@new @as a = 0.5;
 
-@new @as a:1;
+@new @as a = 1;
 
-@new @as a:2;
+@new @as a = 2;
 
-@new @as a:0x4;
+@new @as a = 0x4;
 
-@new @as a:8 b:-8;
+@new @as a = 8 b = -8;
 
 @get;

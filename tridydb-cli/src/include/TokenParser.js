@@ -54,11 +54,7 @@ export class TokenParser {
     }
 
     _isSymbol(ch) {
-        return /[~!$%^&*()=\[\]{}|;,<>?/]/g.test(ch);
-    }
-
-    _isNumberStart(ch) {
-        return ch === ':';
+        return /[~!$%^&*()=\[\]{}|;:,<>?/]/g.test(ch);
     }
 
     _isSingleLineStringQuote(ch) {
@@ -210,20 +206,6 @@ export class TokenParser {
         return new Token('sym', sym, pos);
     }
 
-    _readNumber() {
-        const pos = this._getPos();
-        pos.col--;
-
-        const num = this._readWhilePred(this._isIdentifier.bind(this));
-        if (isEmpty(num)) {
-            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid number after ":".`);
-        } else if (isNaN(num)) {
-            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: A number was expected, but "${num}" doesn't appear to be one.`);
-        }
-
-        return new Token('num', num, pos);
-    }
-
     _readRaw() {
         const pos = this._getPos();
 
@@ -286,11 +268,6 @@ export class TokenParser {
 
         if (this._isSymbol(ch)) {
             return this._readSymbols();
-        }
-
-        if (this._isNumberStart(ch)) {
-            this._parser.next();
-            return this._readNumber();
         }
 
         if (this._isSingleLineStringQuote(ch)) {

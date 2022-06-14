@@ -1,0 +1,5 @@
+@tridy;
+
+@new @as a, b = 2, c = 5;
+
+@get;

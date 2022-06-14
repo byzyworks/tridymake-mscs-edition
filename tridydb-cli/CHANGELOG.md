@@ -58,7 +58,8 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed some incorrect documentation that wasn't updated.
 * Added the plus symbol (`+`) as an acceptable tag character.
 * Removed variables (as in the non-functional way they were implemented prior).
-* Added number-mapped tags by allowing tag identifier to be following by a colon (`:`) and then a number.
+* Made it acceptable syntax for tag definitions (following `@as` or an operation clause) to be comma-separated (`a,b,...`).
+* Added number-mapped tags by allowing tag identifiers to be assigned a number by being on the left-hand side of an equal sign (`=`) followed by a number.
 * Added context operations (against literal numbers only) for number-mapped tags that resemble basic comparison operators like `==` and `>=`.
 * Re-purposed `$` with parentheses for identifying and containing numeric comparisons.
 * Removed `%` / `@leaf` wildcard context operand.
