@@ -61,3 +61,14 @@ Remember also to set the version number inside package.json and utility/common.
 * Added number-mapped tags by allowing tag identifier to be following by a colon (`:`) and then a number.
 * Added context operations (against literal numbers only) for number-mapped tags that resemble basic comparison operators like `==` and `>=`.
 * Re-purposed `$` with parentheses for identifying and containing numeric comparisons.
+* Removed `%` / `@leaf` wildcard context operand.
+* Removed `~` / `@root` wildcard context operand.
+* Removed `?` / `@random` wildcard context operand.
+* Added `@depth` / `@d` built-in context variable for number comparison operations.
+* Added `@children` / `@c` built-in context variable for number comparison operations.
+* Added `@index` / `@i` built-in context variable for number comparison operations.
+* Added `@siblings` / `@n` built-in context variable for number comparison operations.
+* Added `@shuffled` / `@s` built-in context variable for number comparison operations.
+* Added `@random-per-query` / `@r3` built-in context variable for number comparison operations.
+* Added `@random-per-scan` / `@r2` built-in context variable for number comparison operations.
+* Added `@random` / `@r` built-in context variable for number comparison operations.

@@ -40,7 +40,7 @@ export class SyntaxParser {
         this._tokens.next();
         
         current = this._tokens.peek().toContextToken();
-        if (!current.is('ctxt_term')) {
+        if (!current.is('ctxt_term') || current.isIdentifierOnlyTerminalContextToken()) {
             this._handleUnexpected();
         }
         context.push(current);
@@ -75,7 +75,7 @@ export class SyntaxParser {
     _handleWhileContextTerminal(context) {
         let current = this._tokens.peek().toContextToken();
 
-        if (current.is('ctxt_term') || current.is('ctxt_misc', '$')) {
+        if (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', '$')) {
             if (current.is('ctxt_term')) {
                 context.push(current);
 
@@ -87,22 +87,22 @@ export class SyntaxParser {
             }
 
             current = this._tokens.peek().toContextToken();
-        }
 
-        while (current.is('ctxt_term') || current.is('ctxt_misc', '$')) {
-            context.push(this._getContextImplicitBinaryOp());
-            
-            if (current.is('ctxt_term')) {
-                context.push(current);
-
-                this._tokens.next();
-            } else if (current.is('ctxt_misc', '$')) {
-                this._tokens.next();
-
-                this._handleContextNumberExpression(context);
+            while (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', '$')) {
+                context.push(this._getContextImplicitBinaryOp());
+                
+                if (current.is('ctxt_term')) {
+                    context.push(current);
+    
+                    this._tokens.next();
+                } else if (current.is('ctxt_misc', '$')) {
+                    this._tokens.next();
+    
+                    this._handleContextNumberExpression(context);
+                }
+    
+                current = this._tokens.peek().toContextToken();
             }
-
-            current = this._tokens.peek().toContextToken();
         }
     }
 
@@ -140,7 +140,7 @@ export class SyntaxParser {
                     context.push(this._getContextImplicitBinaryOp());
                 }
 
-                if (current.is('ctxt_term') || current.is('ctxt_misc', '$')) {
+                if (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', '$')) {
                     this._handleWhileContextTerminal(context);
                 } else {
                     this._handleContextExpressionOuter(context);

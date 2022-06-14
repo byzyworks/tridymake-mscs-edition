@@ -21,6 +21,33 @@ export class Token {
         return (((this.type == type) || (type === null)) && ((this.val == value) || (value === null)));
     }
 
+    isIdentifierOnlyTerminalContextToken() {
+        return false ||
+            this.is('ctxt_term', '*')
+        ;
+    }
+
+    isValueOnlyTerminalContextToken() {
+        return false ||
+            this.is('ctxt_term', '$D') ||
+            this.is('ctxt_term', '$L') ||
+            this.is('ctxt_term', '$I') ||
+            this.is('ctxt_term', '$N') ||
+            this.is('ctxt_term', '$S') ||
+            this.is('ctxt_term', '$R1') ||
+            this.is('ctxt_term', '$R2') ||
+            this.is('ctxt_term', '$R3')
+        ;
+    }
+
+    isIdentifierTerminalContextToken() {
+        return this.is('ctxt_term') && !this.isValueOnlyTerminalContextToken();
+    }
+
+    isValuedTerminalContextToken() {
+        return this.is('ctxt_term') && !this.isIdentifierOnlyTerminalContextToken();
+    }
+
     isUnaryOpContextToken() {
         return false ||
             this.is('ctxt_op', '!')
@@ -29,7 +56,7 @@ export class Token {
 
     isExpressionStarterContextToken() {
         return false ||
-            this.is('ctxt_term') ||
+            this.isIdentifierTerminalContextToken() ||
             this.isUnaryOpContextToken() ||
             this.is('ctxt_misc', '(') ||
             this.is('ctxt_misc', '$')
@@ -38,7 +65,7 @@ export class Token {
 
     isExpressionEnderContextToken() {
         return false ||
-            this.is('ctxt_term') ||
+            this.isIdentifierTerminalContextToken() ||
             this.is('ctxt_misc', ')')
         ;
     }
@@ -124,18 +151,13 @@ export class Token {
             case 'key':
             case 'sym':
                 switch (this.val) {
+                    case '(':
+                        return this.to('ctxt_misc', '(');
+                    case ')':
+                        return this.to('ctxt_misc', ')');
                     case 'any':
                     case '*':
                         return this.to('ctxt_term', '*');
-                    case 'root':
-                    case '~':
-                        return this.to('ctxt_term', '~');
-                    case 'leaf':
-                    case '%':
-                        return this.to('ctxt_term', '%');
-                    case 'random':
-                    case '?':
-                        return this.to('ctxt_term', '?');
                     case 'not':
                     case '!':
                         return this.to('ctxt_op', '!');
@@ -169,6 +191,30 @@ export class Token {
                         return this.to('ctxt_op', '//');
                     case '$':
                         return this.to('ctxt_misc', '$');
+                    case 'depth':
+                    case 'd':
+                        return this.to('ctxt_term', '$D');
+                    case 'children':
+                    case 'c':
+                        return this.to('ctxt_term', '$C');
+                    case 'index':
+                    case 'i':
+                        return this.to('ctxt_term', '$I');
+                    case 'siblings':
+                    case 'n':
+                        return this.to('ctxt_term', '$N');
+                    case 'shuffled':
+                    case 's':
+                        return this.to('ctxt_term', '$S');
+                    case 'random-per-query':
+                    case 'r3':
+                        return this.to('ctxt_term', '$R3');
+                    case 'random-per-scan':
+                    case 'r2':
+                        return this.to('ctxt_term', '$R2');
+                    case 'random':
+                    case 'r':
+                        return this.to('ctxt_term', '$R1');
                     case 'eq':
                     case '$==':
                         return this.to('ctxt_op', '$==');
@@ -187,10 +233,6 @@ export class Token {
                     case 'ge':
                     case '$>=':
                         return this.to('ctxt_op', '$>=');
-                    case '(':
-                        return this.to('ctxt_misc', '(');
-                    case ')':
-                        return this.to('ctxt_misc', ')');
                     default:
                         return this.to(this.type, this.val);
                 }

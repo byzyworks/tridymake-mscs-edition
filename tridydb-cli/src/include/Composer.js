@@ -30,7 +30,21 @@ export class Composer {
 
     _matchingTagValue(test, lvl, index, random) {
         switch (test.val) {
-            case '?':
+            case '$D':
+                return lvl;
+            case '$C':
+                return (this._target.peek().enterGetAndLeave(this._alias.nested) ?? [ ]).length;
+            case '$I':
+                return index.real[lvl] ?? 0;
+            case '$N':
+                return (index.extent[lvl] ?? 1) - 1;
+            case '$S':
+                return random.index;
+            case '$R3':
+                return random.query;
+            case '$R2':
+                return random.scan;
+            case '$R1':
                 return this._random.prng();
             default:
                 for (const tag of index.context[lvl]) {
@@ -79,19 +93,10 @@ export class Composer {
         let answer;
 
         switch (test.val) {
-            case '*': // from @any
+            case '*':
                 answer = true;
                 break;
-            case '~': // from @root
-                answer = lvl === 0;
-                break;
-            case '%': // from @leaf
-                answer = common.isEmpty(this._target.peek().enterGetAndLeave(this._alias.nested));
-                break;
-            case '?': // from @random
-                answer = (this._random.prng() >= 0.5);
-                break;
-            default: // assumed to be a regular old tag
+            default:
                 answer = false;
                 for (const tag of index.context[lvl]) {
                     if (test.val === Tag.getIdentifier(tag)) {
