@@ -1,0 +1,26 @@
+[
+    {
+        "tags": [
+            "a",
+            "very-high-chance"
+        ]
+    },
+    {
+        "tags": [
+            "b",
+            "high-chance"
+        ]
+    },
+    {
+        "tags": [
+            "c",
+            "medium-chance"
+        ]
+    },
+    {
+        "tags": [
+            "d",
+            "low-chance"
+        ]
+    }
+]

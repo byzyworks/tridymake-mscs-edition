@@ -4,13 +4,14 @@ param (
 )
 
 $invoke = "node $PSScriptRoot/app.js inline";
+$port   = 54321;
+$seed   = '2Tridy4U';
 
-$port = 54321;
 if (!$Test -or (!$Invoked -and ($Test -match '(?:^|-)server-'))) {
     Write-Host 'Starting server...';
     Write-Host;
     
-    $server_job = Start-Process -FilePath node -ArgumentList "$PSScriptRoot/app.js",'server','--localhost','--server-port',"$port","--log-level","debug" -WorkingDirectory "$PSScriptRoot" -PassThru;
+    $server_job = Start-Process -FilePath node -ArgumentList "$PSScriptRoot/app.js",'server','--localhost','--server-port',"$port","--random-seed","$seed","--log-level","debug" -WorkingDirectory "$PSScriptRoot" -PassThru;
     Start-Sleep -Seconds 2;
 }
 
@@ -51,7 +52,7 @@ if (!$Test) {
         Write-Host "Running $test_name...";
         
         if (Test-Path -Path "$test_file.tri" -PathType Leaf) {
-            $invoke = "$invoke --file $test_file.tri --log-level info --pretty";
+            $invoke = "$invoke --file $test_file.tri --random-seed $seed --log-level info --pretty";
             if ($Test -match '(?:^|-)server-') {
                 $invoke += " --client --remote-port $port";
             }

@@ -1,0 +1,21 @@
+@tridy;
+
+@new @as a very-high-chance;
+
+@new @as b high-chance;
+
+@new @as c medium-chance;
+
+@new @as d low-chance;
+
+@new @as e very-low-chance;
+
+@get a & ($(@iterandom > 0.5) | $(@iterandom > 0.5) | $(@iterandom > 0.5));
+
+@get b & ($(@iterandom > 0.5) | $(@iterandom > 0.5));
+
+@get c & $(@iterandom > 0.5);
+
+@get d & $(@iterandom > 0.5) & $(@iterandom > 0.5);
+
+@get e & $(@iterandom > 0.5) & $(@iterandom > 0.5) & $(@iterandom > 0.5);

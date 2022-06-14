@@ -1,0 +1,21 @@
+@tridy;
+
+@new @as a;
+
+@new @as b;
+
+@new @as c;
+
+@new @as d;
+
+@new @as e;
+
+@get a & $(@random > 0.75);
+
+@get b & $(@random > 0.75);
+
+@get c & $(@random > 0.75);
+
+@get d & $(@random > 0.75);
+
+@get e & $(@random > 0.75);

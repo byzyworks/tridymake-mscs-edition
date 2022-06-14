@@ -1,0 +1,21 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@new @as c;
+
+@in c @new @as d;
+
+@in c @new @as e;
+
+@new @as f;
+
+@in f @new @as g;
+
+@in f @new @as h;
+
+@in f @new @as i;
+
+@get * / $(@siblings == 1);

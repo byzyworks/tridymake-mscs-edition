@@ -1,0 +1,33 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@in a/b @new @as c;
+
+@new @as d;
+
+@in d @new @as e;
+
+@in d/e @new @as f;
+
+@in d/e @new @as g;
+
+@new @as h;
+
+@in h @new @as i;
+
+@in h @new @as j;
+
+@new @as k;
+
+@in k @new @as l;
+
+@in k/l @new @as m;
+
+@in k/l @new @as n;
+
+@in k @new @as o;
+
+@get * / $(@n == 0) / $(@n == 1);

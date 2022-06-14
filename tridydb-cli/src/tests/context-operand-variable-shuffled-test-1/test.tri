@@ -1,0 +1,55 @@
+@tridy;
+
+@new @as a;
+
+@new @as b;
+
+@new @as c;
+
+@new @as d;
+
+@new @as e;
+
+@new @as f;
+
+@new @as g;
+
+@new @as h;
+
+@new @as i;
+
+@new @as j;
+
+@new @as k;
+
+@new @as l;
+
+@new @as m;
+
+@new @as n;
+
+@new @as o;
+
+@new @as p;
+
+@new @as q;
+
+@new @as r;
+
+@new @as s;
+
+@new @as t;
+
+@new @as u;
+
+@new @as v;
+
+@new @as w;
+
+@new @as x;
+
+@new @as y;
+
+@new @as z;
+
+@get $(@shuffled < 3);

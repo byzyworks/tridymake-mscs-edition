@@ -1,0 +1,13 @@
+@tridy;
+
+@new @as a very-high-chance;
+
+@new @as b high-chance;
+
+@new @as c medium-chance;
+
+@new @as d low-chance;
+
+@new @as e very-low-chance;
+
+@get a & ($(@r > 0.5) | $(@r > 0.5) | $(@r > 0.5)) | b & ($(@r > 0.5) | $(@r > 0.5)) | c & $(@r > 0.5) | d & $(@r > 0.5) & $(@r > 0.5) | e & $(@r > 0.5) & $(@r > 0.5) & $(@r > 0.5);

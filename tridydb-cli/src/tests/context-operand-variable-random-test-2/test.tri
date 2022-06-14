@@ -1,0 +1,13 @@
+@tridy;
+
+@new @as a;
+
+@new @as b;
+
+@new @as c;
+
+@new @as d;
+
+@new @as e;
+
+@get a & $(@q > 0.91) | b & $(@q > 0.925) | c & $(@q > 0.95) | d & $(@q > 0.975) | e & $(@q > 0.99);

@@ -640,6 +640,10 @@ export class SyntaxParser {
 
                 this._handleContext();
                 context_defined = true;
+
+                if (this._tokens.peek().is('sym', ';')) {
+                    this._handleUnexpected();
+                }
             }
 
             if (this._tokens.peek().is('sym', '{')) {

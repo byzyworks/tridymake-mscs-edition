@@ -1,0 +1,15 @@
+@tridy;
+
+@new @as a;
+
+@new @as b;
+
+@new @as c;
+
+@new @as d;
+
+@new @as e;
+
+@new @as f;
+
+@get $(@index == 3);
