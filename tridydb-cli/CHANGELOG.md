@@ -69,6 +69,4 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@index` / `@i` built-in context variable for number comparison operations.
 * Added `@siblings` / `@n` built-in context variable for number comparison operations.
 * Added `@shuffled` / `@s` built-in context variable for number comparison operations.
-* Added `@random-per-query` / `@r3` built-in context variable for number comparison operations.
-* Added `@random-per-scan` / `@r2` built-in context variable for number comparison operations.
 * Added `@random` / `@r` built-in context variable for number comparison operations.

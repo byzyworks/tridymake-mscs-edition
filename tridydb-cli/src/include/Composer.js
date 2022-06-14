@@ -40,11 +40,7 @@ export class Composer {
                 return (index.extent[lvl] ?? 1) - 1;
             case '$S':
                 return random.index;
-            case '$R3':
-                return random.query;
-            case '$R2':
-                return random.scan;
-            case '$R1':
+            case '$R':
                 return this._random.prng();
             default:
                 for (const tag of index.context[lvl]) {

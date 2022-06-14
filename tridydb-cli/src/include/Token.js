@@ -34,9 +34,7 @@ export class Token {
             this.is('ctxt_term', '$I') ||
             this.is('ctxt_term', '$N') ||
             this.is('ctxt_term', '$S') ||
-            this.is('ctxt_term', '$R1') ||
-            this.is('ctxt_term', '$R2') ||
-            this.is('ctxt_term', '$R3')
+            this.is('ctxt_term', '$R')
         ;
     }
 
@@ -206,15 +204,9 @@ export class Token {
                     case 'shuffled':
                     case 's':
                         return this.to('ctxt_term', '$S');
-                    case 'random-per-query':
-                    case 'r3':
-                        return this.to('ctxt_term', '$R3');
-                    case 'random-per-scan':
-                    case 'r2':
-                        return this.to('ctxt_term', '$R2');
                     case 'random':
                     case 'r':
-                        return this.to('ctxt_term', '$R1');
+                        return this.to('ctxt_term', '$R');
                     case 'eq':
                     case '$==':
                         return this.to('ctxt_op', '$==');
