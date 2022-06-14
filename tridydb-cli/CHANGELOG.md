@@ -68,5 +68,6 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@children` / `@c` built-in context variable for number comparison operations.
 * Added `@index` / `@i` built-in context variable for number comparison operations.
 * Added `@siblings` / `@n` built-in context variable for number comparison operations.
+* Added `@random` / `@q` built-in context variable for number comparison operations.
 * Added `@shuffled` / `@s` built-in context variable for number comparison operations.
-* Added `@random` / `@r` built-in context variable for number comparison operations.
+* Added `@iterandom` / `@r` built-in context variable for number comparison operations.
