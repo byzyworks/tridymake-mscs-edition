@@ -38,6 +38,8 @@ export class Composer {
                 return index.real[lvl] ?? 0;
             case '$N':
                 return (index.extent[lvl] ?? 1) - 1;
+            case '$Q':
+                return random.query;
             case '$S':
                 return random.index;
             case '$R':
@@ -617,20 +619,16 @@ export class Composer {
         return index;
     }
 
-    _getModuleRandom(lvl, index, tree_random, query_random) {
+    _getModuleRandom(lvl, index, query_random) {
         const random = { };
         
         let last_index  = index.real[lvl - 1]   ?? 0;
         let last_extent = index.extent[lvl - 1] ?? 0;
 
-        random.tree = tree_random ?? this._random.prng();
-
         random.query = query_random ?? this._random.prng();
-    
-        random.scan = this._random.prng();
 
         // Doing this ensures all children of the same parent use the same seed.
-        let shuffle_seed = ''.concat(random.tree, ':', index.real.join(':'));
+        let shuffle_seed = ''.concat(random.query, ':', index.real.join(':'));
         shuffle_seed     = /(.*):[^:]*$/.exec(shuffle_seed)[1];
 
         let shuffled = shuffle([...Array(last_extent).keys()], shuffle_seed);
@@ -639,12 +637,12 @@ export class Composer {
         return random;
     }
 
-    _traverseModule(test, command, lvl, max_lvl, tree_random, opts = { }) {
+    _traverseModule(test, command, lvl, max_lvl, query_random, opts = { }) {
         opts.template = opts.template ?? null;
         opts.greedy   = opts.greedy   ?? false;
 
         const index  = this._getModuleIndex();
-        const random = this._getModuleRandom(lvl, index, tree_random, this._random.prng());
+        const random = this._getModuleRandom(lvl, index, query_random);
 
         const answer = this._matchingExpression(test, 0, index, random);
 
@@ -652,18 +650,14 @@ export class Composer {
         const matched_this = matched;
         if (((max_lvl === null) || (lvl < max_lvl)) && (!opts.greedy || !matched)) {
             const target = this._target.peek();
-
             target.enterPos(this._alias.nested);
             if (!target.isPosEmpty()) {
-                tree_random = this._random.prng();
-
                 target.enterPos(0);
                 while (!target.isPosUndefined()) {
-                    matched = this._traverseModule(test, command, lvl + 1, max_lvl, tree_random, opts);
+                    matched = this._traverseModule(test, command, lvl + 1, max_lvl, query_random, opts);
                     if (opts.greedy && matched) {
                         break;
                     }
-
                     target.nextItem();
                 }
                 target.leavePos();
@@ -816,7 +810,7 @@ export class Composer {
 
         const max_depth = this._getMaximumLevel(expression);
 
-        this._traverseModule(expression, command, 0, max_depth, null, { template: template, greedy: greedy });
+        this._traverseModule(expression, command, 0, max_depth, this._random.prng(), { template: template, greedy: greedy });
     }
 
     _parse() {

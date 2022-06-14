@@ -33,6 +33,7 @@ export class Token {
             this.is('ctxt_term', '$L') ||
             this.is('ctxt_term', '$I') ||
             this.is('ctxt_term', '$N') ||
+            this.is('ctxt_term', '$Q') ||
             this.is('ctxt_term', '$S') ||
             this.is('ctxt_term', '$R')
         ;
@@ -201,10 +202,13 @@ export class Token {
                     case 'siblings':
                     case 'n':
                         return this.to('ctxt_term', '$N');
+                    case 'random':
+                    case 'q':
+                        return this.to('ctxt_term', '$Q');
                     case 'shuffled':
                     case 's':
                         return this.to('ctxt_term', '$S');
-                    case 'random':
+                    case 'iterandom':
                     case 'r':
                         return this.to('ctxt_term', '$R');
                     case 'eq':
