@@ -1,0 +1,11 @@
+@tridy;
+
+@new @as a = 0, b;
+
+@new @as a = 0, c;
+
+@new @as a = 1, b;
+
+@new @as a = 1, c;
+
+@get $(a == 0) ? b : c;

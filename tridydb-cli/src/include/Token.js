@@ -138,6 +138,14 @@ export class Token {
         ;
     }
 
+    isTernaryFirstOpContextToken() {
+        return this.is('ctxt_op', '?');
+    }
+
+    isTernarySecondOpContextToken() {
+        return this.is('ctxt_op', ':');
+    }
+
     to(type, val) {
         return new Token(type, val, this.debug);
     }
@@ -187,6 +195,12 @@ export class Token {
                     case 'toward':
                     case '//':
                         return this.to('ctxt_op', '//');
+                    case 'then':
+                    case '?':
+                        return this.to('ctxt_op', '?');
+                    case 'else':
+                    case ':':
+                        return this.to('ctxt_op', ':');
                     case '$':
                         return this.to('ctxt_misc', '$');
                     case 'depth':

@@ -321,6 +321,8 @@ export class Composer {
                     return this._testTransitive(test.a, test.b, lvl, index, random, false, opts);
                 case '//':
                     return this._testTransitive(test.a, test.b, lvl, index, random, true, opts);
+                case '?':
+                    return this._matchingExpression(test.a, lvl, index, random, opts) ? this._matchingExpression(test.b, lvl, index, random, opts) : this._matchingExpression(test.c, lvl, index, random, opts);
             }
         }
     }
@@ -700,6 +702,14 @@ export class Composer {
                     } else {
                         test.b = { val: test.b, end: true };
                     }
+
+                    if (token.isTernaryFirstOpContextToken()) {
+                        if (common.isDictionary(test.c)) {
+                            this._createExpressionPositionHelpersRecursive(test.c, null);
+                        } else {
+                            test.c = { val: test.c, end: true };
+                        }
+                    }
                 }
             }
         } else {
@@ -714,6 +724,14 @@ export class Composer {
                     this._createExpressionPositionHelpersRecursive(test.b, end);
                 } else {
                     test.b = { val: test.b, end: end };
+                }
+
+                if (token.isTernaryFirstOpContextToken()) {
+                    if (common.isDictionary(test.c)) {
+                        this._createExpressionPositionHelpersRecursive(test.c, end);
+                    } else {
+                        test.c = { val: test.c, end: end };
+                    }
                 }
             }
         }
@@ -769,7 +787,15 @@ export class Composer {
             return b_lvl;
         }
 
-        let lvl = (a_lvl > b_lvl) ? a_lvl : b_lvl;
+        let c_lvl = 0;
+        if (test.c !== undefined) {
+            c_lvl = this._getMaximumLevel(test.c);
+        }
+        if (c_lvl === null) {
+            return c_lvl;
+        }
+
+        let lvl = Math.max(a_lvl, b_lvl, c_lvl);
         if (test.op === '//') {
             return null;
         }

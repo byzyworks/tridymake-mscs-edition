@@ -26,7 +26,9 @@ export class InfixParser {
             '>':   5,
             '>>':  5,
             '/':   6,
-            '//':  6
+            '//':  6,
+            '?':   7,
+            ':':   7
         }
 
         const out = new Queue();
@@ -83,6 +85,14 @@ export class InfixParser {
                 const a = out.pop();
 
                 out.push({ a: a, op: current.val, b: b });
+            } else if (current.isTernarySecondOpContextToken()) {
+                const op = postfix.dequeue().val; // Removes the question mark (already syntax-checked)
+
+                const c = out.pop();
+                const b = out.pop();
+                const a = out.pop();
+
+                out.push({ a: a, op: op, b: b, c: c });
             }
         }
 

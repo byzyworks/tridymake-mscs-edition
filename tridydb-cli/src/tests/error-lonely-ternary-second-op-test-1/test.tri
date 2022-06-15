@@ -1,0 +1,7 @@
+@tridy;
+
+@new a;
+
+@new b;
+
+@get a : b;

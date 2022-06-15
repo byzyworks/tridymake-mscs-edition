@@ -119,7 +119,7 @@ export class SyntaxParser {
         return (!isEmpty(context) && context[context.length - 1].isExpressionEnderContextToken());
     }
     
-    _handleContextBinaryOp(context) {
+    _handleContextPostfixOp(context) {
         if (!this._isPreviousContextExpression(context)) {
             this._handleUnexpected();
         }
@@ -144,7 +144,20 @@ export class SyntaxParser {
                     this._handleContextExpressionOuter(context);
                 }
             } else if (current.isBinaryOpContextToken()) {
-                this._handleContextBinaryOp(context);
+                this._handleContextPostfixOp(context);
+
+                this._handleContextExpressionOuter(context);
+            } else if (current.isTernaryFirstOpContextToken()) {
+                this._handleContextPostfixOp(context);
+
+                this._handleContextExpressionOuter(context);
+
+                current = this._tokens.peek().toContextToken();
+                if (!current.isTernarySecondOpContextToken()) {
+                    this._handleUnexpected();
+                }
+                this._handleContextPostfixOp(context);
+
                 this._handleContextExpressionOuter(context);
             } else {
                 break;
@@ -197,7 +210,7 @@ export class SyntaxParser {
             if (current.isExpressionStarterContextToken()) {
                 this._handleContextExpressionOuter(context);
             } else if (current.isBinaryOpContextToken()) {
-                this._handleContextBinaryOp(context);
+                this._handleContextPostfixOp(context);
                 this._handleContextExpressionOuter(context);
             } else {
                 break;

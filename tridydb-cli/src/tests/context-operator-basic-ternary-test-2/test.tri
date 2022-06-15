@@ -1,0 +1,11 @@
+@tridy;
+
+@new @as a;
+
+@new @as b;
+
+@new @as c;
+
+@new @as d;
+
+@get $(@q < 0.5) ? ($(@q < 0.25) ? a : b) : ($(@q < 0.75) ? c : d);
