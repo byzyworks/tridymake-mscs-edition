@@ -25,25 +25,40 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
         1. [Modules](#modules)
         2. [Context](#context)
             1. [Empty Expressions](#context-empty)
-            2. [Context Terminals](#context-terminals)
+            2. [Context Tag Terminals](#context-tag-terminals)
                 1. [Tags](#context-tags)
                 2. [@any](#context-any)
-                3. [@root](#context-root)
-                4. [@leaf](#context-leaf)
-                5. [@random](#context-random)
-            3. [Context Operators](#context-operators)
-                1. [@not](#context-not)
+            3. [Context Tag Operators](#context-tag-operators)
+                1.  [@not](#context-not)
                 2.  [@and](#context-and)
                 3.  [@xor](#context-xor)
                 4.  [@or](#context-or)
-                5.  [@parent](#context-parent)
-                6.  [@ascend](#context-ascend)
-                7.  [@child](#context-child)
-                8.  [@descend](#context-descend)
-                9.  [@to](#context-to)
-                10. [@toward](#context-toward)
-                11. [Parentheses](#context-parenth)
-            4. [Summary](#context-summary)
+                5.  [Ternary](#context-ternary)
+                6.  [@parent](#context-parent)
+                7.  [@ascend](#context-ascend)
+                8.  [@child](#context-child)
+                9.  [@descend](#context-descend)
+                10. [@to](#context-to)
+                11. [@toward](#context-toward)
+                12. [Parentheses](#context-parenth)
+            4. [Context Value Terminals](#context-value-terminals)
+                1. [Tags](#context-tag-values)
+                2. [Numbers](#context-numbers)
+                3. [@depth](#context-depth)
+                4. [@children](#context-children)
+                5. [@index](#context-index)
+                6. [@siblings](#context-siblings)
+                7. [@shuffled](#context-shuffled)
+                8. [@random](#context-random)
+                9. [@iterandom](#context-iterandom)
+            5. [Context Value Operators](#context-value-operators)
+                1. [@eq](#context-eq)
+                2. [@ne](#context-ne)
+                3. [@lt](#context-lt)
+                4. [@le](#context-le)
+                5. [@gt](#context-gt)
+                6. [@ge](#context-ge)
+            6. [Summary](#context-summary)
         3.  [Syntax](#syntax)
             1.  [Comments](#syntax-comments)
             2.  [Clauses](#syntax-clauses)
@@ -339,9 +354,9 @@ If an expression is not given, then the operation is applied to the root/top-lev
 
 <br>
 
-<div id="context-terminals"/>
+<div id="context-tag-terminals"/>
 
-## **Context Terminals**
+## **Context Tag Terminals**
 
 <div id="context-tags"/>
 
@@ -447,138 +462,9 @@ The `@any` operand is used in a way that is analogous to a tautology in the Trid
 
 <br>
 
-<div id="context-root"/>
-
-### **Wildcard Operand: `@root` / "`~`"**
-
-The `@root` operand applies if and only if the module being evaluated is a direct descendant of the root module. This operator would have not much of a use (since expressions already starting from the root module anyway) if not for the introduction of `@child` and `@descend`, which are normally greedy and do not otherwise have a way to determine their absolute position in the database.
-
-```
-# Before
-@new @as a;
-@in a @new @as b;
-@in a/b @new @as b;
-@in a/b/b @new @as c;
-@in a @new @as d;
-@in a/d @new @as b;
-@in a/d/b @new @as c;
-
-# After
-@in a // c << b < ~ @new @as e;
-```
-
-```diff
-[
-    {
-        "tree": [
-            {
-                "tags": ["a"],
-                "tree": [
-                    {
-                        "tags": ["b"],
-                        "tree": [
-                            {
-                                "tags": ["b"],
-                                "tree": [
-                                    {
-                                        "tags": ["c"]
-                                        "tree": [
-+                                           {
-+                                               "tags": ["e"]
-+                                           }
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "tags": ["d"],
-                        "tree": [
-                            {
-                                "tags": ["b"],
-                                "tree": [
-                                    {
-                                        "tags": ["c"]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    }
-]
-```
-
-<br>
-
-<div id="context-leaf"/>
-
-### Wildcard Operand: `@leaf` / "`%`"
-
-The `@leaf` operand applies if and only if the module being evaluated is a leaf, meaning that it contains no sub-modules of its own. In more detail, that either it has no nested tree data structure, or this structure is as an empty array. As is typical, the free data structure is not evaluated when making this decision.
-
-```
-# Before
-@new @as a;
-@in a @new @as b;
-@in a/b @new @as b;
-@in a @new @as b;
-
-# After
-@in a // % @new @as c;
-```
-
-```diff
-[
-    {
-        "tree": [
-            {
-                "tags": ["a"],
-                "tree": [
-                    {
-                        "tags": ["b"],
-                        "tree": [
-                            {
-                                "tags": ["b"],
-                                "tree": [
-+                                   {
-+                                       "tags": ["c"]
-+                                   }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "tags": ["b"],
-                        "tree": [
-+                           {
-+                               "tags": ["c"]
-+                           }
-                        ]
-                    }
-                ]
-            }
-        ]
-    }
-]
-```
-
-<br>
-
-<div id="context-random"/>
-
-### **Wildcard Operand: `@random` / "`?`"**
-
-The `@random` operand forms one of the few non-deterministic operands included with the Tridy language. This operand effectively operates like a coin flip, where it has a 50% chance of evaluating to true, and a 50% chance of evaluating to false. The chances of the operand coming out as either can be raised or lowered by chaining multiple `@random` clauses together with either `@and` or `@or` (for instance, as `? & ?` or `? | ?`), respectively. That is, following statistic reasoning, the probability of success, and therefore, a module being affected, can then be controlled like that of a binomial distribution, allowing for a lot of interesting combinations of modules to be created.
-
-<br>
-
 <div id="context-operators"/>
 
-## **Context Operators**
+## **Context Tag Operators**
 
 <div id="context-not"/>
 
@@ -787,6 +673,14 @@ The `@or` operator evaluates as true if either side of the operator evaluates as
 ```
 
 `@or`'s precedence is higher than that of `@xor` and lower than that of any of the non-transitive nested operators.
+
+<br>
+
+<div id="context-or"/>
+
+### **Ternary Operator: `@then` + `@else` / "`?`" + "`:`"**
+
+WIP
 
 <br>
 
@@ -1248,6 +1142,142 @@ Note that parentheses can also be used to reverse the transitions created by the
 
 <br>
 
+<div id="context-value-terminals"/>
+
+### **Context Value Terminals**
+
+WIP
+
+<br>
+
+<div id="context-tag-values"/>
+
+### **Operand: Tags**
+
+WIP
+
+<br>
+
+<div id="context-numbers"/>
+
+### **Operand: Numbers**
+
+WIP
+
+<br>
+
+<div id="context-depth"/>
+
+### **Variable Operand: `@depth` / `@d`**
+
+WIP
+
+<br>
+
+<div id="context-children"/>
+
+### **Variable Operand: `@children` / `@c`**
+
+WIP
+
+<br>
+
+<div id="context-index"/>
+
+### **Variable Operand: `@index` / `@i`**
+
+WIP
+
+<br>
+
+<div id="context-siblings"/>
+
+### **Variable Operand: `@siblings` / `@n`**
+
+WIP
+
+<br>
+
+<div id="context-shuffled"/>
+
+### **Variable Operand: `@shuffled` / `@s`**
+
+WIP
+
+<br>
+
+<div id="context-random"/>
+
+### **Variable Operand: `@random` / `@q`**
+
+WIP
+
+<br>
+
+<div id="context-iterandom"/>
+
+### **Variable Operand: `@iterandom` / `@r`**
+
+WIP
+
+<br>
+
+<div id="context-value-operators"/>
+
+### **Context Value Operators**
+
+WIP
+
+<br>
+
+<div id="context-eq"/>
+
+### **Value Operator: `@eq` / "`==`"**
+
+WIP
+
+<br>
+
+<div id="context-ne"/>
+
+### **Value Operator: `@ne` / "`!=`"**
+
+WIP
+
+<br>
+
+<div id="context-lt"/>
+
+### **Value Operator: `@lt` / "`<`"**
+
+WIP
+
+<br>
+
+<div id="context-le"/>
+
+### **Value Operator: `@le` / "`<=`"**
+
+WIP
+
+<br>
+
+<div id="context-gt"/>
+
+### **Value Operator: `@gt` / "`>`"**
+
+WIP
+
+<br>
+
+<div id="context-ge"/>
+
+### **Value Operator: `@ge` / "`>=`"**
+
+WIP
+
+<br>
+
 <div id="context-summary"/>
 
 ### **Summary**
@@ -1255,16 +1285,23 @@ Note that parentheses can also be used to reverse the transitions created by the
 | Precedence | Operation | Shorthands | Input | Output | Search Depth (RHS) | Effective Depth |
 | --- | --- | --- | --- | --- | --- | --- |
 | N/A | (terminal) | N/A | Unary | Logical Conjunction | LHS | LHS
-| 0 | `@not` | `!` | Unary | Negation | LHS | LHS
-| 1 | `@and` | `&` whitespaces | Binary | Logical Conjunction | LHS | LHS
-| 2 | `@xor` | `^` | Binary | Exclusive Disjunction | LHS | LHS
-| 3 | `@or` | `\|` `,` | Binary | Logical Disjunction | LHS | LHS
-| 4 | `@parent` | `>` | Binary | Logical Conjunction | LHS + 1 | LHS
-| 4 | `@ascend` | `>>` | Binary | Logical Conjunction | LHS + *n* | LHS
-| 4 | `@child` | `<` | Binary | Logical Conjunction | LHS - 1 | LHS
-| 4 | `@descend` | `<<` | Binary | Logical Conjunction | LHS - *n* | LHS
-| 5 | `@to` | `/` | Binary | Logical Conjunction | LHS + 1 | LHS + 1
-| 5 | `@toward` | `//` | Binary | Logical Conjunction | LHS + *n* | LHS + *n*
+| 0 | `@eq` | `==` | Binary | Numeric Comparison | LHS | LHS
+| 0 | `@ne` | `!=` | Binary | Numeric Comparison | LHS | LHS
+| 0 | `@lt` | `<` | Binary | Numeric Comparison | LHS | LHS
+| 0 | `@le` | `<=` | Binary | Numeric Comparison | LHS | LHS
+| 0 | `@gt` | `>` | Binary | Numeric Comparison | LHS | LHS
+| 0 | `@ge` | `>=` | Binary | Numeric Comparison | LHS | LHS
+| 1 | `@not` | `!` | Unary | Logical Negation | LHS | LHS
+| 2 | `@and` | `&` whitespaces | Binary | Logical Conjunction | LHS | LHS
+| 3 | `@xor` | `^` | Binary | Exclusive Disjunction | LHS | LHS
+| 4 | `@or` | `\|` `,` | Binary | Logical Disjunction | LHS | LHS
+| 5 | `@parent` | `>` | Binary | Logical Conjunction | LHS + 1 | LHS
+| 5 | `@ascend` | `>>` | Binary | Logical Conjunction | LHS + *n* | LHS
+| 5 | `@child` | `<` | Binary | Logical Conjunction | LHS - 1 | LHS
+| 5 | `@descend` | `<<` | Binary | Logical Conjunction | LHS - *n* | LHS
+| 6 | `@to` | `/` | Binary | Logical Conjunction | LHS + 1 | LHS + 1
+| 6 | `@toward` | `//` | Binary | Logical Conjunction | LHS + *n* | LHS + *n*
+| 7 | `@then @else` | `? :` | Ternary | Logical Conjunction | LHS | LHS
 
 Note: if first in an expression, *LHS* = 0. Additionally, the *LHS*, unless both the *LHS* and the operator are inside parentheses, is relative to the outside of them.
 
@@ -3256,6 +3293,12 @@ An unique or non-unique alphanumeric identifier that is used to identify a modul
 ### **Tagset**
 The array/list of tags that a particular module has, not including the tags of modules that are nested under it, and of which all tags are unique within this same array.
 
+### **Tag Identifier**
+The string portion of a tag that is normally what is being referred to as the tag itself. This is treated as separate from any number value assigned to the same tag.
+
+### **Tag Value**
+An optional numeric value assigned to a tag that is associated to the tag's identifier inside of context expressions.
+
 ### **Token**
 Any string of characters that is interpreted by TridyDB to have a special, non-divisable meaning. That can be a clause, a tag, or any number of characters tied to raw input.
 
@@ -3293,4 +3336,7 @@ A special string token that identifies the key the module would be associated to
 A special way of sending input to a TridyDB server that involves sending Tridy code to the server directly through the `PUT` method, where the server does everything from tokenization to composition.
 
 ### **Variable**
-Special tags or parts of tags starting with `$` that are used to associate the tag as a key to a corresponding value that be called by this key to result in the value of the key being placed with the final output.
+A special type of built-in context operand not associated to any particular tag that is only usable in numeric comparison operations. Used for making complex determinations based on module characteristics or metadata.
+
+### **Wildcard**
+A special type of built-in context operand not associated to any particular tag that is not usable in numeric comparison operations. Used for selecting based on qualities reducible to true/false statements, but that are more general than tags.
