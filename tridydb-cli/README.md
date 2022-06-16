@@ -370,7 +370,7 @@ If an expression is not given, then the operation is applied to the root/top-lev
 
 ## **Context Tag Terminals**
 
-This sections explains the concepts behind "tag terminals", which is Tridy's equivalent to both booleans and string operands simultaneously when pertaining to context expressions. Most expressions are built around these.
+This section explains the concepts behind "tag terminals", which is Tridy's equivalent to both booleans and string operands simultaneously when pertaining to context expressions. Most expressions are built around these.
 
 <br>
 
@@ -549,7 +549,7 @@ Since there aren't restrictions on how users can name tags, this is partly the r
 
 ## **Context Tag Operators**
 
-This sections explains the concepts behind "tag operators", which are the way to combine sub-expressions built around tag terminals.
+This section explains the concepts behind "tag operators", which are the way to combine sub-expressions built around tag terminals.
 
 <div id="context-not"/>
 
@@ -1281,7 +1281,7 @@ Note that parentheses can also be used to reverse the transitions created by the
 
 ## **Context Value Terminals**
 
-This sections explains the concepts behind "value terminals", which is Tridy's equivalent to numbers. These can be used for more complex operations that require different responses for more than two possibilities associated to a single tag.
+This section explains the concepts behind "value terminals", which is Tridy's equivalent to numbers. These can be used for more complex operations that require different responses for more than two possibilities associated to a single tag.
 
 See the [section](#context-value-expressions) on value expressions for an overview of how to use them.
 
@@ -1747,7 +1747,9 @@ This is one possible way to do with-replacement random sampling in TridyDB.
 
 ## **Context Value Operators**
 
-WIP
+This section explains the concepts behind "value operators". This is just a fancier way to term what only amount to the basic numeric comparison operators that obviously would not be unique to Tridy.
+
+See the [section](#context-value-expressions) on value expressions for an overview of how to use them.
 
 <br>
 
@@ -1755,7 +1757,31 @@ WIP
 
 ### **Value Operator: `@eq` / "`==`"**
 
-WIP
+`@eq`, or `==`, returns true for a module if and only if the left-hand side is of a value equal to the right-hand side.
+
+If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+
+```
+@new @as Bob, coins = 5;
+@new @as Jen, coins = 1;
+@new @as Wei, coins = 4;
+@new @as Max, coins = 2;
+@new @as Sam, coins = 3;
+
+@get $(coins == 5);
+```
+
+```
+[
+    {
+        "tree": [
+            {
+                "tags": ["Bob", "coins:5"]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1763,7 +1789,40 @@ WIP
 
 ### **Value Operator: `@ne` / "`!=`"**
 
-WIP
+`@ne`, or `!=`, returns true for a module if and only if the left-hand side is of a value not equal to the right-hand side.
+
+If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return true.
+
+```
+@new @as Bob, coins = 5;
+@new @as Jen, coins = 1;
+@new @as Wei, coins = 4;
+@new @as Max, coins = 2;
+@new @as Sam, coins = 3;
+
+@get $(coins != 5);
+```
+
+```
+[
+    {
+        "tree": [
+            {
+                "tags": ["Jen", "coins:1"]
+            },
+            {
+                "tags": ["Wei", "coins:4"]
+            },
+            {
+                "tags": ["Max", "coins:2"]
+            },
+            {
+                "tags": ["Sam", "coins:3"]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1771,7 +1830,34 @@ WIP
 
 ### **Value Operator: `@lt` / "`<`"**
 
-WIP
+`@lt`, or `<`, returns true for a module if and only if the left-hand side is of a value less than the right-hand side.
+
+If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+
+```
+@new @as Bob, coins = 5;
+@new @as Jen, coins = 1;
+@new @as Wei, coins = 4;
+@new @as Max, coins = 2;
+@new @as Sam, coins = 3;
+
+@get $(coins < 3);
+```
+
+```
+[
+    {
+        "tree": [
+            {
+                "tags": ["Jen", "coins:1"]
+            },
+            {
+                "tags": ["Max", "coins:2"]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1779,7 +1865,37 @@ WIP
 
 ### **Value Operator: `@le` / "`<=`"**
 
-WIP
+`@le`, or `<=`, returns true for a module if and only if the left-hand side is of a value less than or equal to the right-hand side.
+
+If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+
+```
+@new @as Bob, coins = 5;
+@new @as Jen, coins = 1;
+@new @as Wei, coins = 4;
+@new @as Max, coins = 2;
+@new @as Sam, coins = 3;
+
+@get $(coins <= 3);
+```
+
+```
+[
+    {
+        "tree": [
+            {
+                "tags": ["Jen", "coins:1"]
+            },
+            {
+                "tags": ["Max", "coins:2"]
+            },
+            {
+                "tags": ["Sam", "coins:3"]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1787,7 +1903,34 @@ WIP
 
 ### **Value Operator: `@gt` / "`>`"**
 
-WIP
+`@gt`, or `>`, returns true for a module if and only if the left-hand side is of a value greater than the right-hand side.
+
+If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+
+```
+@new @as Bob, coins = 5;
+@new @as Jen, coins = 1;
+@new @as Wei, coins = 4;
+@new @as Max, coins = 2;
+@new @as Sam, coins = 3;
+
+@get $(coins > 3);
+```
+
+```
+[
+    {
+        "tree": [
+            {
+                "tags": ["Bob", "coins:5"]
+            },
+            {
+                "tags": ["Wei", "coins:4"]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1795,7 +1938,37 @@ WIP
 
 ### **Value Operator: `@ge` / "`>=`"**
 
-WIP
+`@ge`, or `>=`, returns true for a module if and only if the left-hand side is of a value greater than or equal to the right-hand side.
+
+If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+
+```
+@new @as Bob, coins = 5;
+@new @as Jen, coins = 1;
+@new @as Wei, coins = 4;
+@new @as Max, coins = 2;
+@new @as Sam, coins = 3;
+
+@get $(coins >= 3);
+```
+
+```
+[
+    {
+        "tree": [
+            {
+                "tags": ["Bob", "coins:5"]
+            },
+            {
+                "tags": ["Wei", "coins:4"]
+            },
+            {
+                "tags": ["Sam", "coins:3"]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
