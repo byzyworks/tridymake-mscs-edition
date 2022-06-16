@@ -29,8 +29,8 @@ export class Composer {
     }
 
     _getModuleShuffledIndex(lvl, index, random) {
-        const last_index  = index.real[lvl]   ?? 0;
-        const last_extent = index.extent[lvl] ?? 0;
+        const last_index  = index.real[lvl];
+        const last_extent = index.extent[lvl];
 
         // Using the query random plus the parent's index ensures all children of the same parent use the same seed.
         let suffix = index.real.slice(0, lvl).join(':');
@@ -41,24 +41,34 @@ export class Composer {
 
         const shuffled = shuffle([...Array(last_extent).keys()], seed);
 
-        return shuffled[last_index] ?? 0;
+        return shuffled[last_index];
     }
 
-    _matchingTagValue(test, lvl, index, random) {
+    _matchingTagValue(test, b, lvl, index, random) {
+        let requested;
+
         // Note the variables below all have a minimum value of 0 (inclusive).
         // This does not include tags, which can store negative values.
         switch (test.val) {
             case '$D':
                 return lvl;
             case '$C':
-                return index.extent[lvl + 1] ?? 0;
+                return index.extent[lvl + 1];
             case '$I':
-                return index.real[lvl] ?? 0;
+                requested = Number(b.val);
+                if (requested < 0) {
+                    return (index.extent[lvl] - index.real[lvl]) * -1;
+                }
+                return index.real[lvl];
             case '$N':
-                return (index.extent[lvl] ?? 1) - 1;
+                return index.extent[lvl] - 1;
             case '$Q':
                 return random;
             case '$S':
+                requested = Number(b.val);
+                if (requested < 0) {
+                    return (index.extent[lvl] - this._getModuleShuffledIndex(lvl, index, random)) * -1;
+                }
                 return this._getModuleShuffledIndex(lvl, index, random);
             case '$R':
                 return this._random.prng();
@@ -127,7 +137,7 @@ export class Composer {
     }
 
     _matchingNumberExpression(a, b, op, lvl, index, random, opts = { }) {
-        let answer = this._matchingTagValue(a, lvl, index, random);
+        let answer = this._matchingTagValue(a, b, lvl, index, random);
         switch (op) {
             case '$==':
                 answer = (answer === null) ? false : (answer === (isNaN(b.val) ? b.val : Number(b.val)));

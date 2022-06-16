@@ -129,7 +129,7 @@ By design, as there is no specialized output format or storage management, Tridy
 
 To support its use for that, though, TridyDB is provided with three possible interaction paradigms that each provide for varying degrees of integration.
 
-1. At the highest degree of integration, TridyDB is useable as a [**Node.js package**](#package). This means that at least if another application or script is written for Node as well, it can interface with TridyDB like it would any other NPM module and use that to its advantage for increased flexibility and performance. However, this makes it more the responsibility of the application to manage the database on its own, how it saves and interacts with it, etc. since TridyDB in this form doesn't provide any persistence, and neither exists as a separate application to begin with. Another obvious issue is that if the application isn't also a Node application on its own, then this isn't really an available option, and using a wrapper would be needed.
+1. At the highest degree of integration, TridyDB is usable as a [**Node.js package**](#package). This means that at least if another application or script is written for Node as well, it can interface with TridyDB like it would any other NPM module and use that to its advantage for increased flexibility and performance. However, this makes it more the responsibility of the application to manage the database on its own, how it saves and interacts with it, etc. since TridyDB in this form doesn't provide any persistence, and neither exists as a separate application to begin with. Another obvious issue is that if the application isn't also a Node application on its own, then this isn't really an available option, and using a wrapper would be needed.
 2. For applications interacting with TridyDB locally as a separate process, but without the need for networking, TridyDB can be utilized as a [**terminal application**](#cli). This is especially useful for compiling Tridy data files/scripts to another format where it only needs to be done once during the runtime of a particular program, as might often be the case with configuration files, where TridyDB is most strongly-suited. The other half of its usefulness comes from providing an interface for both applications and users alike to interact directly with TridyDB, considering a possible way to use TridyDB, when launched this way, is as an interactive console.
 3. For applications interacting with TridyDB remotely, or where networking is a requirement, TridyDB (the application) can be launched as a [**RESTful HTTP server**](#server), though it requires some additional knowledge to know how to work with. To summarize, however, commands can either be sent to a server directly (as a string of Tridy code), pre-parsed (ideal for Tridy-parsing clients), or in a special form that takes advantage of query parameters and HTTP methods (hence a RESTful architecture), though while having some limits of its own. Even in this form, the API is extremely basic if one happens to understand Tridy syntax at all, considering its just a single route (the root `/`) mapped to multiple HTTP methods. That is because Tridy's operational design is already highly analogous to the four commonly-used HTTP methods of RESTful APIs (GET, POST, PUT, and DELETE).
 
@@ -1338,6 +1338,7 @@ Unsurprisingly, the syntax for what is allowed on the right-hand side as a numbe
 @get $(age == 4e+1);
 @get $(age != 0.4);
 @get $(age != -40);
+@get $(age < Infinity);
 ```
 
 Each statement happens to return the module tagged as `Robert` all the same, regardless of the format in which the value of `age` was originally stored.
@@ -1354,7 +1355,46 @@ This variable captures the depth of the current module, where a value of `0` ind
 
 The usefulness of `@depth` is mostly limited to the recursive nested operators `@ascend`, `@descend`, and `@toward`, where a module being tested for the right-hand side wouldn't necessarily have a clear depth relative to the root module.
 
-WIP
+```
+# Before
+@new @as level-1;
+@in level-1 @new @as level-2;
+@in level-1/level-2 @new @as level-3;
+@in level-1/level-2/level-3 @new @as level-4;
+
+# After
+@in * // $(@depth == 2) @new @as destination;
+```
+
+```diff
+[
+    {
+        "tree": [
+            {
+                "tags": ["level-1"],
+                "tree": [
+                    {
+                        "tags": ["level-2"],
+                        "tree": [
+                            {
+                                "tags": ["level-3"],
+                                "tree": [
+                                    {
+                                        "tags": ["level-4"]
+                                    },
++                                   {
++                                       "tags": ["destination"]
++                                   }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1366,7 +1406,50 @@ WIP
 
 The variable captures the number of direct descendents to the module, or in other words, the number of sub-modules directly inside the module's tree. A value of `0` indicates the module has no sub-modules, and is effectively a leaf node, while any value like `10` indicates the module has 10 sub-modules directly under it.
 
-WIP
+```
+# Before
+@new @as folder;
+@new @as folder;
+@in folder @new @as file;
+@new @as folder;
+@new @as folder;
+
+# After
+@in folder !$(@children > 0) @tag empty;
+```
+
+```diff
+[
+    {
+        "tree": [
+            {
+                "tags": ["folder"],
+                "tree": [
+                    {
+                        "tags": ["file"]
+                    }
+                ]
+            },
+            {
+                "tags": ["folder"],
+                "tree": [
+                    {
+                        "tags": ["file"]
+                    }
+                ]
+            },
+            {
+-               "tags": ["folder"]
++               "tags": ["folder", "empty"]
+            },
+            {
+-               "tags": ["folder"]
++               "tags": ["folder", "empty"]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1374,7 +1457,67 @@ WIP
 
 ### **Variable Operand: `@index` / `@i`**
 
-WIP
+`@index`, and its shorthand `@i`, is a built-in variable usable (and only usable) on the left-hand side of a value expression that can take the place of a tag.
+
+This variable, as the name suggests, captures the position of the module within its parent module from inside its tree. If it returns a value of `0`, then that means that it is the first sub-module in the tree of its parent module. If it returns a value of `5`, that means it is the 5th module in its parent's tree, and so on.
+
+```
+# Before
+@new @as first;
+@new @as middle;
+@new @as last;
+
+# After
+@del $(@index == 0);
+```
+
+```diff
+[
+    {
+        "tree": [
+-           {
+-               "tags": ["first"]
+-           },
+            {
+                "tags": ["middle"]
+            },
+            {
+                "tags": ["last"]
+            }
+        ]
+    }
+]
+```
+
+If a negative number is used on the right-hand side instead of a positive number, then the value output by `@index` changes to be the respective of the parent tree's tail as opposed to its head, offset by 1. In other words, a value of `-1` matches the last sub-module of the parent's tree, `-2` matches the second-to-last sub-module, and so on.
+
+```
+# Before
+@new @as first;
+@new @as middle;
+@new @as last;
+
+# After
+@del $(@index == -1);
+```
+
+```diff
+[
+    {
+        "tree": [
+            {
+                "tags": ["first"]
+            },
+            {
+                "tags": ["middle"]
+            },
+-           {
+-               "tags": ["last"]
+-           }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1382,7 +1525,79 @@ WIP
 
 ### **Variable Operand: `@siblings` / `@n`**
 
-WIP
+`@siblings`, and its shorthand `@n`, is a built-in variable usable (and only usable) on the left-hand side of a value expression that can take the place of a tag.
+
+This variable looks at the size of the parent module's tree and attempts to determine the number of sub-modules that are placed alongside it in the same tree, while excluding itself from the count. A value of `0` indicates that the module is the only module in its parent's tree, while a value of `12` would indicate there are 12 other modules in the tree *besides itself*.
+
+```
+# Before
+@new @as product product-1;
+@in product-1 @new @as complaints;
+@in product-1/complaints @new @as complaint;
+@in product-1/complaints @new @as complaint;
+@in product-1/complaints @new @as complaint;
+@in product-1/complaints @new @as old complaint;
+@new @as product product-2;
+@in product-2 @new @as complaints;
+@in product-2/complaints @new @as complaint;
+@in product-2/complaints @new @as complaint;
+
+# After
+@in product / complaints {
+    @del old;
+    @in $(@siblings > 1) @tag review;
+};
+```
+
+```diff
+[
+    {
+        "tree": [
+            {
+                "tags": ["product", "product-1"],
+                "tree": [
+                    {
+                        "tags": ["complaints"],
+                        "tree": [
+                            {
+-                               "tags": ["complaint"]
++                               "tags": ["complaint", "review"]
+                            },
+                            {
+-                               "tags": ["complaint"]
++                               "tags": ["complaint", "review"]
+                            },
+                            {
+-                               "tags": ["complaint"]
++                               "tags": ["complaint", "review"]
+                            },
+-                           {
+-                               "tags": ["complaint", "old"]
+-                           }
+                        ]
+                    }
+                ]
+            },
+            {
+                "tags": ["product", "product-2"],
+                "tree": [
+                    {
+                        "tags": ["complaints"],
+                        "tree": [
+                            {
+                                "tags": ["complaint"]
+                            },
+                            {
+                                "tags": ["complaint"]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
+```
 
 <br>
 
@@ -1390,7 +1605,48 @@ WIP
 
 ### **Variable Operand: `@shuffled` / `@s`**
 
-WIP
+`@shuffled`, and its shorthand `@s`, is a built-in variable usable (and only usable) on the left-hand side of a value expression that can take the place of a tag.
+
+`@shuffled` resembles `@index` in that it captures the index of a module in the tree of its parent. However, it does not do so according to its effective position, but instead, only after executing a Knuth Fisher-Yates shuffle that uses the global random seed, a query-specific random number, and its parent's index, which is done recursively over the entire database so that the output is unique to that one particular parent module, and no other sub-module of the same parent receives the same shuffled index twice or forgets one completely.
+
+The effect is that a shuffled index is 1-to-1 mapped with an actual index, which is randomly-selected, and never the same mapping as another shuffled index for a module within the same tree. As an example, if there are 3 modules inside a tree, then where the actual indeces would be `[0, 1, 2]`, the shuffled indeces might be `[1, 0, 2]`, whereby a value of `0` is returned for the second module, a value of `1` is returned for the first module, and a value of `2` is returned for the third.
+
+```
+@new @as a;
+@new @as b;
+@new @as c;
+@new @as d;
+@new @as e;
+@new @as f;
+@new @as g;
+@new @as h;
+@new @as i;
+@new @as j;
+@new @as k;
+@new @as l;
+
+@get $(@shuffled < 3);
+```
+
+Possible output:
+
+```json
+[
+    {
+        "tags": ["f"]
+    },
+    {
+        "tags": ["j"]
+    },
+    {
+        "tags": ["k"]
+    }
+]
+```
+
+Similar to `@index`, using a negative number on the right-hand side as opposed to a positive number causes the indeces of the modules (shuffled in this case) to be tested relative to the tail of the parent's tree offset by 1, rather than its head. As in the same 3-module example above, a value of `-1` is returned for the third module, a value of `-2` is returned for the first module, and a value of `-3` is returned for the second.
+
+This is one possible way to do without-replacement random sampling in TridyDB.
 
 <br>
 
@@ -1398,7 +1654,38 @@ WIP
 
 ### **Variable Operand: `@random` / `@q`**
 
-WIP
+`@random`, and its shorthand `@q`, is a built-in variable usable (and only usable) on the left-hand side of a value expression that can take the place of a tag.
+
+As the name would suggest, the `@random` variable returns a random number that is generated based off of the global random seed. This random number is always a floating point number somewhere between `0` and `1`. Randomness can thus be achieved here by comparing the value against a threshold.
+
+`@random` returns the so-called "query-specific random number". This is a random number generated specifically for the given query, which is the same throughout all calls of the same variable over the course of a single query. As such, if it is called multiple times within the same query, then the same value is returned. That both refers to when it is called multiple times within the same statement, and when a different module is tested over the course of the same query.
+
+```
+@new @as heads;
+@new @as tails;
+
+@get $(@random > 0.5) & heads | $(@random < 0.5) tails;
+```
+
+Possible outputs:
+
+```json
+[
+    {
+        "tags": ["heads"]
+    }
+]
+```
+
+```json
+[
+    {
+        "tags": ["tails"]
+    }
+]
+```
+
+This is one possible way to do with-replacement random sampling in TridyDB.
 
 <br>
 
@@ -1406,7 +1693,53 @@ WIP
 
 ### **Variable Operand: `@iterandom` / `@r`**
 
-WIP
+`@iterandom`, and its shorthand `@r`, is a built-in variable usable (and only usable) on the left-hand side of a value expression that can take the place of a tag.
+
+As the name would suggest, the `@iterandom` variable returns a random number that is generated based off of the global random seed. This random number is always a floating point number somewhere between `0` and `1`. Randomness can thus be achieved here by comparing the value against a threshold.
+
+`@iterandom`, special to itself, generates a new random number every time it is called. This is unlike `@random`, which returns the same random number that was generated for the query every time it happens to be called within the same query. As a result, the value of `@iterandom` is different every time it is called more than once in the same statement, or for a different module being tested over the same query.
+
+```
+@new @as heads;
+@new @as tails;
+
+@get $(@iterandom > 0.5) & heads | $(@iterandom < 0.5) tails;
+```
+
+Possible outputs:
+
+```json
+[ ]
+```
+
+```json
+[
+    {
+        "tags": ["heads"]
+    }
+]
+```
+
+```json
+[
+    {
+        "tags": ["tails"]
+    }
+]
+```
+
+```json
+[
+    {
+        "tags": ["heads"]
+    },
+    {
+        "tags": ["tails"]
+    }
+]
+```
+
+This is one possible way to do with-replacement random sampling in TridyDB.
 
 <br>
 
@@ -2489,7 +2822,7 @@ As an alternative to `@once`, `@many` is an explicit way to specify the default 
 
 `@raw` specifies the default format in which the output of `@get` is printed with respect to the amount of compression used, which is none. No compression means that the output is printed exactly how it is stored, leaving Tridy "metadata" (the tagset and the type specifier, namely) intact.
 
-"Raw" format or no compression is necessary for the output to be *two-way*, meaning that it would be possible to plug the output directly back into TridyDB and have it be immediately useable the way it is as a TridyDB database.
+"Raw" format or no compression is necessary for the output to be *two-way*, meaning that it would be possible to plug the output directly back into TridyDB and have it be immediately usable the way it is as a TridyDB database.
 
 `@raw` conflicts with `@typeless`, `@tagless`, `@trimmed`, `@merged`, and `@final`.
 
