@@ -73,3 +73,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@random` / `@q` built-in context variable for number comparison operations.
 * Added `@shuffled` / `@s` built-in context variable for number comparison operations.
 * Added `@iterandom` / `@r` built-in context variable for number comparison operations.
+* Fixed client mode using a standalone local session as opposed to a server like it's supposed to.
+* Fixed `--client` option not conflicting with `--type-key`.
+* Fixed client mode sending the syntax tree output of no-ops like `@tridy` to a server.
+* Improved behavior of server mode when receiving incorrectly-formatted abstract syntax trees.

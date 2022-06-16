@@ -50,7 +50,30 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch REST Client (Development)",
+            "name": "Launch Client Test File (Development)",
+            "program": "${workspaceFolder}/src/app.js",
+            "cwd": "${workspaceFolder}/",
+            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--pretty"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Client Test File (Production)",
+            "program": "${workspaceFolder}/src/app.js",
+            "cwd": "${workspaceFolder}/",
+            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--client"],
+            "outputCapture": "std",
+            "console": "externalTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Client Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
             "args": ["console", "--client", "--log-level", "debug", "--pretty"],
@@ -63,7 +86,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch REST Client (Production)",
+            "name": "Launch Client Test Console (Production)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
             "args": ["console", "--client"],
@@ -73,7 +96,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch REST Server (Development)",
+            "name": "Launch Server (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
             "args": ["server", "--localhost", "--log-level", "debug"],
@@ -86,7 +109,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch REST Server (Production)",
+            "name": "Launch Server (Production)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
             "args": ["server", "--localhost"],

@@ -81,6 +81,12 @@ if (!$Test) {
                     exit 0;
                 }
             }
+			
+			if ($out -like "*Error 404*") {
+                Write-Host 'Test successful.';
+                Write-Host;
+                exit 0;
+            }
             
             Write-Host 'Test failed.';
             Write-Host;

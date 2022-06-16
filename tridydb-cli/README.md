@@ -18,9 +18,8 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
 
 1. [Tridy](#tridy)
     1. [TridyDB](#tridydb)
-        1. [Format](#tridydb-form)
-        2. [Schemas](#tridydb-schema)
-        3. [Security](#tridydb-sec)
+        1. [Formats](#tridydb-form)
+        2. [Security](#tridydb-sec)
     2. [Tridy (the Language)](#tridylang)
         1. [Modules](#modules)
         2. [Context](#context)
@@ -28,6 +27,7 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
             2. [Context Tag Terminals](#context-tag-terminals)
                 1. [Tags](#context-tags)
                 2. [@any](#context-any)
+                3. [Value Expressions](#context-value-expressions)
             3. [Context Tag Operators](#context-tag-operators)
                 1.  [@not](#context-not)
                 2.  [@and](#context-and)
@@ -129,25 +129,19 @@ By design, as there is no specialized output format or storage management, Tridy
 
 To support its use for that, though, TridyDB is provided with three possible interaction paradigms that each provide for varying degrees of integration.
 
-1. At the highest degree of integration, TridyDB is useable as a [**Node.js package**](#package). This means that at least if another application or script is written for Node as well, it can interface with TridyDB like it would any other NPM module and use that to its advantage for increased flexibility and performance. However, this makes it more the responsibility of the application to manage the database on its own, how it saves and interacts with it, etc. since TridyDB in this form doesn't provide any persistence, and neither exists as a separate application to begin with. Another obvious issue is that if the application isn't also a Node application on its own, then this isn't really an available option.
-2. For applications interacting with TridyDB locally as a separate process, but without the need for networking, TridyDB can be utilized as a [**terminal application**](#cli). This is especially useful for compiling Tridy data files/scripts to another format where it only needs to be done once during the runtime of a particular program, as is often done with configuration files, where TridyDB is most strongly-suited. The other half of its usefulness comes from providing an interface for both applications and users alike to interact directly with TridyDB, considering a possible way to use TridyDB, when launched this way, is as an interactive console.
+1. At the highest degree of integration, TridyDB is useable as a [**Node.js package**](#package). This means that at least if another application or script is written for Node as well, it can interface with TridyDB like it would any other NPM module and use that to its advantage for increased flexibility and performance. However, this makes it more the responsibility of the application to manage the database on its own, how it saves and interacts with it, etc. since TridyDB in this form doesn't provide any persistence, and neither exists as a separate application to begin with. Another obvious issue is that if the application isn't also a Node application on its own, then this isn't really an available option, and using a wrapper would be needed.
+2. For applications interacting with TridyDB locally as a separate process, but without the need for networking, TridyDB can be utilized as a [**terminal application**](#cli). This is especially useful for compiling Tridy data files/scripts to another format where it only needs to be done once during the runtime of a particular program, as might often be the case with configuration files, where TridyDB is most strongly-suited. The other half of its usefulness comes from providing an interface for both applications and users alike to interact directly with TridyDB, considering a possible way to use TridyDB, when launched this way, is as an interactive console.
 3. For applications interacting with TridyDB remotely, or where networking is a requirement, TridyDB (the application) can be launched as a [**RESTful HTTP server**](#server), though it requires some additional knowledge to know how to work with. To summarize, however, commands can either be sent to a server directly (as a string of Tridy code), pre-parsed (ideal for Tridy-parsing clients), or in a special form that takes advantage of query parameters and HTTP methods (hence a RESTful architecture), though while having some limits of its own. Even in this form, the API is extremely basic if one happens to understand Tridy syntax at all, considering its just a single route (the root `/`) mapped to multiple HTTP methods. That is because Tridy's operational design is already highly analogous to the four commonly-used HTTP methods of RESTful APIs (GET, POST, PUT, and DELETE).
 
 <br>
 
 <div id="tridydb-form"/>
 
-### **Format**
+### **Formats**
 
-TridyDB supports importing JSON-formatted as well as YAML-formatted data. As output, export to JSON is supported, and support for exporting as XML is planned.
+Being as TridyDB is natively a JavaScript application, JSON is its most well-supported storage format, and is always the one that is used by it internally. The other formats supported are converted to or from this internal storage.
 
-<br>
-
-<div id="tridydb-schema"/>
-
-### **Schemas**
-
-TridyDB does not support the use of or creation or validation of schemas at this point in time.
+Currently, YAML [import](#syntax-yaml) is supported, in addition to JSON [import](#syntax-json) and export.
 
 <br>
 
@@ -155,7 +149,13 @@ TridyDB does not support the use of or creation or validation of schemas at this
 
 ### **Security**
 
-As far as security goes, it is not recommended to use TridyDB except locally right now. While a user system is planned for the future, and TridyDB's nested architecture and context system are ripe for having granularized access controls, TridyDB is currently single-user. In addition, the web-based API shouldn't be used in a secure context either, since it is at risk for command injection in the same manner that SQL or other database engines are. In addition, this port should *never* be opened to the internet for the same reason that you shouldn't open MySQL port 3306 to the internet, even once a user system is built-in. To that end, any accesses to TridyDB should be regulated through another application stacked between the user and the database.
+It's worth re-stating that TridyDB is not meant to be used as a generalized database solution. It is a lightweight tool meant for the creation of *redundant* hierarchically-structured data. That makes it inherently un-ideal for storing sensitive data, though this is more due to relative performance costs than any inability to be built into a secure system.
+
+That's because TridyDB, likewise, deals the least effectively with data that is lacking in repetition, and is in such high volume that it would not be ideal to re-compile its respective transactional data on a regular or near-regular basis (which less repitition causes there to be more of). Sensitive data meant to be unique and collision-resistant is rarely conducive to this.
+
+While TridyDB does sport a server-based mode of operation, there is no built-in user system or manner of authentication either, which limits the safety of using such a server to more of just a localhost context. Regardless of whether there would be one or not, the port it uses should *never* be opened to the internet for the same reason that you shouldn't open MySQL port 3306 to the internet. All remote access to TridyDB, if there is any, should have to pass through another application that is able to confine TridyDB's usage to a secure context.
+
+For any developers of applications that might intend to try and do that, be aware that the main exported method `Tridy.query(...)` (and arguably the other possible entryways as well) performs similarly as one might expect from other database systems that export a method of the same name. That means that this method is vulnerable to command injection if it used in a naive manner.
 
 <br>
 
@@ -174,7 +174,7 @@ To show how Tridy actually works, suppose we have a snippet of Tridy code like t
 
 @in a @xor b
 @new c
-@is @json { "letter":"true" } @end;
+@is @json { "letter": true } @end;
 ```
 
 Tridy contains keywords, or **clauses**, that all begin with an `@` symbol.
@@ -183,7 +183,7 @@ Similar to SQL, Tridy statements are also semicolon-delimited, where the semicol
 
 The first statement, `@new a`, creates a new module tagged as *a*, and stores it at the root module inside a newly-created document. Since the document is likely stored as a JSON object, the root module would be whatever is *directly* under the opening `{` and closing `}` of the document. It also implicitly sets the module's type specifier to be `"a"`, since another, more explicit clause `@as` wasn't used, and `a` was the last and only tag there.
 
-`@new` is considered as the **operation** of the Tridy statement, which defines the action taken by it. `@new`, as the name implies, creates a new module, while the three other operations `@set`, `@get`, and `@del` can be used to change an existing module, print an existing module, and delete an existing module respectively.
+`@new` is considered as the **operation** of the Tridy statement, which defines the action taken by it. `@new`, as the name implies, creates a new module, while the three other *primary* operations `@set`, `@get`, and `@del` can be used to change an existing module, print an existing module, and delete an existing module respectively.
 
 The second statement, `@new b`, acts similarly, creating a new module tagged as `b` under the root module. More specifically, the last two statements (respectively) stored the modules tagged `a` and `b` under a named array inside the root module, of which the name of this array is consistent for all modules. That would imply that `a` and `b` can also store their own sub-modules, so it's worth noting that modules are such that they can be placed recursively at any possible depth.
 
@@ -193,7 +193,7 @@ Since the tags were provided implicitly, the type identifier is automatically-de
 
 The fourth statement is meant to show some of where Tridy can be powerful. In any Tridy statement, `@in` is used to specify a **context**, which is the expression that any module is tested for before the statement can be applied to it. The operation always follows *after* the end of whatever the context expression is, so in this case, the context expression is `a @xor b`. Given this preceding expression, `@new c` will only be applied to an existing module if and only if it has the tags `a` or `b`, but never both at the same time. Only in the modules created by the first two statements would this evaluate as true, so only the first two modules are affected. However, they both receive a copy of the new module tagged as `c`, and the only change needed to make all three existing modules (under the root module) receive a copy would be to change `a @xor b` to `a @or b`.
 
-Finally, the latter half of the statement contains an example bit of arbitrary data given in a JSON format, which is delimited by the `@json` and `@end` clauses, respectively. The `@is` clause to which those are given as arguments is part of the statement **definition**, and is used to define the **free** data structure of the module, given (always) through a common format such as JSON or YAML. There are three other clauses which pertain to the module's definition: `@as`, which defines the module's tags (this is implicitly given after the operation if not stated directly such that tags can be given after the operation even without `@as`). Then there's `@has` for executing Tridy statements *inside* the tree of another module. Then finally, there's `@once`/`@many` for statement to be greedy (returning after only one module matches the context expression) or non-greedy, respectively (the default is non-greedy).
+Finally, the latter half of the statement contains an example bit of arbitrary data given in a JSON format, which is delimited by the `@json` and `@end` clauses, respectively. The `@is` clause to which those are given as arguments is part of the statement **definition**, and is used to define the **free** data structure of the module, given (always) through a common format such as JSON or YAML. There are three other clauses which pertain to the module's definition: `@of` for specifying the module's type identifier, `@as` for the module's tags, and finally, `@has` for recursively nesting Tridy statements, and setting the initial **tree** data structure of the module.
 
 If the output format is a JSON object, then the statements above might have the following as its output:
 
@@ -205,7 +205,11 @@ If the output format is a JSON object, then the statements above might have the 
             "tags": ["a"],
             "tree": [
 +               {
-+                   "tags": ["c"]
++                   "type": "c",
++                   "tags": ["c"],
++                   "free": {
++                       "letter": true
++                   }
 +               }
             ]
         },
@@ -214,7 +218,11 @@ If the output format is a JSON object, then the statements above might have the 
             "tags": ["b"],
             "tree": [
 +               {
-+                   "tags": ["c"]
++                   "type": "c",
++                   "tags": ["c"],
++                   "free": {
++                       "letter": true
++                   }
 +               }
             ]
         },
@@ -256,7 +264,7 @@ TridyDB expects a kind of schema to foster it's capabilities and make it useful 
 4. All identification of the module by TridyDB for queries must be done using tags located inside the tags array. TridyDB will not consider anything else.
 5. A module may have zero to many tags, as an array of strings.
 6. Tags have no requirements to be unique, but they may be made unique by design.
-7. Tags are strings that may *only* contain lowercase letters, uppercase letters, numbers, dashes, underscores, or periods.
+7. Tags are strings that may *only* contain lowercase letters, uppercase letters, numbers, dashes, plus signs, underscores, or periods.
 8. *All* data that is organized in an arbitrary fashion must be stored under the free data structure. This should include an application's usable data.
 9. There are no rules for how the free data structure should be composed, and it can be a primitive type, an array type, a mapped type, or any combination of all three. It is an application's job to control the schema or format of it.
 10. *All* modules which are nested under the current module must be stored under the tree data structure, which must itself be an array.
@@ -319,7 +327,11 @@ Then the context of the particular module above having the tag `e` would have th
 
 TridyDB uses the information contained in the context of existing modules and evaluates it against a **context expression**, a string of operators and operands in which the operands are other context expressions, which themselves are either terminal (as tags) or non-terminal. Terminals/tags evaluate to true if they're present in the module being evaluated, and evaluate to false if they are not. Non-terminals/expressions allow combining the results of terminals, which notably include the commonplace boolean operators `@not`/`!`, `@and`/`&`/(whitespace), `@or`/`|`/`,`, and `@xor`/`^`.
 
-Note that beyond just the standard boolean operators, there are six different versions of the so-called *nested* operators, which are divided into lookahead, lookbehind, and transitive types. `@parent`/`>` and `@ascend`/`>>` are lookahead operators since they match a child on the right-hand side and affect the parent. `@child`/`<` and `@descend`/`<<` are lookbehind operators since they match a parent on the right-hand side and affect the child. Finally, `@to`/`/` and `@toward`/`//` are transitive operators since they match a child on the right-hand side and affect the same child, while parentheses also play a role in reversing the transitions they cause. In addition are various wildcard operands, including `@any`/`*`, `@root`/`~`, `@leaf`/`%`, and `@random`/`?`. These are all explained in greater detail below.
+Note that beyond just the standard numeric and logical comparison operators, there are six different versions of the so-called *nested* operators, which are divided into lookahead, lookbehind, and transitive types. `@parent`/`>` and `@ascend`/`>>` are lookahead operators since they match a child on the right-hand side and affect the parent. `@child`/`<` and `@descend`/`<<` are lookbehind operators since they match a parent on the right-hand side and affect the child. Finally, `@to`/`/` and `@toward`/`//` are transitive operators since they match a child on the right-hand side and affect the same child, while parentheses also play a role in reversing the transitions they cause. In addition are various wildcard operands such as `@any`/`*`.
+
+Tags can also be assigned number values that can be used to perform value comparison operations like `@eq`/`==` or `@lt`/`<` as well (of which there are the six standard kinds). However, these are not interchangable with tag-based operations, and can only be used inside of a numeric enclosure that begins with `$(` and ends with `)`. At least in this situation also, built-in variables like `@depth` or `@children` can be used in place of tags to make decisions based on a module's implicit attributes.
+
+All is explained in greater detail below.
 
 <br>
 
@@ -358,19 +370,23 @@ If an expression is not given, then the operation is applied to the root/top-lev
 
 ## **Context Tag Terminals**
 
+This sections explains the concepts behind "tag terminals", which is Tridy's equivalent to both booleans and string operands simultaneously when pertaining to context expressions. Most expressions are built around these.
+
+<br>
+
 <div id="context-tags"/>
 
 ### **Operand: Tags**
 
-In Tridy, tags are the alphanumeric identifiers used to identify a module. More specifically a tag is always a string composed of either lowercase letters, uppercase letter, numbers, dashes, or underscores, and to which is case sensitive. Additionally, a tag can also contain variable identifiers that begin with `$` and are enclosed with zero to one pairs of brackets to allow nesting, and which TridyDB automatically enforces the closure of. However, during composition, variables are treated much the same as other tags.
+In Tridy, tags are the alphanumeric identifiers used to identify a module. More specifically a tag is always a string composed of either lowercase letters, uppercase letter, numbers, dashes (`-`), plus symbols (`+`), underscores (`_`), or periods (`.`), and to which is case sensitive. They may additionally have number-formatted values assigned to them that always follow a single colon character (`:`), but this along with the colon is ignored when used in the context of operations that only care for the tag identifier.
 
 Examples of (single) tag expressions include:
 
 ```
 @get abc;
-@get X-Y-Z_123;
-@get $d;
-@get ${e${f}};
+@get +X-Y.Z_123;
+@get version-2.5.4;
+@get 0.1;
 ```
 
 As an example that is not read-only:
@@ -378,6 +394,7 @@ As an example that is not read-only:
 ```
 # Before
 @new @as a;
+@new @as a = 12;
 
 # After
 @in a @new @as b;
@@ -387,6 +404,14 @@ As an example that is not read-only:
 [
     {
         "tags": ["a"],
+        "tree": [
++           {
++               "tags": ["b"]
++           }
+        ]
+    },
+    {
+        "tags": ["a:12"],
         "tree": [
 +           {
 +               "tags": ["b"]
@@ -462,9 +487,69 @@ The `@any` operand is used in a way that is analogous to a tautology in the Trid
 
 <br>
 
+<div id="context-value-expressions"/>
+
+### **Value Expressions / "`$(`" + "`)`"**
+
+In Tridy, the only way that an expression can be useful is if the final result can be reduced to either 'true' or 'false', as the problem being solved is always binary: either perform an operation on a given module, or skip doing so altogether. This rule applies to number/value expressions just as well.
+
+While not a terminal per-say, in Tridy, it is not possible to intermix purely tag-identifier-based expressions and tag-value-based expressions. However, number/value expressions (as being comparisons) always produce a boolean answer in the end, so such expressions can be treated as easily as if they were tag terminals on their own.
+
+To produce a value expression, the expression needs to begin with a dollar symbol (`$`) followed by a left parentheses ( `(` ), and be finished off with a right paretheses ( `)` ). It is not possible to have one otherwise.
+
+Within it, the expression is always a mere three-token, two-sided comparison operation, where there is no arithmetic or recursion, and the right-hand side of the expression is always a literal number. Likewise, the left-hand side is always either a tag or a variable (discussed [below](#context-value-terminals)).
+
+```
+# Before
+@new @as apple;
+@new @as apple, seeds = 0;
+@new @as apple, seeds = 2;
+@new @as apple, seeds = 5;
+
+# After
+@in apple $(seeds > 0) @new @as regrowable;
+```
+
+```diff
+[
+    {
+        "tree": [
+            {
+                "tags": ["apple"]
+            },
+            {
+                "tags": ["apple", "seeds:0"]
+            },
+            {
+                "tags": ["apple", "seeds:2"],
+                "tree": [
++                   {
++                       "tags": ["regrowable"]
++                   }
+                ]
+            },
+            {
+                "tags": ["apple", "seeds:5"],
+                "tree": [
++                   {
++                       "tags": ["regrowable"]
++                   }
+                ]
+            }
+        ]
+    }
+]
+```
+
+Since there aren't restrictions on how users can name tags, this is partly the reason why the syntax is pretty strict in that regard. Otherwise, something like `$(1 == 1)` becomes a rather ambiguous expression given the left-hand side can either refer to the actual number `1`, or a tag identifier that is exactly the string "`1`", and the result starts to become problematic when there isn't a tag named "`1`" or its value isn't the number `1`. Hence, the left-hand side is always read as a tag, and the right-hand side as a number to avoid that ambiguity without requiring more special syntax.
+
+<br>
+
 <div id="context-operators"/>
 
 ## **Context Tag Operators**
+
+This sections explains the concepts behind "tag operators", which are the way to combine sub-expressions built around tag terminals.
 
 <div id="context-not"/>
 
@@ -676,11 +761,61 @@ The `@or` operator evaluates as true if either side of the operator evaluates as
 
 <br>
 
-<div id="context-or"/>
+<div id="context-ternary"/>
 
 ### **Ternary Operator: `@then` + `@else` / "`?`" + "`:`"**
 
-WIP
+The ternary, or conditional operator in Tridy is a way to have if-else context expressions, effectively, and as the name suggests, this operator (or these operators?) requires 3 sub-expressions to be fed to it as operands, as opposed to only 2 or 1.
+
+The condition is separated from the second operand by `@then` or a question mark (`?`), and the second operand is separated from the third operand by `@else` or a colon (`:`).
+
+The first operand is used as the condition, whereby if it evaluates as true, then the second operand is evaluated against the module, and the third operand is ignored. If however, the condition evaluates as false, then the second operand is ignored, and the third operand is evaluated against the module.
+
+Effectively, it works the same as `(a & b) | (!a & c)`, but without the need to re-state `a`, which comes in handy with some expressions.
+
+```
+# Before
+@new @as a c;
+@new @as a d;
+@new @as b c;
+@new @as b d;
+
+# After
+@in a ? c : d @new @as e;
+```
+
+```diff
+[
+    {
+        "tree": [
+            {
+                "tags": ["a", "c"],
+                "tree": [
++                   {
++                       "tags": ["e"]
++                   }
+                ]
+            },
+            {
+                "tags": ["a", "d"]
+            },
+            {
+                "tags": ["b", "c"]
+            },
+            {
+                "tags": ["b", "d"],
+                "tree": [
++                   {
++                       "tags": ["e"]
++                   }
+                ]
+            }
+        ]
+    }
+]
+```
+
+The ternary operator (both `@then` and `@else`) has the greatest precedence out of all of the operations, including the nested transitive operators `@to` and `@toward`.
 
 <br>
 
@@ -731,7 +866,7 @@ The `@parent` operator returns true only if the right side of the operator is tr
 
 ### **Lookahead Nested Operator: `@ascend` / "`>>`"**
 
-The `@ascend` operator extends `@parent` to recursively look for sub-modules where the right side of the expression is true, such if you had the expression `orchard >> seed` instead, then any `orchard` modules would be affected so long as they had modules tagged `seed` anywhere in its subtree, even if not directly under the affected module. Effectively, this would be same as indiscriminately looping `@parent` over and over again as `orchard > * > seed`, `orchard > * > * > seed`, and so forth until the deepest level of nesting is reached for a `seed` module.
+The `@ascend` operator extends `@parent` to recursively look for sub-modules where the right side of the expression is true, such that if you had the expression `orchard >> seed` instead, then any `orchard` modules would be affected so long as they had modules tagged `seed` anywhere in its subtree, even if not directly under the affected module. Effectively, this would be same as indiscriminately looping `@parent` over and over again as `orchard > * > seed`, `orchard > * > * > seed`, and so forth until the deepest level of nesting is reached for a `seed` module.
 
 ```
 # Before
@@ -910,7 +1045,7 @@ The `@descend` operator extends `@child` similar to the way `@ascend` extends `@
 
 ### **Transitive Nested Operator: `@to` / "`/`"**
 
-The `@to` operator has a behavior similar to that of `@child`, where it will return true only for a child of another module, though the ordering from left to right is from parent to child like with `@parent`, and unlike `@child`. That would not be enough reason alone to have a separate operator, however, yet `@to` has an important role by the fact that it is *transitive*, meaning that it both affects a child (as `@child` does), and shifts the context level forward while it's at it (as `@parent` does). In fact, `@to` (or `@toward` below) is a necessity to affect child modules at all, since `@child`/`@descend` only works at the current context level (`@child`/`@descend` without `@to`/`@toward` is just searching for parents of a root module, which always returns false), and `@parent`/`@ascend`, while they do shift the context level, rather end up affecting the parent, or in other words, at the original context. This is why this operator (likely as `/`), or `@toward` (likely as `//`) is so frequently used here.
+The `@to` operator has a behavior similar to that of `@child`, where it will return true only for a child of another module, though the ordering from left to right is from parent to child like with `@parent`, and unlike `@child`. That would not be enough reason alone to have a separate operator, however, `@to` has an important role by the fact that it is *transitive*, meaning that it both affects a child (as `@child` does), and shifts the context level forward while it's at it (as `@parent` does). In fact, `@to` (or `@toward` below) is a necessity to affect child modules at all, since `@child`/`@descend` only works at the current context level (`@child`/`@descend` without `@to`/`@toward` is just searching for parents of a root module, which always returns false), and `@parent`/`@ascend`, while they do shift the context level, rather end up affecting the parent, or in other words, at the original context. This is why this operator (likely as `/`), or `@toward` (likely as `//`) is one of the most frequently-used out of all of them.
 
 ```
 # Before
@@ -955,7 +1090,7 @@ The `@to` operator has a behavior similar to that of `@child`, where it will ret
 
 ### **Transitive Nested Operator: `@toward` / "`//`"**
 
-The `@toward` operator does not just have an effect on the . `@toward` looks for through all modules at all levels of nesting, and affects those same modules when the right-hand side is true. For obvious reasons, this can be quite powerful, especially if used with a wildcard operand like `@any`. For instance, an expression like `@any @toward @any` or `* // *` (they are equivalent) affects all modules throughout all levels of nesting, or in other words, every module in the entire database. Thus, it should also be used sparingly, and it usually only makes sense to use something like this where such a large scope is necessary in general (such that something should apply to all modules), or where it makes sense to have homogenous modules that are recursive and indefinitely-nestable within their application as well, as is in the case of many modules used to form graphs.
+The `@toward` operator does not just have an effect on the modules directly parented by the one on the left-hand side. `@toward` looks for through all modules at all levels of nesting, and affects those same modules when the left and right-hand side are both true. For obvious reasons, this can be quite powerful, especially if used with a wildcard operand like `@any`. For instance, an expression like `@any @toward @any` or `* // *` (they are equivalent) affects all modules throughout all levels of nesting, or in other words, every module in the entire database. Thus, it should also be used sparingly, and it usually only makes sense to use something like this where such a large scope is necessary in general (such that something should apply to all modules), or where it makes sense to have homogenous modules that are recursive and indefinitely-nestable within their application as well, as is in the case of many modules used to form graphs.
 
 ```
 # Before
@@ -1006,7 +1141,7 @@ The `@toward` operator does not just have an effect on the . `@toward` looks for
 ]
 ```
 
-`@towards`'s precedence, as a transitive nested operator, has a lower precedence than any of the operators that are not transitive nested operators, and equal precedence with any that are, such as `@to`.
+`@towards`'s precedence, as a transitive nested operator, has a lower precedence than any of the operators that are not transitive nested operators (except for the ternary operator), and equal precedence with any that are, such as `@to`.
 
 <br>
 
@@ -1144,9 +1279,11 @@ Note that parentheses can also be used to reverse the transitions created by the
 
 <div id="context-value-terminals"/>
 
-### **Context Value Terminals**
+## **Context Value Terminals**
 
-WIP
+This sections explains the concepts behind "value terminals", which is Tridy's equivalent to numbers. These can be used for more complex operations that require different responses for more than two possibilities associated to a single tag.
+
+See the [section](#context-value-expressions) on value expressions for an overview of how to use them.
 
 <br>
 
@@ -1154,7 +1291,31 @@ WIP
 
 ### **Operand: Tags**
 
-WIP
+When used in the left-hand side of a value expression, stating a tag happens to be the same as stating what its assigned value is. For instance, the tag `age:40`, or the identifier `age` assigned a value of `40`, is resolved as just the number `40` when just the identifier `age` is used in a value expression.
+
+```
+@new Robert age = 40;
+
+@get $(age == 40); # Returns Robert
+@get $(age != 40); # Returns nothing...
+@get $(age < 30);  # Returns nothing...
+@get $(age <= 50); # Returns Robert
+@get $(age > 30);  # Returns Robert
+@get $(age >= 50); # Returns nothing...
+```
+
+If a tag is not assigned a value, then uniquely, that tag will only evaluate to true when used with `@ne` / `!=`. For all other value operators, it will evaluate as false.
+
+```
+@new Mike;
+
+@get $(age == 40); # Returns nothing...
+@get $(age != 40); # Returns Mike
+@get $(age < 30);  # Returns nothing...
+@get $(age <= 50); # Returns nothing...
+@get $(age > 30);  # Returns nothing...
+@get $(age >= 50); # Returns nothing...
+```
 
 <br>
 
@@ -1162,13 +1323,36 @@ WIP
 
 ### **Operand: Numbers**
 
-WIP
+The token on the right-hand side of a value expression is always parsed as a literal number, which the left-hand side is compared against.
+
+Unsurprisingly, the syntax for what is allowed on the right-hand side as a number is relatively strict compared to what it is for tags on the left-hand side. However, the following are all acceptable possible ways to specify numeric literals:
+
+```
+@new Robert age = 40;
+
+@get $(age == 40);
+@get $(age == +40);
+@get $(age == 0x28);
+@get $(age == 0o50);
+@get $(age == 0b101000);
+@get $(age == 4e+1);
+@get $(age != 0.4);
+@get $(age != -40);
+```
+
+Each statement happens to return the module tagged as `Robert` all the same, regardless of the format in which the value of `age` was originally stored.
 
 <br>
 
 <div id="context-depth"/>
 
 ### **Variable Operand: `@depth` / `@d`**
+
+`@depth`, and its shorthand `@d`, is a built-in variable usable (and only usable) on the left-hand side of a value expression that can take the place of a tag.
+
+This variable captures the depth of the current module, where a value of `0` indicates that a module is nested directly under the root module, a value of `1` indicates that it is nested directly under a module of depth `0`, and so on.
+
+The usefulness of `@depth` is mostly limited to the recursive nested operators `@ascend`, `@descend`, and `@toward`, where a module being tested for the right-hand side wouldn't necessarily have a clear depth relative to the root module.
 
 WIP
 
@@ -1177,6 +1361,10 @@ WIP
 <div id="context-children"/>
 
 ### **Variable Operand: `@children` / `@c`**
+
+`@children`, and its shorthand `@c`, is a built-in variable usable (and only usable) on the left-hand side of a value expression that can take the place of a tag.
+
+The variable captures the number of direct descendents to the module, or in other words, the number of sub-modules directly inside the module's tree. A value of `0` indicates the module has no sub-modules, and is effectively a leaf node, while any value like `10` indicates the module has 10 sub-modules directly under it.
 
 WIP
 
@@ -1224,7 +1412,7 @@ WIP
 
 <div id="context-value-operators"/>
 
-### **Context Value Operators**
+## **Context Value Operators**
 
 WIP
 

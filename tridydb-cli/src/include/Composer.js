@@ -2,10 +2,10 @@ import seedrandom from 'seedrandom';
 import shuffle    from 'knuth-shuffle-seeded';
 import uuid       from 'uuid-random';
 
-import { Compressor } from './Compressor.js';
-import { StateTree }  from './StateTree.js';
-import { Tag }        from './Tag.js';
-import { Token }      from './Token.js';
+import { Compressor }    from './Compressor.js';
+import { ContextParser } from './ContextParser.js';
+import { StateTree }     from './StateTree.js';
+import { Tag }           from './Tag.js';
 
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
@@ -130,10 +130,10 @@ export class Composer {
         let answer = this._matchingTagValue(a, lvl, index, random);
         switch (op) {
             case '$==':
-                answer = (answer === null) ? false : (answer === Number(b.val));
+                answer = (answer === null) ? false : (answer === (isNaN(b.val) ? b.val : Number(b.val)));
                 break;
             case '$!=':
-                answer = (answer === null) ? true : (answer !== Number(b.val));
+                answer = (answer === null) ? true : (answer !== (isNaN(b.val) ? b.val : Number(b.val)));
                 break;
             case '$<':
                 answer = (answer === null) ? false : (answer < Number(b.val));
@@ -166,7 +166,6 @@ export class Composer {
         }
 
         let b_index;
-        let b_random;
 
         let answer = false;
 
@@ -228,7 +227,6 @@ export class Composer {
         const a_opts   = { tracked: new Set() };
         const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
 
-        let   b_random;
         const b_opts        = { tracked: new Set() };
         let   b_answer_part = false;
         let   b_answer      = false;
@@ -261,7 +259,6 @@ export class Composer {
         const a_opts   = { tracked: new Set() };
         const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
 
-        let b_random;
         let b_answer_part = false;
         let b_answer      = false;
         if (a_answer === true) {
@@ -322,7 +319,10 @@ export class Composer {
                 case '//':
                     return this._testTransitive(test.a, test.b, lvl, index, random, true, opts);
                 case '?':
-                    return this._matchingExpression(test.a, lvl, index, random, opts) ? this._matchingExpression(test.b, lvl, index, random, opts) : this._matchingExpression(test.c, lvl, index, random, opts);
+                    if (this._matchingExpression(test.a, lvl, index, random, opts)) {
+                        return this._matchingExpression(test.b, lvl, index, random, opts);
+                    }
+                    return this._matchingExpression(test.c, lvl, index, random, opts);
             }
         }
     }
@@ -420,7 +420,7 @@ export class Composer {
     _printModule() {
         const target = this._target.peek();
 
-        const copy = (new Compressor()).compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
+        const copy = Compressor.compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
         if (copy === undefined) {
             return;
         }
@@ -666,98 +666,6 @@ export class Composer {
         return matched;
     }
 
-    _createExpressionPositionHelpersRecursive(test, end = null) {
-        const token = new Token('ctxt_op', test.op);
-
-        if (end === null) {
-            if (token.isNestedOpContextToken()) {
-                let evaluated = 'a';
-                let affected  = 'b';
-                if (token.isNonTransitiveNestedOpContextToken()) {
-                    evaluated = 'b';
-                    affected  = 'a';
-                }
-    
-                if (common.isDictionary(test[evaluated])) {
-                    this._createExpressionPositionHelpersRecursive(test[evaluated], false);
-                } else {
-                    test[evaluated] = { val: test[evaluated], end: false };
-                }
-
-                if (common.isDictionary(test[affected])) {
-                    this._createExpressionPositionHelpersRecursive(test[affected], null);
-                } else {
-                    test[affected] = { val: test[affected], end: true };
-                }
-            } else {
-                if (common.isDictionary(test.a)) {
-                    this._createExpressionPositionHelpersRecursive(test.a, null);
-                } else {
-                    test.a = { val: test.a, end: true };
-                }
-
-                if (!token.isUnaryOpContextToken()) {
-                    if (common.isDictionary(test.b)) {
-                        this._createExpressionPositionHelpersRecursive(test.b, null);
-                    } else {
-                        test.b = { val: test.b, end: true };
-                    }
-
-                    if (token.isTernaryFirstOpContextToken()) {
-                        if (common.isDictionary(test.c)) {
-                            this._createExpressionPositionHelpersRecursive(test.c, null);
-                        } else {
-                            test.c = { val: test.c, end: true };
-                        }
-                    }
-                }
-            }
-        } else {
-            if (common.isDictionary(test.a)) {
-                this._createExpressionPositionHelpersRecursive(test.a, end);
-            } else {
-                test.a = { val: test.a, end: end };
-            }
-            
-            if (!token.isUnaryOpContextToken()) {
-                if (common.isDictionary(test.b)) {
-                    this._createExpressionPositionHelpersRecursive(test.b, end);
-                } else {
-                    test.b = { val: test.b, end: end };
-                }
-
-                if (token.isTernaryFirstOpContextToken()) {
-                    if (common.isDictionary(test.c)) {
-                        this._createExpressionPositionHelpersRecursive(test.c, end);
-                    } else {
-                        test.c = { val: test.c, end: end };
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Adding "position helpers" to the expression's terminals is to determine which sub-expressions are "intermediate" (like a in "a/b") of "final" (like b in "a/b").
-     * We want to verify, in addition to if an expression matches, that the expression also reaches the last element of the current module's context.
-     * If whether it reaches the last element or not isn't verified, then the expression becomes true not only for the module, but also all of its sub-modules.
-     * We want "a/b" to change "a/b", but not "a/b/c" as well, even though "a/b" is all true for the first part of "a/b/c"'s context.
-     * That's also because it may be that we're testing the expression against a module with the context "a/b/c", and not "a/b".
-     * Fortunately, it's easy from the expression to determine if a terminal is final or not, based on it containing sub-expressions with transitive operators.
-     * It can be made a requirement specifically that "final" terminals are evaluated at a last level of the context being evaluated, and not before or after.
-     */
-    _createExpressionPositionHelpers(test) {
-        if (!common.isDictionary(test)) {
-            return { val: test, end: true };
-        }
-
-        if (!common.isEmpty(test)) {
-            this._createExpressionPositionHelpersRecursive(test, null);
-        }
-
-        return test;
-    }
-
     /**
      * The purpose of this is strictly for optimizing how Tridy handles very large trees.
      * Without it, all modules in the database will be tested needlessly by a context expression.
@@ -811,7 +719,7 @@ export class Composer {
         const greedy     = context ? context.greedy ?? false : false;
 
         if (!common.isEmpty(expression)) {
-            expression = this._createExpressionPositionHelpers(expression);
+            expression = ContextParser.upgrade(expression);
         }
 
         const command = this._astree.enterGetAndLeave('operation');

@@ -5,7 +5,7 @@ import * as common from '../utility/common.js';
 export class Compressor {
     constructor() { }
 
-    _compressModuleLite(target, opts = { }) {
+    static _compressModuleLite(target, opts = { }) {
         opts.typeless = opts.typeless ?? false;
         opts.tagless  = opts.tagless  ?? false;
 
@@ -32,7 +32,7 @@ export class Compressor {
         target.leavePos();
     }
 
-    _compressModuleHeavy(target, opts = { }) {
+    static _compressModuleHeavy(target, opts = { }) {
         opts.strict = opts.strict ?? false;
 
         if (!common.isDictionary(target)) {
@@ -135,7 +135,7 @@ export class Compressor {
         return target;
     }
 
-    compressModule(module, lvl = 0) {
+    static compressModule(module, lvl = 0) {
         module = common.deepCopy(module);
 
         switch (lvl) {

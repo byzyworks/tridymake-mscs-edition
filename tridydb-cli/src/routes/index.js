@@ -1,10 +1,12 @@
 import express         from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { db } from '../database.js';
+import { TokenlessParser } from '../include/TokenlessParser.js';
 
 import { SyntaxError, ServerSideServerError } from '../utility/error.js';
 import { logger }                             from '../utility/logger.js';
+
+import { db } from '../database.js';
 
 const op_map = Object.freeze({
     get:    'get',
@@ -20,6 +22,12 @@ const toTridy = (op, opts = { }) => {
     let cmd;
 
     if ((opts.format === 'verb') || (opts.format === 'astree')) {
+        if (opts.format === 'astree') {
+            logger.debug(`Received Tridy syntax: ${opts.data}`);
+
+            TokenlessParser.parse(opts.data);
+        }
+
         cmd = opts.data;
     } else {
         cmd = '';
@@ -102,7 +110,7 @@ const toTridy = (op, opts = { }) => {
                     cmd += ` @final`;
                     break;
                 default:
-                    return next(new ServerSideServerError(`Invalid value passed to parameter "compression": "${opts.compression}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
+                    throw new ServerSideServerError(`Invalid value passed to parameter "compression": "${opts.compression}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false });
             }
         }
 
@@ -116,15 +124,13 @@ const toTridy = (op, opts = { }) => {
                 cmd += ` @many`;
                 break;
             default:
-                return next(new ServerSideServerError(`Invalid value passed to parameter "greedy": "${opts.greedy}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
+                throw new ServerSideServerError(`Invalid value passed to parameter "greedy": "${opts.greedy}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false });
         }
 
         cmd += ';';
     }
 
-    if (opts.format === 'astree') {
-        logger.debug(`Received Tridy syntax: ${cmd}`);
-    } else {
+    if (opts.format !== 'astree') {
         logger.debug(`Received Tridy statements: ${cmd}`);
     }
 
@@ -177,9 +183,17 @@ const handleRoute = async (method, req, res, next) => {
         return next(new ServerSideServerError('Only the PUT method is allowed when sending commands to a Tridy server in verbatim mode.', null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
     }
 
-    const cmd = toTridy(op_map[method], opts);
-
+    let cmd;
     let out;
+
+    try {
+        cmd = toTridy(op_map[method], opts);
+    } catch (err) {
+        if ((err instanceof SyntaxError) || (err instanceof ServerSideServerError)) {
+            return next(err);
+        }
+    }
+    
     try {
         // We do not want to accept carry on the server-side since managing token carry is the client's job.
         // However, it makes no difference if the client sends a syntax tree directly.

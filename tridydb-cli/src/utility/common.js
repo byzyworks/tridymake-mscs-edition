@@ -13,6 +13,22 @@ export const isNullish = (obj) => {
     return (obj === undefined) || (obj === null);
 }
 
+export const isBoolean = (obj) => {
+    return (typeof obj === 'boolean') || (obj === 1) || (obj === 0) || (obj === 'true') || (obj === 'false');
+}
+
+export const isNumber = (obj) => {
+    return !isNaN(obj);
+}
+
+export const isString = (obj) => {
+    return (typeof obj === 'string');
+}
+
+export const isPrimitive = (obj) => {
+    return !isObject(obj) && !isNullish(obj);
+}
+
 export const isObject = (obj) => {
     return ((typeof obj === 'object') && (obj !== null));
 }
@@ -52,10 +68,6 @@ export const isArrayableObject = (obj) => {
      * Thus, it more accurately means "could I change the value of this variable in-place to be an array without a loss of information, and without changing how it's accessed?"
      */
     return false;
-}
-
-export const isPrimitive = (obj) => {
-    return !isObject(obj) && !isNullish(obj);
 }
 
 /**

@@ -1,9 +1,9 @@
 import * as yaml from 'js-yaml';
 
-import { InfixParser } from './InfixParser.js';
-import { StateTree }   from './StateTree.js';
-import { Tag }         from './Tag.js';
-import { Token }       from './Token.js';
+import { ContextParser } from './ContextParser.js';
+import { StateTree }     from './StateTree.js';
+import { Tag }           from './Tag.js';
+import { Token }         from './Token.js';
 
 import { global, isEmpty, parseDynamic } from '../utility/common.js';
 import { SyntaxError }                   from '../utility/error.js';
@@ -228,7 +228,7 @@ export class SyntaxParser {
 
         // The context expression has to be converted to a tree format before it can be useable, which is a multi-step process handled by a separate parser.
         // It would be even more difficult to parse it in the same human-readable format (as an "infix" array).
-        context = (new InfixParser()).parse(context);
+        context = ContextParser.parse(context);
     
         this._astree.enterSetAndLeave(['context', 'expression'], context);
     }

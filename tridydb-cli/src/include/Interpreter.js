@@ -11,7 +11,7 @@ import { SyntaxParser }    from './SyntaxParser.js';
 import { StatementParser } from './StatementParser.js';
 import { StateTree }       from './StateTree.js';
 
-import { global }                             from '../utility/common.js';
+import { global, isEmpty }                    from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
 
 const sendTridyRequest = async (data, remote) => {
@@ -116,10 +116,10 @@ export class Tridy {
         };
 
         const remote = {
-            enable:  opts.client_mode ?? global.remote.client_mode ?? global.defaults.remote.client_mode,
-            host:    opts.host        ?? global.remote.host        ?? global.defaults.remote.host,
-            post:    opts.post        ?? global.remote.post        ?? global.defaults.remote.post,
-            timeout: opts.timeout     ?? global.remote.timeout     ?? global.defaults.remote.timeout
+            enable:  opts.client_mode ?? global.remote.enable  ?? global.defaults.remote.enable,
+            host:    opts.host        ?? global.remote.host    ?? global.defaults.remote.host,
+            port:    opts.port        ?? global.remote.port    ?? global.defaults.remote.port,
+            timeout: opts.timeout     ?? global.remote.timeout ?? global.defaults.remote.timeout
         };
 
         let output = [ ];
@@ -161,6 +161,9 @@ export class Tridy {
                 }
 
                 code = this._parser.parse(code);
+                if (isEmpty(code.getRaw())) {
+                    continue;
+                }
 
                 if (remote.enable) {
                     code = await sendTridyRequest(code.getRaw(), remote);
