@@ -30,7 +30,7 @@
             "name": "Launch Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console", "--log-level", "debug", "--pretty"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -43,7 +43,7 @@
             "name": "Launch Test Console (Production)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
@@ -76,7 +76,7 @@
             "name": "Launch Client Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console", "--client", "--log-level", "debug", "--pretty"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--pretty"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -89,7 +89,7 @@
             "name": "Launch Client Test Console (Production)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console", "--client"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri", "--client"],
             "outputCapture": "std",
             "console": "externalTerminal"
         },
@@ -99,7 +99,7 @@
             "name": "Launch Server (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["server", "--localhost", "--log-level", "debug"],
+            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -112,7 +112,7 @@
             "name": "Launch Server (Production)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["server", "--localhost"],
+            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost"],
             "outputCapture": "std",
             "console": "externalTerminal"
         }

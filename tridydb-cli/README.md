@@ -378,7 +378,7 @@ This section explains the concepts behind "tag terminals", which is Tridy's equi
 
 ### **Operand: Tags**
 
-In Tridy, tags are the alphanumeric identifiers used to identify a module. More specifically a tag is always a string composed of either lowercase letters, uppercase letter, numbers, dashes (`-`), plus symbols (`+`), underscores (`_`), or periods (`.`), and to which is case sensitive. They may additionally have number-formatted values assigned to them that always follow a single colon character (`:`), but this along with the colon is ignored when used in the context of operations that only care for the tag identifier.
+In Tridy, tags are the alphanumeric identifiers used to identify a module. More specifically a tag is always a string composed of either lowercase letters, uppercase letter, numbers, dashes ( `-` ), plus symbols ( `+` ), underscores ( `_` ), or periods ( `.` ), and to which is case sensitive. They may additionally have number-formatted values assigned to them that always follow a single colon character ( `:` ), but this along with the colon is ignored when used in the context of operations that only care for the tag identifier.
 
 Examples of (single) tag expressions include:
 
@@ -495,7 +495,7 @@ In Tridy, the only way that an expression can be useful is if the final result c
 
 While not a terminal per-say, in Tridy, it is not possible to intermix purely tag-identifier-based expressions and tag-value-based expressions. However, number/value expressions (as being comparisons) always produce a boolean answer in the end, so such expressions can be treated as easily as if they were tag terminals on their own.
 
-To produce a value expression, the expression needs to begin with a dollar symbol (`$`) followed by a left parentheses ( `(` ), and be finished off with a right paretheses ( `)` ). It is not possible to have one otherwise.
+To produce a value expression, the expression needs to begin with a dollar symbol ( `$` ) followed by a left parentheses ( `(` ), and be finished off with a right paretheses ( `)` ). It is not possible to have one otherwise.
 
 Within it, the expression is always a mere three-token, two-sided comparison operation, where there is no arithmetic or recursion, and the right-hand side of the expression is always a literal number. Likewise, the left-hand side is always either a tag or a variable (discussed [below](#context-value-terminals)).
 
@@ -767,7 +767,7 @@ The `@or` operator evaluates as true if either side of the operator evaluates as
 
 The ternary, or conditional operator in Tridy is a way to have if-else context expressions, effectively, and as the name suggests, this operator (or these operators?) requires 3 sub-expressions to be fed to it as operands, as opposed to only 2 or 1.
 
-The condition is separated from the second operand by `@then` or a question mark (`?`), and the second operand is separated from the third operand by `@else` or a colon (`:`).
+The condition is separated from the second operand by `@then` or a question mark ( `?` ), and the second operand is separated from the third operand by `@else` or a colon ( `:` ).
 
 The first operand is used as the condition, whereby if it evaluates as true, then the second operand is evaluated against the module, and the third operand is ignored. If however, the condition evaluates as false, then the second operand is ignored, and the third operand is evaluated against the module.
 
@@ -2017,7 +2017,7 @@ In addition, a statement may be composed of **meta-operations**, which happen to
 
 Finally, as with certain operations but not others, the statement might contain a couple of **definition** clauses. Definition clauses are Tridy's way of spelling out the contents of a module, though these are not to be confused with the **raw** clauses that do similarly, but in a Tridy-lite manner.
 
-It's important to note that **order matters** and Tridy is not commutative, at least for the time being. That means that per the order in which this guide is written, most of the clauses follow the given order, and would result in syntax errors if instead given out-of-order. With each of these clauses, their particular ordering should become clear from their explanations, but as an overview, one can refer to the [summary](#syntax-summary).
+It's important to note that **order matters** and Tridy is not commutative, at least for the time being. That means that per the order in which this guide is written, most of the clauses are required to follow the given order, and would result in syntax errors if instead given out-of-order. With each of these clauses, their particular ordering should become clear from their explanations, but as an overview, one can refer to the [summary](#syntax-summary).
 
 <br>
 
@@ -2026,6 +2026,10 @@ It's important to note that **order matters** and Tridy is not commutative, at l
 ## **Comments**
 
 In Tridy, it is possible to provide comments inside of scripts using the hashtag character `#`, which can be placed anywhere at the end of a line, and any text which follows it will be ignored by the Tridy interpreter until the next line.
+
+```
+@new a; # This is a comment.
+```
 
 On the other hand, Tridy does not have a multi-line comment syntax.
 
@@ -2077,7 +2081,7 @@ As a control clause, `@exit` can only be given alone in a statement, disregardin
 
 `@in` is the clause normally used to read in a context expression for the statement, where its argument would be the context expression itself. This context expression is used to filter out the modules affected by the statements according to what the context expression contains, and to expand out from the root, which is normally the only module affected when a context expression is not present. More of this is explained in detail in the section on context.
 
-Syntactically, `@in` is meant to precede one of the operation clauses, and thus also all other clauses in a statement. However, use of `@in` to provide a context expression is optional for `@get` and `@del`, and only required for `@new` and `@set`. This is because only `@new` and `@set` use the space to the right of them to allow defining module characteristics (via. the definition clauses), while `@get` and `@del` are specific to the current state of the database. Thus, they can be shortcutted by avoiding `@in` and simply giving the context expression after the operation itself (`@in ... @get;` vs. `@get ...;`).
+Syntactically, `@in` is meant to precede one of the operation clauses, and thus also all other clauses in a statement. However, use of `@in` to provide a context expression is optional for `@get` and `@del`, and only required for `@new` and `@set`. This is because only `@new` and `@set` use the space to the right of them to allow defining module characteristics (via. the definition clauses), while `@get` and `@del` are specific only to the current state of the database. Thus, they can be shortcutted by avoiding `@in` and simply giving the context expression after the operation itself (`@in ... @get;` vs. `@get ...;`).
 
 <br>
 
@@ -2140,7 +2144,7 @@ By default, the results of `@get` will be a JSON representation of the database 
 
 ### **Operation: `@new`**
 
-`@new` is the main operation used with Tridy, as without it, Tridy modules would not be composable to begin with. `@new` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then copies this module to the tree data structure of all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, it is placed only at the root module. Thus, a module created through `@new` becomes a sub-module of the context to which it is provided. Using `@new` is never an idempotent operation.
+`@new` is the main operation used with Tridy, as without it, Tridy modules would not be composable to begin with. `@new` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then copies this module to the tree data structure of all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, it is placed only at the root module. Thus, a module created through `@new` becomes a sub-module of the context to which it is provided. Using `@new` is not an idempotent operation.
 
 `@none` may be used in place of any arguments, though while having no effect over simply leaving the definition clause where `@none` would happen to be used as undefined.
 
@@ -2175,9 +2179,9 @@ By default, the results of `@get` will be a JSON representation of the database 
 
 ### **Operation: `@set`**
 
-`@set` is an operation that is intended to apply changes to an existing module, and as the same module which is matched in a context expression. `@set` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then overwrites all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, then the root module is altered (in effect overwriting the entire database). Using `@set` is sometimes an idempotent operation.
+`@set` is an operation that is intended to apply changes to an existing module, and as the same module which is matched in a context expression. `@set` creates a new module where the definition clauses on its right-hand side are taken in as arguments (including the "raw" input clauses), and then overwrites all modules where the subsequent context expression given through `@in` becomes true. If there is no `@in`, then the root module is altered (in effect overwriting the entire database). Using `@set` is an idempotent operation.
 
-Note that this command is generally not recommended for normal use, and Tridy scripts can be designed without ever needing to use `@set`. The main reason why this isn't recommended is because it is nearly equivalent to deleting a module and then placing a new one in the same spot or order that the deleted one was in before, making it particularly dangerous as with `@del`. However, also as a result of this, `@set` generally makes the most sense when used in combination with `@get` to acquire the original module and replace it's elements and/or apply soft operations defined by the application such that this operation is usable in such a way that isn't completely destructive.
+Note that this command is generally not recommended for normal use, and Tridy scripts can be designed without ever needing to use `@set`. The main reason why this isn't recommended is because it is nearly equivalent to deleting a module and then placing a new one in the same spot or order that the deleted one was in before, making it particularly dangerous as with `@del`. However, also as a result of this, `@set` generally makes the most sense when used in combination with `@get` to acquire the original module and replace it's elements and/or apply soft operations defined by the application such that this operation is usable in such a way that isn't completely destructive. However, `@put` is usually better suited for this.
 
 `@none` may be used in place of any arguments, though while having no effect over simply leaving the definition clause where `@none` would happen to be used as undefined.
 
@@ -2256,7 +2260,7 @@ The operation is not completely permanent, though, since modules can always be r
 
 `@put` has a less destructive role than `@set`, being that it does not overwrite the existing module with a new one. As such, if an element (for example, the tagset or free data structure) is left undefined in the statement, then the incumbent element definition is maintained. This is in contrast to `@set`, which is only granular with respect to the module, meaning that the undefined elements in the statement subsequently become undefined / get deleted in the matched module.
 
-As partly an exception to this rule, using `@none` behaves different with `@put` than with other operations, as it happens to have different behavior than when simply leaving elements undefined in this case. Here, while leaving an element undefined will mean the existing module is kept intact, using `@none` with its element will cause the existing module to be deleted the same way that `@set` would cause it to be.
+As partly an exception to this rule, using `@none` behaves different with `@put` than with other operations, as it happens to have different behavior than when simply leaving elements undefined in this case. Here, while leaving an element undefined will mean the existing module is kept intact, using `@none` with its element will cause the existing module to be deleted the same way that `@set` would cause it to be regardless.
 
 ```
 # Before
@@ -2360,11 +2364,11 @@ Any tags not named with `@untag` are retained, while duplicate tags, if they exi
 
 ### **Operation: Multi-Statements**
 
-As a method to minimize restating common sub-contexts over and over again inside of context expressions shared by multiple statements, brackets can be used to tie multiple operations to a single context expression, whereby statements inside of the brackets will treat modules that match the outside expression as their root module. Since what's inside the brackets is yet more Tridy statements nested recursively, they can include their own localized context expressions or be multi-statements themselves, so long as the first statement follows an opening bracket (`{`) and a closing bracket (`}`) follows the last nested statement per degree of nesting.
+As a method to minimize restating common sub-contexts over and over again inside of context expressions shared by multiple statements, brackets can be used to tie multiple operations to a single context expression, whereby statements inside of the brackets will treat modules that match the outside expression as their root module. Since what's inside the brackets is yet more Tridy statements nested recursively, they can include their own localized context expressions or be multi-statements themselves, so long as the first statement follows an opening bracket ( `{` ) and a closing bracket ( `}` ) follows the last nested statement per degree of nesting.
 
 As an important aspect of multi-statements, the nested Tridy statements provided inside the brackets are created *prior* to the modules being placed in the database. What this means, inevitably, is that statements provided through multi-statements exhibit a unique property whereby they are **context-locked**, meaning that context expressions inside of these nested statements have no view of the database outside the matched modules until the full, unnested statement has already been executed, and yet, nested statements are executed prior to their parent statement being executed. Thus, context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation).
 
-The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as a root. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without be able to access the wider database.
+The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as the root directory. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without be able to access the wider database.
 
 ```
 # Before
@@ -2459,25 +2463,48 @@ Using `@of` requires that one can only provide tags using `@as`. Just as `@of` a
 
 ### **Definition: `@as`**
 
-The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set`, whereby multiple tags are provided in a whitespace-delimited fashion. Any tags defined using `@as` do not affect the module's type specifier, in which `@of` would need to be paired with it.
+The right-hand side of `@as` is used to provide tags used in defining a new module with `@new`, or re-defining an existing module with `@set` or `@put`, whereby multiple tags are provided in a whitespace-delimited fashion. Any tags defined using `@as` do not affect the module's type specifier, in which `@of` would need to be paired with it.
 
 Tags are one of the important features of Tridy used to identify how TridyDB can address the module. In contrast, the type specifier is meant to provide addressing at the application-level.
 
-`@as` is meant to come after the operation, after `@of`, but before `@is` or `@has`.
-
 ```
-@new @as a b c;
+@new @as a b c d;
 ```
 
 ```json
 {
     "tree": [
         {
-            "tags": ["a", "b", "c"]
+            "tags": ["a", "b", "c", "d"]
         }
     ]
 }
 ```
+
+Tags can also be comma-delimited, which is interchangeable (even within the same statement) with plain space-delimiting and treated as valid all the same, but has no special effect of its own.
+
+```
+# Equivalent to the above.
+@new @as a, b, c d;
+```
+
+Finally, tags can be assigned numeric (and only numeric) values through this clause by using the assignment operator, which is simply the equal sign ( `=` ). Commas are still optional, but not necessary in this case as well.
+
+```
+@new @as a, b = -20, c = 5e-2, d = 0.5, e = 0x1, f = 0o2 g = 0b10 h = 30 i = +40 j = Infinity;
+```
+
+```json
+{
+    "tree": [
+        {
+            "tags": ["a", "b:-20", "c:5e-2", "d:0.5", "e:0x1", "f:0o2", "g:0b10", "h:30", "i:+40", "j:Infinity"]
+        }
+    ]
+}
+```
+
+`@as` is meant to come after the operation, after `@of`, but before `@is` or `@has`.
 
 <br>
 
@@ -2504,7 +2531,24 @@ It is possible to directly state a list of tags after the operation clause witho
 
 The reason why the last tag is selected is due to the pseudo-English syntax, where the last tag would normally be expected to be the most significant or noun-like.
 
-This is also not an option where the type specifier should contain special characters that would not be allowed inside a tag, for which one must be provided through `@of`.
+This is generally not an option where the type specifier would be expected to contain special characters that would not fall within the range of allowable characters for a tag, but would be allowed if provided through `@of`.
+
+As with `@as`, the tags can (optionally) be comma-delimited and/or assigned numeric values here as well by using the equal sign ( `=` ) as an assignment operator. In this particular case, if the last tag is assigned a value, then the value suffix is stripped out before being set as the type specifier.
+
+```
+@new a, b = -20, c = 5e-2, d = 0.5, e = 0x1, f = 0o2 g = 0b10 h = 30 i = +40 j = Infinity;
+```
+
+```json
+{
+    "tree": [
+        {
+            "type": "j",
+            "tags": ["a", "b:-20", "c:5e-2", "d:0.5", "e:0x1", "f:0o2", "g:0b10", "h:30", "i:+40", "j:Infinity"]
+        }
+    ]
+}
+```
 
 Note that providing tags implicitly also takes the place of both `@of` and `@as`, so neither of these can be inside the same statement separately anymore.
 
@@ -2514,7 +2558,7 @@ Note that providing tags implicitly also takes the place of both `@of` and `@as`
 
 ### **Definition Operand: `@uuid`**
 
-The `@uuid` clause is used in place of a tag right of `@as`, `@new`, or `@set`, and displays a unique behavior whereby in its place, a UUIDv4 string (as a tag) is generated. The UUID provides the module with a way to be identifiable by a totally-unique tag/identifier, and importantly, the UUID generation happens *after* the module is copied and placed, meaning that every copy of the module, if there are any, even get a completely-separate UUID of their own such that two or more modules placed from a single statement while having this clause are never identical with strong collision-resistance.
+The `@uuid` clause is used in place of a tag right of `@as`, `@new`, `@set`, or `@tag`, and displays a unique behavior whereby in its place, a UUIDv4 string (as a tag) is generated. The UUID provides the module with a way to be identifiable by a totally-unique tag/identifier, and importantly, the UUID generation happens *after* the module is copied and placed, meaning that every copy of the module, if there are any, even get a completely-separate UUID of their own such that two or more modules placed from a single statement while having this clause are never identical with strong collision-resistance.
 
 As a disadvantage of this, though, the UUID would not be known beforehand, making it necessary to `@get` the results of these statements afterwards in order to read and use the unique identifier in further Tridy statements, which wouldn't be possible in a Tridy script alone.
 
@@ -2550,6 +2594,8 @@ As a disadvantage of this, though, the UUID would not be known beforehand, makin
 }
 ```
 
+Despite being random in nature, `@uuid` is perhaps the only Tridy random primitive that is not backed by the global random seed. Thus, the results produced from `@uuid` will always be unknowable even with a known global seed.
+
 <br>
 
 <div id="syntax-is"/>
@@ -2558,7 +2604,7 @@ As a disadvantage of this, though, the UUID would not be known beforehand, makin
 
 `@is` is used as a way to detail the contents of the free data structure, a subsection of each module that is allowed to have free or unrestricted contents. This lack of restriction means that, though the use of raw input is optional for giving the full definition of a module otherwise, it is required with `@is` since common, established data formats are better for the purpose of complex data not following the Tridy module paradigm.
 
-Following `@is`, the user would specify a format clause, most commonly `@json`, and type in the full value of the free data structure using whatever format they gave. Once they give the format tag, their input is no longer validated according to Tridy rules, and instead becomes validated according to the format of their choosing. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character (`\`) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
+Following `@is`, the user would specify a format clause, most commonly `@json`, and type in the full value of the free data structure using whatever format they gave. Once they give the format tag, their input is no longer validated according to Tridy rules, and instead becomes validated according to the format of their choosing. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character ( `\` ) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
 
 `@is` along with its formatted argument is meant to be specified after `@as` if given, but before `@has`.
 
@@ -2694,7 +2740,7 @@ All three string input variants require `\` to use their respective characters a
 
 ### **Raw Definition: `@json`**
 
-The `@json` clause is used as a starting delimiter for JSON-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a JSON object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character (`\`) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
+The `@json` clause is used as a starting delimiter for JSON-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a JSON object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character ( `\` ) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
 
 ```
 # Before
@@ -2751,7 +2797,7 @@ For obvious reasons that it bypasses Tridy's requirements for modules, using thi
 
 ### **Raw Definition: `@yaml`**
 
-The `@yaml` clause is used as a starting delimiter for YAML-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a YAML object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character (`\`) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
+The `@yaml` clause is used as a starting delimiter for YAML-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a YAML object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character ( `\` ) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
 
 YAML, unlike JSON, is sensitive to whitespace. However, the rules as with YAML raw input are no different than with YAML input on its own in other circumstances, so as long as identation is consistent without the use of tab characters, then the input should run through the interpreter successfully. 
 
@@ -2821,11 +2867,11 @@ Similar to an ending quotation mark, the `@end` clause is used as an ending deli
 
 ### **Definition: `@has`**
 
-`@has` is another way to nest modules inside of other modules. The main purpose of `@has` is to set the initial tree data structure of the module, which are defined in the format of recursively-nested Tridy statements. Of note is that every `@has` requires a following opening bracket (`{`) at the beginning and a closing bracket (`}`) at the end of the nested statements.
+`@has` is another way to nest modules inside of other modules. The main purpose of `@has` is to set the initial tree data structure of the module, which are defined in the format of recursively-nested Tridy statements. Of note is that every `@has` requires a following opening bracket ( `{` ) at the beginning and a closing bracket ( `}` ) at the end of the nested statements.
 
 As another important aspect of `@has`, the nested Tridy statements provided using it are created *prior* to the (top) module's duplication and placement. What this means, inevitably, is that statements provided through `@has` exhibit a unique property whereby they are **context-locked**, meaning that context expressions inside of these nested statements have no view of the database outside the modules until the full, unnested statement has already been executed, and yet, nested statements are executed prior to their parent statement being executed.
 
-Thus, relative to a nested statement, the module represented by the parent statement is the root module, and context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation). The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as a root. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without affecting the wider database.
+Thus, relative to a nested statement, the module represented by the parent statement is the root module, and context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation). The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as the root directory. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without affecting the wider database.
 
 `@has` along with its bracketed statements is meant to be specified after `@is` if given, but before `@once` or `@many`.
 
@@ -2876,7 +2922,7 @@ Thus, relative to a nested statement, the module represented by the parent state
 
 ### **Definition Operand: `@none`**
 
-`@none` is used as a definition placeholder for all of the Tridy (non-raw) definition clauses where the clause's respective affected section is empty or unincluded, for instance, in the form "`@as @none`", "`@is @none`", or "`@has @none`". Once again, the purpose of using this is simply as an explicit way of stating the absence of either of these elements when simply leaving the clauses out fully would have the same effect. Likewise, it has no effect on the statement over this alternative, usually (with the exception of when used with `@put`).
+`@none` is used as a definition placeholder for all of the Tridy (non-raw) definition clauses where the clause's respective affected section is empty or unincluded, for instance, in the form "`@of @none`", "`@as @none`", "`@is @none`", or "`@has @none`". Once again, the purpose of using this is simply as an explicit way of stating the absence of either of these elements when simply leaving the clauses out fully would have the same effect. Likewise, it has no effect on the statement over this alternative, usually (with the exception of when used with `@put`).
 
 ```
 # After
@@ -3633,7 +3679,7 @@ $ tridydb console --client -h localhost -p 8080 -t 3000
 The output of randomized clauses can be controlled by the introduction of a random seed through the `--random-seed` argument, which takes a seed in the form of a string or otherwise as input. Forcing a seed has the benefit of reproducability, since forcing the same seed multiple times means that randomized clauses, with only the exception of `@uuid`, when used in the same statements in the same order, will always produce the same output for that seed.
 
 ```bash
-$ tridydb inline --command '@new @as @none; @in ? @new @as 1; @in ? @new @as 2; @get;' --pretty --random-seed 'Forty-two';
+$ tridydb inline --command '@new @as @none; @in $(@random > 0.5) @new @as 1; @in $(@random > 0.5) @new @as 2; @get;' --pretty --random-seed 'Forty-two';
 # [
 #     {
 #         "tree": [
