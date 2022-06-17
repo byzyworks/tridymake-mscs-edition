@@ -1345,6 +1345,32 @@ Each statement happens to return the module tagged as `Robert` all the same, reg
 
 <br>
 
+<div id="context-null"/>
+
+### **Operand: `null`**
+
+`null` is a special string that can take the place of a number on the right-hand side of a value expression.
+
+A tag is considered to have a value equivalent to `null` only when the tag is present within a module, but is without an assigned value. When compared through equality via. `==`, `<=`, or `>=`, comparing the tag to `null` will return true in these circumstances. These operations against `null` will, however, return false when either the tag is not present, or has been given any kind of assigned value.
+
+```
+@new @as item;
+@new @as item cost;
+@new @as item cost = 12.5;
+
+@get item $(cost == null);
+```
+
+```
+[
+    {
+        "tags": ["item", "cost"]
+    }
+]
+```
+
+<br>
+
 <div id="context-depth"/>
 
 ### **Variable Operand: `@depth` / `@d`**
@@ -1759,7 +1785,7 @@ See the [section](#context-value-expressions) on value expressions for an overvi
 
 `@eq`, or `==`, returns true for a module if and only if the left-hand side is of a value equal to the right-hand side.
 
-If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+If the left-hand side is referring to a tag identifier which, for the module, isn't present, then this operation will return false. If the tag identifier is present, but has no assigned value, then the operation will return false except when compared to `null`, where it will return true.
 
 ```
 @new @as Bob, coins = 5;
@@ -1791,7 +1817,7 @@ If the left-hand side is referring to a tag identifier which, for the module, ha
 
 `@ne`, or `!=`, returns true for a module if and only if the left-hand side is of a value not equal to the right-hand side.
 
-If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return true.
+If the left-hand side is referring to a tag identifier which, for the module, isn't present, then this operation will return true. If the tag identifier is present, but has no assigned value, then the operation will return true except when compared to `null`, where it will return false.
 
 ```
 @new @as Bob, coins = 5;
@@ -1832,7 +1858,7 @@ If the left-hand side is referring to a tag identifier which, for the module, ha
 
 `@lt`, or `<`, returns true for a module if and only if the left-hand side is of a value less than the right-hand side.
 
-If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+If the left-hand side is referring to a tag identifier which, for the module, is either not present or has no assigned value, then this operation will return false.
 
 ```
 @new @as Bob, coins = 5;
@@ -1867,7 +1893,7 @@ If the left-hand side is referring to a tag identifier which, for the module, ha
 
 `@le`, or `<=`, returns true for a module if and only if the left-hand side is of a value less than or equal to the right-hand side.
 
-If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+If the left-hand side is referring to a tag identifier which, for the module, isn't present, then this operation will return false. If the tag identifier is present, but has no assigned value, then the operation will return false except when compared to `null`, where it will return true.
 
 ```
 @new @as Bob, coins = 5;
@@ -1905,7 +1931,7 @@ If the left-hand side is referring to a tag identifier which, for the module, ha
 
 `@gt`, or `>`, returns true for a module if and only if the left-hand side is of a value greater than the right-hand side.
 
-If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+If the left-hand side is referring to a tag identifier which, for the module, is either not present or has no assigned value, then this operation will return false.
 
 ```
 @new @as Bob, coins = 5;
@@ -1940,7 +1966,7 @@ If the left-hand side is referring to a tag identifier which, for the module, ha
 
 `@ge`, or `>=`, returns true for a module if and only if the left-hand side is of a value greater than or equal to the right-hand side.
 
-If the left-hand side is referring to a tag identifier which, for the module, has no assigned value, then the operation will return false.
+If the left-hand side is referring to a tag identifier which, for the module, isn't present, then this operation will return false. If the tag identifier is present, but has no assigned value, then the operation will return false except when compared to `null`, where it will return true.
 
 ```
 @new @as Bob, coins = 5;

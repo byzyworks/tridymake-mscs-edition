@@ -55,8 +55,9 @@ export class SyntaxParser {
         context.push(current);
         this._tokens.next();
 
-        current = this._tokens.peek().toContextToken();
-        if (!current.is('ctxt_term') || isNaN(current.val)) {
+        current     = this._tokens.peek().toContextToken();
+        current.val = current.val.toLowerCase();
+        if (!current.is('ctxt_term') || (isNaN(current.val) && !current.is('ctxt_term', 'null'))) {
             this._handleUnexpected();
         }
         context.push(current);

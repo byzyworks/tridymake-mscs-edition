@@ -19,3 +19,7 @@
 @get $(a <= 2);
 
 @get $(a > 2);
+
+@get $(a != null);
+
+@get $(a == null);

@@ -78,7 +78,7 @@ export class Composer {
                         return Tag.getValue(tag);
                     }
                 }
-                return null;
+                return undefined;
         }
     }
 
@@ -138,24 +138,73 @@ export class Composer {
 
     _matchingNumberExpression(a, b, op, lvl, index, random, opts = { }) {
         let answer = this._matchingTagValue(a, b, lvl, index, random);
-        switch (op) {
-            case '$==':
-                answer = (answer === null) ? false : (answer === (isNaN(b.val) ? b.val : Number(b.val)));
+
+        switch (answer) {
+            case undefined:
+                switch (op) {
+                    case '$==':
+                        answer = false;
+                        break;
+                    case '$!=':
+                        answer = true;
+                        break;
+                    case '$<':
+                        answer = false;
+                        break;
+                    case '$<=':
+                        answer = false;
+                        break;
+                    case '$>':
+                        answer = false;
+                        break;
+                    case '$>=':
+                        answer = false;
+                        break;
+                }
                 break;
-            case '$!=':
-                answer = (answer === null) ? true : (answer !== (isNaN(b.val) ? b.val : Number(b.val)));
+            case null:
+                switch (op) {
+                    case '$==':
+                        answer = (b.val === 'null');
+                        break;
+                    case '$!=':
+                        answer = (b.val !== 'null');
+                        break;
+                    case '$<':
+                        answer = false;
+                        break;
+                    case '$<=':
+                        answer = (b.val === 'null');
+                        break;
+                    case '$>':
+                        answer = false;
+                        break;
+                    case '$>=':
+                        answer = (b.val === 'null');
+                        break;
+                }
                 break;
-            case '$<':
-                answer = (answer === null) ? false : (answer < Number(b.val));
-                break;
-            case '$<=':
-                answer = (answer === null) ? false : (answer <= Number(b.val));
-                break;
-            case '$>':
-                answer = (answer === null) ? false : (answer > Number(b.val));
-                break;
-            case '$>=':
-                answer = (answer === null) ? false : (answer >= Number(b.val));
+            default:
+                switch (op) {
+                    case '$==':
+                        answer = (answer === (isNaN(b.val) ? b.val : Number(b.val)));
+                        break;
+                    case '$!=':
+                        answer = (answer !== (isNaN(b.val) ? b.val : Number(b.val)));
+                        break;
+                    case '$<':
+                        answer = (answer < Number(b.val));
+                        break;
+                    case '$<=':
+                        answer = (answer <= Number(b.val));
+                        break;
+                    case '$>':
+                        answer = (answer > Number(b.val));
+                        break;
+                    case '$>=':
+                        answer = (answer >= Number(b.val));
+                        break;
+                }
                 break;
         }
 
