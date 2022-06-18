@@ -67,33 +67,32 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 2.  [@clear](#syntax-clear)
                 3.  [@exit](#syntax-exit)
                 4.  [@in](#syntax-in)
-                5.  [@get](#syntax-get)
-                6.  [@new](#syntax-new)
-                7.  [@set](#syntax-set)
-                8.  [@del](#syntax-del)
-                9.  [@put](#syntax-put)
-                10. [@tag](#syntax-tag)
-                11. [@untag](#syntax-untag)
-                12. [Multi-Statements](#syntax-multi)
-                13. [Explicit @of](#syntax-of)
-                14. [Explicit @as](#syntax-as)
-                15. [Implicit @of/@as](#syntax-implicit)
-                16. [@uuid](#syntax-uuid)
-                17. [@is](#syntax-is)
-                18. [Strings](#syntax-string)
-                19. [@json](#syntax-json)
-                20. [@yaml](#syntax-yaml)
-                21. [@end](#syntax-end)
-                22. [@has](#syntax-has)
-                23. [@none](#syntax-none)
-                24. [@once](#syntax-once)
-                25. [@many](#syntax-many)
-                26. [@raw](#syntax-raw)
-                27. [@typeless](#syntax-typeless)
-                28. [@tagless](#syntax-tagless)
-                29. [@trimmed](#syntax-trimmed)
-                30. [@merged](#syntax-merged)
-                31. [@final](#syntax-final)
+                5.  [@limit](#syntax-limit)
+                6.  [@get](#syntax-get)
+                7.  [@new](#syntax-new)
+                8.  [@set](#syntax-set)
+                9.  [@del](#syntax-del)
+                10. [@put](#syntax-put)
+                11. [@tag](#syntax-tag)
+                12. [@untag](#syntax-untag)
+                13. [Multi-Statements](#syntax-multi)
+                14. [Explicit @of](#syntax-of)
+                15. [Explicit @as](#syntax-as)
+                16. [Implicit @of/@as](#syntax-implicit)
+                17. [@uuid](#syntax-uuid)
+                18. [@is](#syntax-is)
+                19. [Strings](#syntax-string)
+                20. [@json](#syntax-json)
+                21. [@yaml](#syntax-yaml)
+                22. [@end](#syntax-end)
+                23. [@has](#syntax-has)
+                24. [@none](#syntax-none)
+                25. [@raw](#syntax-raw)
+                26. [@typeless](#syntax-typeless)
+                27. [@tagless](#syntax-tagless)
+                28. [@trimmed](#syntax-trimmed)
+                29. [@merged](#syntax-merged)
+                30. [@final](#syntax-final)
             3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
@@ -830,7 +829,7 @@ The `@parent` operator returns true only if the right side of the operator is tr
 # Before
 @new @as apple;
 @new @as apple;
-@in apple @new @as seed @once;
+@in apple @limit 1 @new @as seed;
 
 # After
 @in apple > seed @new @as reproductive;
@@ -874,7 +873,7 @@ The `@ascend` operator extends `@parent` to recursively look for sub-modules whe
 @new @as orchard;
 @new @as orchard;
 @in orchard new @as apple;
-@in orchard/apple @new @as seed @once;
+@in orchard/apple @limit 1 @new @as seed;
 
 # After
 @in orchard >> seed @new @as regrowable;
@@ -1052,7 +1051,7 @@ The `@to` operator has a behavior similar to that of `@child`, where it will ret
 # Before
 @new @as apple;
 @new @as apple;
-@in apple @new @as seed @once;
+@in apple @limit 1 @new @as seed;
 
 # After
 @in apple / seed @new @as sprout;
@@ -2112,6 +2111,40 @@ Syntactically, `@in` is meant to precede one of the operation clauses, and thus 
 
 <br>
 
+<div id="syntax-limit"/>
+
+### **Context Meta-Operation: `@limit`**
+
+`@limit` is put at the end of a context expression (required) to stop the composer from trying to test more modules after a certain number of successful matches have occurred. Following the clause, the user should provide a positive integer argument that states what this limit is.
+
+The role that `@limit` has is when the exact number of modules that a context expression should match in a database already happens to be known beforehand, especially in the case of tags that would effectively be treated as unique like UUIDs. In such cases, using `@limit` with the right integer argument might not cause any modules to be missed, but would still save on performance by not testing more modules needlessly.
+
+```
+@new @as a;
+@new @as b;
+@new @as c;
+@new @as d;
+@new @as e;
+
+@get * @limit 3;
+```
+
+```json
+[
+    {
+        "tags": ["a"]
+    },
+    {
+        "tags": ["b"]
+    },
+    {
+        "tags": ["c"]
+    }
+]
+```
+
+<br>
+
 <div id="syntax-get"/>
 
 ### **Operation: `@get`**
@@ -2900,7 +2933,7 @@ As another important aspect of `@has`, the nested Tridy statements provided usin
 
 Thus, relative to a nested statement, the module represented by the parent statement is the root module, and context operators like `@child` and `@descend` have no ability to extend outside of it (nor would any context operation). The function of this is similar to a `chroot` directive that is found in many Unix-based systems, and which is most often used to provide security by completely restricting access outside of the directory masquerading as the root directory. Likewise, it can do the same here around context, providing a limited scope in which any number of Tridy statements can exist without affecting the wider database.
 
-`@has` along with its bracketed statements is meant to be specified after `@is` if given, but before `@once` or `@many`.
+`@has` along with its bracketed statements is meant to be specified after `@is` if given.
 
 ```
 @new @as orchard @has {
@@ -2960,100 +2993,6 @@ Thus, relative to a nested statement, the module represented by the parent state
 {
     "tree": [
 +       { }
-    ]
-}
-```
-
-<br>
-
-<div id="syntax-once"/>
-
-### **Context Meta-Operation: `@once`**
-
-`@once` is a special parameter that is used to make a Tridy statement (and in fact, any Tridy statement regardless of operation) "greedy". Effectively, a greedy Tridy statement is one which is limited to affecting a single module, whereby it will stop searching for new modules once at least one module returns true according to the context expression. This means it will not only retract from searching through sub-modules, but through co-modules as well, meaning modules in the same tree of a parent module that each may or may not have a matching context as well. It is not possible otherwise to ignore co-modules.
-
-There is a particular use case for this, namely where context expressions are addressing a module which is unique, perhaps because it has a unique identifier or tag, and it is known beforehand to be as such. Using this in such a way would at least have the effect of speeding up such statements since the composer won't needlessly search further after the point the uniquely-matching module is found.
-
-`@once` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@many`.
-
-```
-# Before
-@new @as a;
-@new @as a;
-@new @as a;
-
-# After
-@in a @new @as b @once;
-```
-
-```diff
-{
-    "tree": [
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        },
-        {
-            "tags": ["a"]
-        },
-        {
-            "tags": ["a"]
-        }
-    ]
-}
-```
-
-<br>
-
-<div id="syntax-many"/>
-
-### **Context Meta-Operation: `@many`**
-
-As an alternative to `@once`, `@many` is an explicit way to specify the default behavior Tridy exhibits when selecting modules, which is to test all existing modules where a context expression evaluates as true and apply an operation therein. It is not necessary to include.
-
-`@many` is meant to be specified last in a Tridy statement, after the definition clauses, and cannot be used together with `@once`.
-
-```
-# Before
-@new @as a;
-@new @as a;
-@new @as a;
-
-# After
-@in a @new @as b @many;
-```
-
-```diff
-{
-    "tree": [
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        },
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        },
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "tags": ["b"],
-+               }
-            ]
-        }
     ]
 }
 ```
@@ -3360,13 +3299,13 @@ The syntax rules are detailed below using Microsoft's command line syntax:
     {
         {
             {
-                @get [<context expression>]
+                @get [<context expression>] [@limit <positive integer>]
                 [{@raw | @typeless | @tagless | @trimmed | @merged | @final}]
             |
                 @del [<context expression>]
             }
         |
-            @in <context expression>
+            @in <context expression> [@limit <positive integer>]
             {
                 @get
                 [{@raw | @typeless | @tagless | @trimmed | @merged | @final}]
@@ -3406,7 +3345,6 @@ The syntax rules are detailed below using Microsoft's command line syntax:
         }
         
     }
-    [{@once | @many}]
 |
     @clear
 |
@@ -3810,8 +3748,7 @@ As it only affects existing modules, the possible query parameters (like clauses
 | `compression` | `3` | Output compression level. | `@trimmed` |
 | `compression` | `4` | Output compression level. | `@merged` |
 | `compression` | `5` | Output compression level (full compression). | `@final` |
-| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
-| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
+| `limit` | positive integer | Successes to allow before stopping. | `@limit` |
 
 <br>
 
@@ -3821,7 +3758,7 @@ As it only affects existing modules, the possible query parameters (like clauses
 
 In REST mode, the `POST` HTTP method is synonymous with `@new` in Tridy.
 
-As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@new` is a non-idempotent operation, meaning it always creates something new and doesn't attempt to alter a module that's already placed (besides by appending its tree). In addition, `@new` is more essential to Tridy than `@set` is, making it easier to block `PUT`, which is generally considered an unsafe method.
+As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@new` is a non-idempotent operation, meaning it always creates something new, even when applied repeatedly in succession with the same parameters, and doesn't attempt to alter a module that's already placed (besides by appending its tree). In addition, `@new` is more essential to Tridy than `@set` is, making it easier to limit access to `PUT`, which is generally considered an unsafe method.
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
@@ -3836,8 +3773,7 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 | `freeformat` | `string` | The new module's free data structure import data type. | `@is "<?freedata>"` |
 | `freeformat` | `dynamic` | The new module's free data structure import data type. | ``@is `<?freedata>` `` |
 | `freedata` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?freedata> @end` |
-| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
-| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
+| `limit` | positive integer | Successes to allow before stopping. | `@limit` |
 
 <br>
 
@@ -3845,16 +3781,22 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 
 ### **REST Mode Endpoint: `PUT /`**
 
-In REST mode, the `PUT` HTTP method is synonymous with `@set` in Tridy.
+In REST mode, the `PUT` HTTP method is synonymous with multiple operations in Tridy.
 
-As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@set` is an idempotent operation, meaning it attempts to change something that might already exist, and can wind up causing no changes if the sent module data is the same as that which is already there. Despite the sound of this, it's more powerful than `@new` since, with the given context, the scope of modification extends from the tail of the module's tree to the entire body of the module. Likewise, as the most powerful operation, it makes the most sense to allocate `PUT` to it.
+Depending on the mode (a parameter), this operation is either `@set`, `@put`, `@tag`, or `@untag`.
+
+As opposed to `POST`, these are all equivalent to `PUT` since like it, they are all idempotent operations, meaning they attempt to change something that already exists, and when applied multiple times repeatedly in succession with the same parameters, cause no changes to happen. Despite the sound of this, these operations collectively are more powerful than `@new` since, with the given context, the scope of modification extends from the tail of the module's tree to the entire body of the module. As the more powerful operations, it makes the most sense to allocate `PUT` to them.
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `format` | { `json`, `yaml` } | The new module's import data type. | `@set <?format> <?data> @end` |
-| `format` | `string` | The new module's import data type. | `@set "<?data>"` |
-| `format` | `dynamic` | The new module's import data type. | ``@set `<?data>` `` |
-| `data` | pre-formatted data | The new module's import data. | `@set <?format> <?data> @end` |
+| `mode` | { undefined, `overwrite` } | The type of operation. | `@set` |
+| `mode` | `edit` | The type of operation. | `@put` |
+| `mode` | `tag` | The type of operation. | `@tag` |
+| `mode` | `untag` | The type of operation. | `@untag` |
+| `format` | { `json`, `yaml` } | The new module's import data type. | `<mode> <?format> <?data> @end` |
+| `format` | `string` | The new module's import data type. | `<mode> "<?data>"` |
+| `format` | `dynamic` | The new module's import data type. | ``<mode> `<?data>` `` |
+| `data` | pre-formatted data | The new module's import data. | `<mode> <?format> <?data> @end` |
 | `context` | context expression | The modules to modify. | `@in <?context>` |
 | `type` | string | The new module's type specifier. | `@of "<?type>"` |
 | `tags` | tags (comma-delimited) | Tags of the new module. | `@as <?tags>` |
@@ -3862,8 +3804,7 @@ As opposed to `POST`, `@set` was chosen as equivalent to `PUT` since like it, `@
 | `freeformat` | `string` | The new module's free data structure import data type. | `@is "<?freedata>"` |
 | `freeformat` | `dynamic` | The new module's free data structure import data type. | ``@is `<?freedata>` `` |
 | `freedata` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?freedata> @end` |
-| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
-| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
+| `limit` | positive integer | Successes to allow before stopping. | `@limit` |
 
 <br>
 
@@ -3878,8 +3819,7 @@ As it only affects existing modules, the possible query parameters (like clauses
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
 | `context` | context expression | The modules to delete. | `@in <?context>` |
-| `greedy` | `true` | Enables greedy context expression evaluation. | `@once` |
-| `greedy` | `false` | Disables greedy context expression evaluation. | `@many` |
+| `limit` | positive integer | Successes to allow before stopping. | `@limit` |
 
 <br>
 

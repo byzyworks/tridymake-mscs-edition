@@ -693,32 +693,28 @@ export class Composer {
 
     _traverseModule(test, command, lvl, max_lvl, random, opts = { }) {
         opts.template = opts.template ?? null;
-        opts.greedy   = opts.greedy   ?? false;
+        opts.limit    = opts.limit    ?? null;
+        opts.count    = opts.count    ?? 0;
 
         const index = this._getModuleIndex();
 
-        const answer = this._matchingExpression(test, 0, index, random);
-
-        let   matched      = answer;
-        const matched_this = matched;
-        if (((max_lvl === null) || (lvl < max_lvl)) && (!opts.greedy || !matched)) {
-            const target = this._target.peek();
-            target.enterPos(this._alias.nested);
-            if (!target.isPosEmpty()) {
-                target.enterPos(0);
-                while (!target.isPosUndefined()) {
-                    matched = this._traverseModule(test, command, lvl + 1, max_lvl, random, opts);
-                    if (opts.greedy && matched) {
-                        break;
-                    }
-                    target.nextItem();
-                }
-                target.leavePos();
-            }
-            target.leavePos();
+        const matched = this._matchingExpression(test, 0, index, random);
+        if (matched === true) {
+            opts.count++;
         }
 
-        if (matched_this) {
+        if (((max_lvl === null) || (lvl < max_lvl)) && ((opts.limit === null) || (opts.count < opts.limit))) {
+            const target = this._target.peek();
+
+            target.traverse(() => {
+                this._traverseModule(test, command, lvl + 1, max_lvl, random, opts);
+                if ((opts.limit !== null) && (opts.count >= opts.limit)) {
+                    return 'break';
+                }
+            });
+        }
+
+        if (matched) {
             this._operateModule(command, { template: opts.template });
         }
 
@@ -774,8 +770,8 @@ export class Composer {
 
     _parseStatement() {
         const context    = this._astree.enterGetAndLeave('context');
-        let   expression = context ? context.expression : { };
-        const greedy     = context ? context.greedy ?? false : false;
+        let   expression = context ? context.expression    : { };
+        const limit      = context ? context.limit ?? null : null;
 
         if (!common.isEmpty(expression)) {
             expression = ContextParser.upgrade(expression);
@@ -795,21 +791,11 @@ export class Composer {
 
         const max_depth = this._getMaximumLevel(expression);
 
-        this._traverseModule(expression, command, 0, max_depth, this._random.prng(), { template: template, greedy: greedy });
+        this._traverseModule(expression, command, 0, max_depth, this._random.prng(), { template: template, limit: limit });
     }
 
     _parse() {
-        this._astree.enterPos(common.global.defaults.alias.nested);
-        if (!this._astree.isPosEmpty()) {
-            this._astree.enterPos(0);
-            while (!this._astree.isPosUndefined()) {
-                this._parseStatement();
-
-                this._astree.nextItem();
-            }
-            this._astree.leavePos();
-        }
-        this._astree.leavePos();
+        this._astree.traverse(this._parseStatement.bind(this));
     }
 
     compose(input, alias, opts = { }) {

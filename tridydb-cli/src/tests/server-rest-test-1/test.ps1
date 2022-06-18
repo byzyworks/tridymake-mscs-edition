@@ -38,7 +38,7 @@ $out = Invoke-WebRequest -Uri "http://localhost:$port/"                         
 $out = Invoke-WebRequest -Uri "http://localhost:$port/?tags=a"                                                                       -Method 'POST' -UseBasicParsing;
 $out = Invoke-WebRequest -Uri "http://localhost:$port/?tags=b"                                                                       -Method 'POST' -UseBasicParsing;
 $out = Invoke-WebRequest -Uri "http://localhost:$port/?tags=a,b"                                                                     -Method 'POST' -UseBasicParsing;
-$out = Invoke-WebRequest -Uri "http://localhost:$port/?context=a&greedy=true&tags=greedy"                                            -Method 'POST' -UseBasicParsing;
+$out = Invoke-WebRequest -Uri "http://localhost:$port/?context=a&limit=1&tags=greedy"                                                -Method 'POST' -UseBasicParsing;
 $out = Invoke-WebRequest -Uri "http://localhost:$port/?context=a%26b&type=json&tags=freejson&freeformat=json&freedata=$json"         -Method 'POST' -UseBasicParsing;
 $out = Invoke-WebRequest -Uri "http://localhost:$port/?context=a%26b&type=yaml&tags=freeyaml&freeformat=yaml&freedata=$yaml"         -Method 'POST' -UseBasicParsing;
 $out = Invoke-WebRequest -Uri "http://localhost:$port/?context=a%26b&type=string&tags=freestring&freeformat=string&freedata=$string" -Method 'POST' -UseBasicParsing;

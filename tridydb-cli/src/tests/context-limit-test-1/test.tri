@@ -6,6 +6,6 @@
 
 @in a @new @as b;
 
-@in a/b @new @as c @many;
+@in a/b @limit 1 @new @as c;
 
 @get;

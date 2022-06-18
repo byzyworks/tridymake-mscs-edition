@@ -11,7 +11,7 @@ export class TokenlessParser {
     }
 
     static _handleContext(input) {
-        if (common.isPrimitive(input)) {
+        if (typeof input === 'string') {
             return;
         }
         
@@ -19,7 +19,7 @@ export class TokenlessParser {
             this._handleUnexpected();
         }
         
-        if (!common.isString(input.op)) {
+        if (typeof input.op !== 'string') {
             this._handleUnexpected();
         }
 
@@ -36,9 +36,15 @@ export class TokenlessParser {
         }
     }
 
+    static _handleContextAppendix(input) {
+        if ((typeof input.limit !== 'number') && !Number.isInteger(input.limit)) {
+            this._handleUnexpected();
+        }
+    }
+
     static _handleDefinition(input) {
         if (!common.isNullish(input[common.global.defaults.alias.type])) {
-            if (!common.isString(input[common.global.defaults.alias.type])) {
+            if (typeof input[common.global.defaults.alias.type] !== 'string') {
                 this._handleUnexpected();
             }
         }
@@ -49,7 +55,7 @@ export class TokenlessParser {
             }
 
             for (const tag of input[common.global.defaults.alias.tags]) {
-                if (!common.isString(tag)) {
+                if (typeof tag !== 'string') {
                     this._handleUnexpected();
                 }
             }
@@ -72,14 +78,12 @@ export class TokenlessParser {
                 this._handleUnexpected();
             }
 
-            if (!common.isBoolean(input.context.greedy)) {
-                this._handleUnexpected();
-            }
-            
             this._handleContext(input.context.expression);
+
+            this._handleContextAppendix(input.context);
         }
 
-        if (!common.isString(input.operation)) {
+        if (typeof input.operation !== 'string') {
             this._handleUnexpected();
         }
 

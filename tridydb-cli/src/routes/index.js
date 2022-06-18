@@ -15,7 +15,7 @@ const op_map = Object.freeze({
     delete: 'del'
 });
 
-const toTridy = (op, opts = { }) => {
+const toTridy = (method, opts = { }) => {
     // Yes, this is vulnerable to injection. No, don't use this except locally.
     // At the very least treat the port for this like you would any other database port.
 
@@ -32,24 +32,63 @@ const toTridy = (op, opts = { }) => {
     } else {
         cmd = '';
 
-        if (opts.context) {
+        if (opts.context !== undefined) {
             cmd += `@in ${opts.context} `;
+
+            if (opts.limit !== undefined) {
+                cmd += `@limit ${opts.limit} `;
+            }
         }
     
+        let op;
+
+        switch (method) {
+            case 'get':
+                op = 'get';
+                break;
+            case 'post':
+                op = 'new';
+                break;
+            case 'put':
+                switch (opts.mode) {
+                    case undefined:
+                    case 'overwrite':
+                        op = 'set';
+                        break;
+                    case 'edit':
+                        op = 'put';
+                        break;
+                    case 'tag':
+                        op = 'tag';
+                        break;
+                    case 'untag':
+                        op = 'untag';
+                        break;
+                    default:
+                        throw new ServerSideServerError(`Invalid value passed to parameter "mode": "${opts.mode}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false });
+                }
+                break;
+            case 'delete':
+                op = 'del';
+                break;
+            default:
+                throw new ServerSideServerError(`Invalid method call received: ${method}.`, null, { http_code: StatusCodes.METHOD_NOT_ALLOWED, is_fatal: false });
+        }
+        
         cmd += `@${op}`;
     
-        if ((op !== 'get') && (op !== 'del')) {
+        if ((method !== 'get') && (method !== 'del')) {
             switch (opts.format) {
                 case 'mod':
-                    if (opts.type) {
+                    if (opts.type !== undefined) {
                         cmd += ` @of "${opts.type}"`;
                     }
     
-                    if (opts.tags) {
+                    if (opts.tags !== undefined) {
                         cmd += ` @as ${opts.tags}`;
                     }
                 
-                    if (opts.statedata) {
+                    if (opts.statedata !== undefined) {
                         switch (opts.stateformat) {
                             case 'string':
                                 cmd += ` @is "${opts.statedata}"`;
@@ -87,7 +126,7 @@ const toTridy = (op, opts = { }) => {
                     cmd += ` @${opts.format} ${opts.data} @end`;
                     break;
             }
-        } else if (op === 'get') {
+        } else if (method === 'get') {
             switch (opts.compression) {
                 case undefined:
                     break;
@@ -113,20 +152,7 @@ const toTridy = (op, opts = { }) => {
                     throw new ServerSideServerError(`Invalid value passed to parameter "compression": "${opts.compression}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false });
             }
         }
-
-        switch (opts.greedy) {
-            case undefined:
-                break;
-            case 'true':
-                cmd += ` @once`;
-                break;
-            case 'false':
-                cmd += ` @many`;
-                break;
-            default:
-                throw new ServerSideServerError(`Invalid value passed to parameter "greedy": "${opts.greedy}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false });
-        }
-
+        
         cmd += ';';
     }
 
@@ -140,17 +166,19 @@ const toTridy = (op, opts = { }) => {
 const getOpts = (req, res) => {
     const opts = { };
 
-    if (req.query.context) {
+    if (req.query.mode !== undefined) {
+        opts.mode = req.query.mode;
+    }
+    if (req.query.context !== undefined) {
         opts.context = req.query.context;
     }
-    if (req.query.greedy) {
-        opts.greedy = req.query.greedy;
+    if (req.query.limit !== undefined) {
+        opts.limit = req.query.limit;
     }
-    if (req.query.compression) {
+    if (req.query.compression !== undefined) {
         opts.compression = req.query.compression;
     }
-
-    if (req.query.format && (req.query.format !== 'mod')) {
+    if ((req.query.format !== undefined) && (req.query.format !== 'mod')) {
         opts.format = req.query.format;
         opts.data   = req.query.data;
     } else {
@@ -187,7 +215,7 @@ const handleRoute = async (method, req, res, next) => {
     let out;
 
     try {
-        cmd = toTridy(op_map[method], opts);
+        cmd = toTridy(method, opts);
     } catch (err) {
         if ((err instanceof SyntaxError) || (err instanceof ServerSideServerError)) {
             return next(err);

@@ -55,7 +55,6 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `Tridy.isCarrying()` instance method, to check if there are incomplete statements.
 * Changed `Tridy.stringify(...)` to a static method.
 * Changed `Tridy.objectify(...)` to a static method.
-* Fixed some incorrect documentation that wasn't updated.
 * Added the plus symbol (`+`) as an acceptable tag character.
 * Removed variables (as in the non-functional way they were implemented prior).
 * Made it acceptable syntax for tag definitions (following `@as` or an operation clause) to be comma-separated (`a,b,...`).
@@ -73,6 +72,12 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@random` / `@q` built-in context variable for number comparison operations.
 * Added `@shuffled` / `@s` built-in context variable for number comparison operations.
 * Added `@iterandom` / `@r` built-in context variable for number comparison operations.
+* Removed the `@once` and `@many` clauses.
+* Removed the `greedy` query parameter.
+* Added `@limit` clause with integer argument.
+* Added `limit` query parameter based on `@limit` clause.
+* Added `mode` query parameter to PUT method so that `@put`, `@tag`, and `@untag` can be used in RESTful mode.
+* Fixed some incorrect documentation that wasn't updated.
 * Fixed client mode using a standalone local session as opposed to a server like it's supposed to.
 * Fixed `--client` option not conflicting with `--type-key`.
 * Fixed client mode sending the syntax tree output of no-ops like `@tridy` to a server.

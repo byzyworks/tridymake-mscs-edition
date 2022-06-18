@@ -284,7 +284,12 @@ export class StateTree {
         if (!this.isPosEmpty()) {
             this.enterPos(0);
             while (!this.isPosUndefined()) {
-                callback();
+                const act = callback();
+                if (act === 'break') {
+                    break;
+                } else if (act === 'continue') {
+                    continue;
+                }
                 this.nextItem();
             }
             this.leavePos();

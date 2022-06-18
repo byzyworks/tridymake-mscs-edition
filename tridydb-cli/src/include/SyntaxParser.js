@@ -220,6 +220,29 @@ export class SyntaxParser {
 
         return context;
     }
+
+    _handleContextAppendix() {
+        let current;
+
+        current = this._tokens.peek();
+        if (current.is('key', 'limit')) {
+            this._tokens.next();
+
+            current = this._tokens.peek();
+            if (!current.is('tag')) {
+                this._handleUnexpected();
+            }
+
+            const limit = Number(current.val);
+            if (!Number.isInteger(limit)) {
+                this._handleUnexpected();
+            }
+
+            this._astree.enterSetAndLeave('limit', limit);
+
+            this._tokens.next();
+        }
+    }
     
     _handleContext() {
         let context = this._readWhileContextExpression();
@@ -230,8 +253,14 @@ export class SyntaxParser {
         // The context expression has to be converted to a tree format before it can be useable, which is a multi-step process handled by a separate parser.
         // It would be even more difficult to parse it in the same human-readable format (as an "infix" array).
         context = ContextParser.parse(context);
+
+        this._astree.enterPos('context');
     
-        this._astree.enterSetAndLeave(['context', 'expression'], context);
+        this._astree.enterSetAndLeave('expression', context);
+
+        this._handleContextAppendix();
+
+        this._astree.leavePos();
     }
 
     _readWhileRaw(opts = { }) {
@@ -741,23 +770,16 @@ export class SyntaxParser {
                     this._handleEditDefinition();
                 } else if (operation_token.isTagEditingOpToken()) {
                     this._handleOperation();
+
+                    if (this._tokens.peek().is('key', 'as')) {
+                        this._tokens.next();
+                    }
     
                     if (this._tokens.peek().is('key', 'none')) {
                         this._tokens.next();
                     } else {
                         this._handleTagsDefinition({ require: false });
                     }
-                }
-        
-                current = this._tokens.peek();
-                if (current.is('key', 'once')) {
-                    this._astree.enterSetAndLeave(['context', 'greedy'], true);
-    
-                    this._tokens.next();
-                } else if (current.is('key', 'many')) {
-                    this._astree.enterSetAndLeave(['context', 'greedy'], false);
-    
-                    this._tokens.next();
                 }
             }
         }
