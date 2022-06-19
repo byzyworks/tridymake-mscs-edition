@@ -156,11 +156,28 @@ export const deepOverlay = (target, source) => {
     }
 }
 
-export const deepModify = (target, callback) => {
+export const deepModifyKey = (target, stop_key, old_key, new_key) => {
+    for (const property in target) {
+        if (property === stop_key) {
+            continue;
+        }
+        
+        if (isObject(target[property]) && !isEmpty(target[property])) {
+            deepModifyKey(target[property], stop_key, old_key, new_key);
+        }
+
+        if (property === old_key) {
+            target[new_key] = target[property];
+            delete target[property];
+        }
+    }
+}
+
+export const deepModifyValue = (target, callback) => {
     let modified;
-    for (const property in source) {
-        if (isObject(target[property])) {
-            deepOverlay(target[property], source[property]);
+    for (const property in target) {
+        if (isObject(target[property]) && !isEmpty(target[property])) {
+            deepModifyValue(target[property], callback);
         } else {
             modified = callback(target[property]);
             target[property] = modified;
@@ -221,7 +238,8 @@ const defaults = Object.freeze({
         type:   'type',
         tags:   'tags',
         state:  'free',
-        nested: 'tree'
+        nested: 'tree',
+        root:   'root'
     },
     remote: {
         enable:  false,
@@ -230,6 +248,7 @@ const defaults = Object.freeze({
         timeout: 3000
     },
     output: {
+        format: 'json',
         pretty: false
     },
     log_level: 'info'

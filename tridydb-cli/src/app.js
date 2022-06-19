@@ -42,6 +42,11 @@ program
             .conflicts('command')
     )
     .addOption(
+        new Option('-F, --format <format>', 'Specify an output format.')
+            .choices(['xml', 'json', 'yaml'])
+            .default(global.defaults.output.format)
+    )
+    .addOption(
         new Option('--free-key <key>', 'The key under which the free data structure is imported and exported as.')
             .default(global.defaults.alias.state)
     )
@@ -62,7 +67,7 @@ program
             .default(global.defaults.log_level)
     )
     .addOption(
-        new Option('--pretty', 'Pretty-print the output data.')
+        new Option('--pretty', 'Pretty-print the output data. Has no effect when the output format is "yaml".')
     )
     .addOption(
         new Option('-h, --remote-host <host>', 'Destination server to connect to when in client mode.')
@@ -95,6 +100,10 @@ program
         new Option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as.')
             .default(global.defaults.alias.nested)
     )
+    .addOption(
+        new Option('--root-key <key>', 'The name given to the root tag (relevant only when the output format is \'xml\').')
+            .default(global.defaults.alias.root)
+    )
     .hook('preAction', async (thisCommand, actionCommand) => {
         const opts = program.opts();
 
@@ -103,12 +112,17 @@ program
         global.alias.tags   = opts.tagsKey;
         global.alias.state  = opts.freeKey;
         global.alias.nested = opts.treeKey;
+        global.alias.root   = opts.rootKey;
         
         global.remote         = { };
         global.remote.enable  = opts.client;
         global.remote.host    = opts.remoteHost;
         global.remote.port    = opts.remotePort;
         global.remote.timeout = opts.remoteTimeout;
+
+        global.output        = { };
+        global.output.format = opts.format;
+        global.output.pretty = opts.pretty;
         
         global.log_level = opts.logLevel;
         transports.console.level = opts.logLevel;
@@ -151,7 +165,7 @@ program
             program.error('error: either --command or --file need to be given inside of inline mode.');
         }
 
-        console.log(Tridy.stringify(preset, { pretty: opts.pretty }));
+        console.log(Tridy.stringify(preset));
     })
 ;
 

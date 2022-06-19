@@ -197,7 +197,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line56">line 56</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line58">line 58</a>
     </li></ul></dd>
     
 
@@ -354,7 +354,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line231">line 231</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line256">line 256</a>
     </li></ul></dd>
     
 
@@ -508,6 +508,29 @@ Interacting with this class is all done through the query() method, which automa
 
         <tr>
             
+                <td class="name"><code>opts.format</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Format to export the JSON output in. Options are 'xml', 'json', or 'yaml'. Default is 'json'.</td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>opts.pretty</code></td>
             
 
@@ -524,7 +547,53 @@ Interacting with this class is all done through the query() method, which automa
 
             
 
-            <td class="description last">True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Default is false.</td>
+            <td class="description last">True to output the string with indentation (4-spaced), false to output in a compressed format. Default is false.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.xml_root_key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The name given to the root tag (relevant only when the output format is 'xml'). Default is 'root'.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opts.xml_res_key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The name given to the individual response tags (relevant only when the output format is 'xml'). Default is 'tree'.</td>
         </tr>
 
     
@@ -565,7 +634,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line212">line 212</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line220">line 220</a>
     </li></ul></dd>
     
 
@@ -594,7 +663,7 @@ Interacting with this class is all done through the query() method, which automa
 
         
 <div class="param-desc">
-    Input object as a JSON string.
+    Input object as a formatted string.
 </div>
 
 
@@ -675,7 +744,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line198">line 198</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line203">line 203</a>
     </li></ul></dd>
     
 
@@ -763,7 +832,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line70">line 70</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line72">line 72</a>
     </li></ul></dd>
     
 
@@ -873,7 +942,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line188">line 188</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line193">line 193</a>
     </li></ul></dd>
     
 
@@ -1262,7 +1331,7 @@ Interacting with this class is all done through the query() method, which automa
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line108">line 108</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line110">line 110</a>
     </li></ul></dd>
     
 
@@ -1479,7 +1548,7 @@ Passing null or undefined causes a new seed to be generated randomly.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line83">line 83</a>
+        <a href="Interpreter.js.html">Interpreter.js</a>, <a href="Interpreter.js.html#line85">line 85</a>
     </li></ul></dd>
     
 
@@ -1531,7 +1600,7 @@ Passing null or undefined causes a new seed to be generated randomly.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Jun 06 2022 00:36:02 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Jun 19 2022 18:00:50 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

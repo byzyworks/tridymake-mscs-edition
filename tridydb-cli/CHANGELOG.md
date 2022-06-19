@@ -77,8 +77,14 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@limit` clause with integer argument.
 * Added `limit` query parameter based on `@limit` clause.
 * Added `mode` query parameter to PUT method so that `@put`, `@tag`, and `@untag` can be used in RESTful mode.
+* Added XML raw input support in the form of `@xml` raw input tag.
+* Added `--format` program argument (and argument to `Tridy.stringify()`) to control output format.
+* Added YAML output format support.
+* Added (limited) XML output format support.
+* Added `--root-key` program argument (and argument to `Tridy.stringify()`) to control the root tag name when outputting to XML.
 * Fixed some incorrect documentation that wasn't updated.
 * Fixed client mode using a standalone local session as opposed to a server like it's supposed to.
 * Fixed `--client` option not conflicting with `--type-key`.
 * Fixed client mode sending the syntax tree output of no-ops like `@tridy` to a server.
+* Fixed bug where a custom tree key would lead to an infinite loop when using `@get` with `@typeless`, `@tagless`, or `@trimmed`.
 * Improved behavior of server mode when receiving incorrectly-formatted abstract syntax trees.

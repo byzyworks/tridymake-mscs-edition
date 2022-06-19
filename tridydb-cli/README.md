@@ -84,15 +84,16 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 19. [Strings](#syntax-string)
                 20. [@json](#syntax-json)
                 21. [@yaml](#syntax-yaml)
-                22. [@end](#syntax-end)
-                23. [@has](#syntax-has)
-                24. [@none](#syntax-none)
-                25. [@raw](#syntax-raw)
-                26. [@typeless](#syntax-typeless)
-                27. [@tagless](#syntax-tagless)
-                28. [@trimmed](#syntax-trimmed)
-                29. [@merged](#syntax-merged)
-                30. [@final](#syntax-final)
+                22. [@xml](#syntax-xml)
+                23. [@end](#syntax-end)
+                24. [@has](#syntax-has)
+                25. [@none](#syntax-none)
+                26. [@raw](#syntax-raw)
+                27. [@typeless](#syntax-typeless)
+                28. [@tagless](#syntax-tagless)
+                29. [@trimmed](#syntax-trimmed)
+                31. [@merged](#syntax-merged)
+                32. [@final](#syntax-final)
             3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
@@ -141,7 +142,7 @@ To support its use for that, though, TridyDB is provided with three possible int
 
 Being as TridyDB is natively a JavaScript application, JSON is its most well-supported storage format, and is always the one that is used by it internally. The other formats supported are converted to or from this internal storage.
 
-Currently, YAML [import](#syntax-yaml) is supported, in addition to JSON [import](#syntax-json) and export.
+Currently, TridyDB supports either YAML [import](#syntax-yaml), JSON [import](#syntax-json), or XML [import](#syntax-xml). In addition, [output](#cli-common-output) for all three formats is supported, with some limitations due to TridyDB's JSON-centric internal storage format.
 
 <br>
 
@@ -2913,6 +2914,14 @@ For obvious reasons that it bypasses Tridy's requirements for modules, using thi
 
 <br>
 
+<div id="syntax-xml"/>
+
+### **Raw Definition: `@xml`**
+
+WIP
+
+<br>
+
 <div id="syntax-end"/>
 
 ### **Raw Definition: `@end`**
@@ -3666,7 +3675,7 @@ $ tridydb inline --command '@new @as @none; @in $(@random > 0.5) @new @as 1; @in
 
 <div id="cli-common-output"/>
 
-### **Common Options: `--pretty`**
+### **Common Options: `--format`, `--pretty`**
 
 Pretty-printing is provided as the option `--pretty` or `-p` in all cases. Like when the equivalent option is used with `Tridy.stringify(...)`, 4 spaces are used per indent.
 
@@ -3680,6 +3689,8 @@ $ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get
 #     }
 # ]
 ```
+
+WIP
 
 <br>
 
@@ -3762,7 +3773,7 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 
 | Query | Value Type | Description | Equivalent to |
 | --- | --- | --- | --- |
-| `format` | { `json`, `yaml` } | The new module's import data type. | `@new <?format> <?data> @end` |
+| `format` | { `json`, `yaml`, `xml` } | The new module's import data type. | `@new <?format> <?data> @end` |
 | `format` | `string` | The new module's import data type. | `@new "<?data>"` |
 | `format` | `dynamic` | The new module's import data type. | ``@new `<?data>` `` |
 | `data` | pre-formatted data | The new module's import data. | `@new <?format> <?data> @end` |
@@ -3793,7 +3804,7 @@ As opposed to `POST`, these are all equivalent to `PUT` since like it, they are 
 | `mode` | `edit` | The type of operation. | `@put` |
 | `mode` | `tag` | The type of operation. | `@tag` |
 | `mode` | `untag` | The type of operation. | `@untag` |
-| `format` | { `json`, `yaml` } | The new module's import data type. | `<mode> <?format> <?data> @end` |
+| `format` | { `json`, `yaml`, `xml` } | The new module's import data type. | `<mode> <?format> <?data> @end` |
 | `format` | `string` | The new module's import data type. | `<mode> "<?data>"` |
 | `format` | `dynamic` | The new module's import data type. | ``<mode> `<?data>` `` |
 | `data` | pre-formatted data | The new module's import data. | `<mode> <?format> <?data> @end` |

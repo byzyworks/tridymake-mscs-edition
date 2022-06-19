@@ -479,9 +479,9 @@ export class Composer {
     _printModule() {
         const target = this._target.peek();
 
-        const copy = Compressor.compressModule(target.getPosValue(), this._astree.enterGetAndLeave(['compression']));
+        let copy = Compressor.compressModule(target.getPosValue(), this._alias, this._astree.enterGetAndLeave(['compression']));
         if (copy === undefined) {
-            return;
+            copy = { };
         }
 
         this._output.push(copy);

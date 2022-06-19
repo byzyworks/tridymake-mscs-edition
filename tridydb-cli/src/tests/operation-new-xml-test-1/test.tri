@@ -1,0 +1,32 @@
+@tridy;
+
+@new @as a;
+
+@in a @new @as b;
+
+@in a @new @as b;
+
+@in a @new @as b;
+
+@in a @new @as c;
+
+@in a @new @as c;
+
+@in a @new @as c;
+
+@in a/c @new @xml
+<test>
+	<a b="true">This is a string.</a>
+	<c>
+		<d>0</d>
+		<e>one</e>
+	</c>
+	<f>
+		<g />
+		<h>i</h>
+		<j />
+	</f>
+</test>
+@end;
+
+@get;

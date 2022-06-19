@@ -1,19 +1,14 @@
 import express         from 'express';
 import { StatusCodes } from 'http-status-codes';
 
+import { Tridy }           from '../include/Interpreter.js';
 import { TokenlessParser } from '../include/TokenlessParser.js';
 
+import { global }                             from '../utility/common.js';
 import { SyntaxError, ServerSideServerError } from '../utility/error.js';
 import { logger }                             from '../utility/logger.js';
 
 import { db } from '../database.js';
-
-const op_map = Object.freeze({
-    get:    'get',
-    post:   'new',
-    put:    'set',
-    delete: 'del'
-});
 
 const toTridy = (method, opts = { }) => {
     // Yes, this is vulnerable to injection. No, don't use this except locally.
@@ -238,7 +233,19 @@ const handleRoute = async (method, req, res, next) => {
         throw err;
     }
 
-    res.json(out);
+    out = Tridy.stringify(out);
+    switch (global.output.format) {
+        case 'xml':
+            res.set('Content-Type', 'application/xml');
+            break;
+        case 'json':
+            res.set('Content-Type', 'application/json');
+            break;
+        case 'yaml':
+            res.set('Content-Type', 'application/x-yaml');
+            break;
+    }
+    res.send(out);
 }
 
 export const routes = express.Router();

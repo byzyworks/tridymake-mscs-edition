@@ -1,3 +1,4 @@
+import * as xml  from 'xml-js';
 import * as yaml from 'js-yaml';
 
 import { ContextParser } from './ContextParser.js';
@@ -358,6 +359,13 @@ export class SyntaxParser {
         
         try {
             switch (type) {
+                case 'xml':
+                    data      = xml.xml2js(data, { compact: false });
+                    data._xml = true;
+                    if (this._tokens.peek().is('key', 'end')) {
+                        this._tokens.next();
+                    }
+                    break;
                 case 'json':
                     data = JSON.parse(data);
                     if (this._tokens.peek().is('key', 'end')) {

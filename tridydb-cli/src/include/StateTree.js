@@ -41,7 +41,8 @@ export class StateTree {
             type:   alias.type   ?? common.global.defaults.alias.type,
             tags:   alias.tags   ?? common.global.defaults.alias.tags,
             state:  alias.state  ?? common.global.defaults.alias.state,
-            nested: alias.nested ?? common.global.defaults.alias.nested
+            nested: alias.nested ?? common.global.defaults.alias.nested,
+            root:   alias.root   ?? common.global.defaults.alias.root
         };
     }
 
@@ -165,6 +166,17 @@ export class StateTree {
         target.setPosValue(this.getPosValue());
     }
 
+    deletePosValue() {
+        this._updatePtrs();
+
+        const pos = this.getTopPos();
+        if (pos === null) {
+            return;
+        }
+        
+        delete this._ptr[pos];
+    }
+
     enterGetAndLeave(pos) {
         pos = common.isArray(pos) ? pos : [ pos ];
 
@@ -214,6 +226,18 @@ export class StateTree {
         for (let i = 0; i < pos.length; i++) {
             this.leavePos();
             target.leavePos();
+        }
+    }
+
+    enterDeleteAndLeave(pos) {
+        pos = common.isArray(pos) ? pos : [ pos ];
+
+        for (const part of pos) {
+            this.enterPos(part);
+        }
+        this.deletePosValue();
+        for (let i = 0; i < pos.length; i++) {
+            this.leavePos();
         }
     }
 

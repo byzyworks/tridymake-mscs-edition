@@ -317,6 +317,7 @@ export class Token {
 
     isRawInputToken() {
         return false ||
+            this.is('key', 'xml') ||
             this.is('key', 'json') ||
             this.is('key', 'yaml') ||
             this.isRawInputStringToken()

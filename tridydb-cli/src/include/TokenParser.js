@@ -139,6 +139,7 @@ export class TokenParser {
         }
 
         switch (keyword) {
+            case 'xml':
             case 'json':
             case 'yaml':
                 if (this._mode.peek() !== keyword) {
@@ -147,6 +148,7 @@ export class TokenParser {
                 break;
             case 'end':
                 switch (this._mode.peek()) {
+                    case 'xml':
                     case 'json':
                     case 'yaml':
                         this._mode.pop();
@@ -241,6 +243,7 @@ export class TokenParser {
         }
 
         switch (this._mode.peek()) {
+            case 'xml':
             case 'json':
             case 'yaml':
             case 'line':

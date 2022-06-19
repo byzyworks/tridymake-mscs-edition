@@ -61,7 +61,7 @@ export const cli = async (opts = { }) => {
         }
 
         if (!retry && !isEmpty(out)) {
-            out = Tridy.stringify(out, { pretty: opts.pretty });
+            out = Tridy.stringify(out);
 
             console.log(out);
         }

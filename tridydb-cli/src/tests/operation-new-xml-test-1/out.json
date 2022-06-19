@@ -1,0 +1,124 @@
+[
+    {
+        "tree": [
+            {
+                "tags": [
+                    "a"
+                ],
+                "tree": [
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "c"
+                        ],
+                        "tree": [
+                            {
+                                "test": {
+                                    "a": {
+                                        "_attributes": {
+                                            "b": "true"
+                                        },
+                                        "_text": "This is a string."
+                                    },
+                                    "c": {
+                                        "d": {
+                                            "_text": "0"
+                                        },
+                                        "e": {
+                                            "_text": "one"
+                                        }
+                                    },
+                                    "f": {
+                                        "g": {},
+                                        "h": {
+                                            "_text": "i"
+                                        },
+                                        "j": {}
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "c"
+                        ],
+                        "tree": [
+                            {
+                                "test": {
+                                    "a": {
+                                        "_attributes": {
+                                            "b": "true"
+                                        },
+                                        "_text": "This is a string."
+                                    },
+                                    "c": {
+                                        "d": {
+                                            "_text": "0"
+                                        },
+                                        "e": {
+                                            "_text": "one"
+                                        }
+                                    },
+                                    "f": {
+                                        "g": {},
+                                        "h": {
+                                            "_text": "i"
+                                        },
+                                        "j": {}
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "tags": [
+                            "c"
+                        ],
+                        "tree": [
+                            {
+                                "test": {
+                                    "a": {
+                                        "_attributes": {
+                                            "b": "true"
+                                        },
+                                        "_text": "This is a string."
+                                    },
+                                    "c": {
+                                        "d": {
+                                            "_text": "0"
+                                        },
+                                        "e": {
+                                            "_text": "one"
+                                        }
+                                    },
+                                    "f": {
+                                        "g": {},
+                                        "h": {
+                                            "_text": "i"
+                                        },
+                                        "j": {}
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

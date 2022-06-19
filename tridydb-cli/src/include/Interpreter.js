@@ -4,14 +4,17 @@
  * @module
  */
 
-import axios from 'axios';
+import axios     from 'axios';
+import * as xml  from 'xml-js';
+import * as yaml from 'js-yaml';
 
 import { Composer }        from './Composer.js';
 import { SyntaxParser }    from './SyntaxParser.js';
 import { StatementParser } from './StatementParser.js';
 import { StateTree }       from './StateTree.js';
+import { XMLConverter }    from './XMLConverter.js';
 
-import { global, isEmpty }                    from '../utility/common.js';
+import * as common                            from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
 
 const sendTridyRequest = async (data, remote) => {
@@ -109,17 +112,17 @@ export class Tridy {
         opts.accept_carry = opts.accept_carry ?? false;
 
         const alias = {
-            type:   opts.type_key ?? global.alias.type   ?? global.defaults.alias.type,
-            tags:   opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags,
-            state:  opts.free_key ?? global.alias.state  ?? global.defaults.alias.state,
-            nested: opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested
+            type:   opts.type_key ?? common.global.alias.type   ?? common.global.defaults.alias.type,
+            tags:   opts.tags_key ?? common.global.alias.tags   ?? common.global.defaults.alias.tags,
+            state:  opts.free_key ?? common.global.alias.state  ?? common.global.defaults.alias.state,
+            nested: opts.tree_key ?? common.global.alias.nested ?? common.global.defaults.alias.nested
         };
 
         const remote = {
-            enable:  opts.client_mode ?? global.remote.enable  ?? global.defaults.remote.enable,
-            host:    opts.host        ?? global.remote.host    ?? global.defaults.remote.host,
-            port:    opts.port        ?? global.remote.port    ?? global.defaults.remote.port,
-            timeout: opts.timeout     ?? global.remote.timeout ?? global.defaults.remote.timeout
+            enable:  opts.client_mode ?? common.global.remote.enable  ?? common.global.defaults.remote.enable,
+            host:    opts.host        ?? common.global.remote.host    ?? common.global.defaults.remote.host,
+            port:    opts.port        ?? common.global.remote.port    ?? common.global.defaults.remote.port,
+            timeout: opts.timeout     ?? common.global.remote.timeout ?? common.global.defaults.remote.timeout
         };
 
         let output = [ ];
@@ -155,13 +158,13 @@ export class Tridy {
                         console.clear();
                         continue;
                     } else if (code.peek().is('key', 'exit')) {
-                        global.exit = true;
+                        common.global.exit = true;
                         break;
                     }
                 }
 
                 code = this._parser.parse(code);
-                if (isEmpty(code.getRaw())) {
+                if (common.isEmpty(code.getRaw())) {
                     continue;
                 }
 
@@ -207,17 +210,37 @@ export class Tridy {
      * @public
      * @static
      * @method
-     * @param   {Object}  input       Tridy JSON output.
-     * @param   {Boolean} opts.pretty True to output the JSON string with indentation (4-spaced), false to output the JSON in a compressed format. Default is false.
-     * @returns {String}              Input object as a JSON string.
+     * @param   {Object}  input             Tridy JSON output.
+     * @param   {String}  opts.format       Format to export the JSON output in. Options are 'xml', 'json', or 'yaml'. Default is 'json'.
+     * @param   {Boolean} opts.pretty       True to output the string with indentation (4-spaced), false to output in a compressed format. Default is false.
+     * @param   {String}  opts.xml_root_key The name given to the root tag (relevant only when the output format is 'xml'). Default is 'root'.
+     * @param   {String}  opts.xml_res_key  The name given to the individual response tags (relevant only when the output format is 'xml'). Default is 'tree'.
+     * @returns {String}                    Input object as a formatted string.
      */
     static stringify(input, opts = { }) {
-        opts.pretty = opts.pretty ?? global.defaults.output.pretty;
+        opts.format       = opts.format       ?? common.global.output.format ?? common.global.defaults.output.format;
+        opts.pretty       = opts.pretty       ?? common.global.output.pretty ?? common.global.defaults.output.pretty;
+        opts.xml_root_key = opts.xml_root_key ?? common.global.alias.root    ?? common.global.defaults.alias.root;
+        opts.xml_res_key  = opts.xml_res_key  ?? common.global.alias.nested  ?? common.global.defaults.alias.nested;
 
-        if (opts.pretty) {
-            return JSON.stringify(input, null, 4).replace(/\\\\/g, '\\');
+        switch (opts.format) {
+            case 'xml':
+                const converted = XMLConverter.convert(input, opts.xml_root_key, opts.xml_res_key);
+                if (opts.pretty) {
+                    return xml.js2xml(converted, { compact: false, spaces: 4 });
+                }
+                return xml.js2xml(converted, { compact: false });
+            case 'json':
+                if (opts.pretty) {
+                    return JSON.stringify(input, null, 4).replace(/\\\\/g, '\\');
+                }
+                return JSON.stringify(input).replace(/\\\\/g, '\\');
+            case 'yaml':
+                if (common.isEmpty(input)) {
+                    return '---';
+                }
+                return "---\n" + yaml.dump(input).slice(0, -1);
         }
-        return JSON.stringify(input).replace(/\\\\/g, '\\');
     }
 
     /**
