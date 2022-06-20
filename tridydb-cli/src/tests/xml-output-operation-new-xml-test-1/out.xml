@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf8"?>
+<root>
+    <module>
+        <module>
+            <tag>a</tag>
+            <module>
+                <tag>b</tag>
+            </module>
+            <module>
+                <tag>b</tag>
+            </module>
+            <module>
+                <tag>b</tag>
+            </module>
+            <module>
+                <tag>c</tag>
+                <module>
+                    <test>
+                        <a b="true">This is a string.</a>
+                        <c>
+                            <d>0</d>
+                            <e>one</e>
+                        </c>
+                        <f>
+                            <g/>
+                            <h>i</h>
+                            <j/>
+                        </f>
+                    </test>
+                </module>
+            </module>
+            <module>
+                <tag>c</tag>
+                <module>
+                    <test>
+                        <a b="true">This is a string.</a>
+                        <c>
+                            <d>0</d>
+                            <e>one</e>
+                        </c>
+                        <f>
+                            <g/>
+                            <h>i</h>
+                            <j/>
+                        </f>
+                    </test>
+                </module>
+            </module>
+            <module>
+                <tag>c</tag>
+                <module>
+                    <test>
+                        <a b="true">This is a string.</a>
+                        <c>
+                            <d>0</d>
+                            <e>one</e>
+                        </c>
+                        <f>
+                            <g/>
+                            <h>i</h>
+                            <j/>
+                        </f>
+                    </test>
+                </module>
+            </module>
+        </module>
+    </module>
+</root>

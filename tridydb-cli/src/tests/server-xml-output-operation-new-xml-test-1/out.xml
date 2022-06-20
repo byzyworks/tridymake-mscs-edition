@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf8"?>
+<root>
+    <tree>
+        <tree>
+            <tags>a</tags>
+            <tree>
+                <tags>b</tags>
+            </tree>
+            <tree>
+                <tags>b</tags>
+            </tree>
+            <tree>
+                <tags>b</tags>
+            </tree>
+            <tree>
+                <tags>c</tags>
+                <tree>
+                    <test>
+                        <a b="true">This is a string.</a>
+                        <c>
+                            <d>0</d>
+                            <e>one</e>
+                        </c>
+                        <f>
+                            <g/>
+                            <h>i</h>
+                            <j/>
+                        </f>
+                    </test>
+                </tree>
+            </tree>
+            <tree>
+                <tags>c</tags>
+                <tree>
+                    <test>
+                        <a b="true">This is a string.</a>
+                        <c>
+                            <d>0</d>
+                            <e>one</e>
+                        </c>
+                        <f>
+                            <g/>
+                            <h>i</h>
+                            <j/>
+                        </f>
+                    </test>
+                </tree>
+            </tree>
+            <tree>
+                <tags>c</tags>
+                <tree>
+                    <test>
+                        <a b="true">This is a string.</a>
+                        <c>
+                            <d>0</d>
+                            <e>one</e>
+                        </c>
+                        <f>
+                            <g/>
+                            <h>i</h>
+                            <j/>
+                        </f>
+                    </test>
+                </tree>
+            </tree>
+        </tree>
+    </tree>
+</root>

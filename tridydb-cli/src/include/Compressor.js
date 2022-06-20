@@ -85,7 +85,7 @@ export class Compressor {
                         target.leavePos();
                         target.enterPos(0);
                         while (!target.isPosUndefined()) {
-                            target.nextItem();
+                            target.nextItem({ simple: true });
                         }
                         target.setPosValue(mod);
                         target.leavePos();
@@ -100,7 +100,7 @@ export class Compressor {
             } else {
                 target.enterPos(0);
                 while (!target.isPosUndefined()) {
-                    target.nextItem();
+                    target.nextItem({ simple: true });
                 }
                 if (opts.strict) {
                     target.putPosValue(mod);

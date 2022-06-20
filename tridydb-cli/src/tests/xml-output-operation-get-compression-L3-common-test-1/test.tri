@@ -1,0 +1,43 @@
+@tridy;
+
+@new a @is @xml
+<foo>
+	<b/>
+	<c>0</c>
+</foo>
+@end;
+
+@in a @new @none @is @xml
+<d>1</d>
+@end;
+
+@in a @new e @is @xml
+<f>2</f>
+@end;
+
+@in a @new g @is @xml
+<h>3</h>
+@end;
+
+@new i;
+
+@in i @new @none @is @xml
+<root>
+	<j/>
+	<k>4</k>
+</root>
+@end;
+
+@in i @new @none @is @xml
+<l>5</l>
+@end;
+
+@in i @new @none @is @xml
+<m>6</m>
+@end;
+
+@in i @new @none @is @xml
+<n>7</n>
+@end;
+
+@get @trimmed;

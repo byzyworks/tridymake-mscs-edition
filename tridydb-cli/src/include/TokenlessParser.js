@@ -37,8 +37,10 @@ export class TokenlessParser {
     }
 
     static _handleContextAppendix(input) {
-        if ((typeof input.limit !== 'number') && !Number.isInteger(input.limit)) {
-            this._handleUnexpected();
+        if (!common.isNullish(input.limit)) {
+            if ((typeof input.limit !== 'number') && !Number.isInteger(input.limit)) {
+                this._handleUnexpected();
+            }
         }
     }
 

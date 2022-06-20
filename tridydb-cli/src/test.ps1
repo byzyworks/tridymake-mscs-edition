@@ -56,6 +56,17 @@ if (!$Test) {
             if ($Test -match '(?:^|-)server-') {
                 $invoke += " --client --remote-port $port";
             }
+			if ($Test -match '(?:^|-)json-output-') {
+				$invoke += " --format json";
+			} elseif ($Test -match '(?:^|-)yaml-output-') {
+				$invoke += " --format yaml";
+			} elseif ($Test -match '(?:^|-)xml-output-') {
+				if ($Test -match '(?:^|-)server-') {
+					$invoke += " --format xml";
+				} else {
+					$invoke += " --format xml --tags-key tag --tree-key module";
+				}
+			}
         } else {
             $invoke = "$test_file.ps1";
         }
@@ -92,7 +103,15 @@ if (!$Test) {
             Write-Host;
             exit 1;
         } elseif ($LastExitCode -eq 0) {
-            $test_outfile = "$PSScriptRoot/tests/$test_name/out.json"
+			if ($Test -match '(?:^|-)json-output-') {
+				$test_outfile = "$PSScriptRoot/tests/$test_name/out.json";
+			} elseif ($Test -match '(?:^|-)yaml-output-') {
+				$test_outfile = "$PSScriptRoot/tests/$test_name/out.yaml";
+			} elseif ($Test -match '(?:^|-)xml-output-') {
+				$test_outfile = "$PSScriptRoot/tests/$test_name/out.xml";
+			} else {
+				$test_outfile = "$PSScriptRoot/tests/$test_name/out.json";
+			}
             
             if (Test-Path -Path "$test_outfile" -PathType Leaf) {
                 $expected = (Get-Content -Path "$test_outfile") -Replace '\s+','' -Join '';

@@ -1,0 +1,18 @@
+@tridy;
+
+@set @xml
+<root>
+	<a b="true">This is a string.</a>
+	<c>
+		<d>0</d>
+		<e>one</e>
+	</c>
+	<f>
+		<g />
+		<h>i</h>
+		<j />
+	</f>
+</root>
+@end;
+
+@get;

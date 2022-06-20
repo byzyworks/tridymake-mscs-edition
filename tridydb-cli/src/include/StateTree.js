@@ -126,6 +126,14 @@ export class StateTree {
         return ptr[pos];
     }
 
+    getPosLength() {
+        const value = this.getPosValue();
+        if (!common.isArray(value)) {
+            return null;
+        }
+        return value.length;
+    }
+
     setPosValue(value) {
         this._updatePtrs();
 
@@ -284,13 +292,21 @@ export class StateTree {
         while (this.leavePos() !== this._alias.nested);
     }
 
-    nextItem() {
+    nextItem(opts = { }) {
+        opts.simple = opts.simple ?? false;
+
         if (this._pos.length === 1) {
             const idx = this.leavePos();
             this.enterPos(idx + 1);
         } else if (this._pos.length > 1) {
-            while (this._pos[this._pos.length - 2] !== this._alias.nested) {
-                this.leavePos();
+            if (opts.simple) {
+                while (!Number.isInteger(this._pos[this._pos.length - 1])) {
+                    this.leavePos();
+                }
+            } else {
+                while (this._pos[this._pos.length - 2] !== this._alias.nested) {
+                    this.leavePos();
+                }
             }
     
             if (this.getTopPos() < 0) {

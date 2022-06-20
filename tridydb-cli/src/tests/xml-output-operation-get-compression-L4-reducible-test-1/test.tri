@@ -1,0 +1,31 @@
+@tridy;
+
+@new a;
+
+@in a @new b;
+
+@in a @new c;
+
+@in a/b @new d;
+
+@in a/b @new e;
+
+@in a/c @new f;
+
+@in a/c @new g;
+
+@new h;
+
+@in h @new i;
+
+@in h @new j;
+
+@in h/i @new k;
+
+@in h/i @new l;
+
+@in h/j @new m;
+
+@in h/j @new n;
+
+@get @merged;

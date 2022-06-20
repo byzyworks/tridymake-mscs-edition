@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf8"?>
+<root>
+    <module>
+        <a>
+            <foo>
+                <b/>
+                <c>0</c>
+            </foo>
+            <0>
+                <d>1</d>
+            </0>
+            <e>
+                <f>2</f>
+            </e>
+            <g>
+                <h>3</h>
+            </g>
+        </a>
+        <i>
+            <j/>
+            <k>4</k>
+        </i>
+        <i>
+            <l>5</l>
+        </i>
+        <i>
+            <m>6</m>
+        </i>
+        <i>
+            <n>7</n>
+        </i>
+    </module>
+</root>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf8"?>
+<root>
+    <module>
+        <a b="true">This is a string.</a>
+        <c>
+            <d>0</d>
+            <e>one</e>
+        </c>
+        <f>
+            <g/>
+            <h>i</h>
+            <j/>
+        </f>
+    </module>
+</root>

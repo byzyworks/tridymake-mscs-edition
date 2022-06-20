@@ -3,12 +3,12 @@ import * as common from '../utility/common.js';
 export class XMLConverter {
     constructor() { }
 
-    static _convertObject(input, key) {
+    static _convertObject(input, root_key, this_key) {
         const output = [ ];
 
         const wrapper = {
             type:     'element',
-            name:     key,
+            name:     this_key,
             elements: output
         };
 
@@ -17,14 +17,20 @@ export class XMLConverter {
             delete input._xml;
 
             if (common.isArray(input.elements)) {
-                for (const elem of input.elements) {
-                    output.push(elem);
+                if ((input.elements.length === 1) && (input.elements[0].type === 'element') && (input.elements[0].name === root_key)) {
+                    for (const elem of input.elements[0].elements) {
+                        output.push(elem);
+                    }
+                } else {
+                    for (const elem of input.elements) {
+                        output.push(elem);
+                    }
                 }
             }
 
             if (common.isObject(input.unparsed)) {
                 for (const key of Object.keys(input.unparsed)) {
-                    const raw = this._convertObject(input.unparsed[key], key);
+                    const raw = this._convertObject(input.unparsed[key], root_key, key);
                     if (common.isArray(input.unparsed[key])) {
                         for (const elem of raw.elements) {
                             output.push(elem);
@@ -49,9 +55,9 @@ export class XMLConverter {
                 });
             } else {
                 for (let child_key in input) {
-                    const idx = common.isArray(input) ? key : child_key;
+                    const idx = common.isArray(input) ? this_key : child_key;
     
-                    const raw = this._convertObject(input[child_key], idx);
+                    const raw = this._convertObject(input[child_key], root_key, idx);
                     if (common.isArray(input[child_key])) {
                         for (const elem of raw.elements) {
                             output.push(elem);
@@ -92,7 +98,7 @@ export class XMLConverter {
             ]
         };
 
-        let raw = this._convertObject(input, response_key);
+        let raw = this._convertObject(input, root_key, response_key);
         for (const mod of raw.elements) {
             output.push(mod);
         }

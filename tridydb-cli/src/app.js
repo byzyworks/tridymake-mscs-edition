@@ -101,7 +101,7 @@ program
             .default(global.defaults.alias.nested)
     )
     .addOption(
-        new Option('--root-key <key>', 'The name given to the root tag (relevant only when the output format is \'xml\').')
+        new Option('--root-key <key>', 'The name given to the XML root tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is \'xml\'.')
             .default(global.defaults.alias.root)
     )
     .hook('preAction', async (thisCommand, actionCommand) => {

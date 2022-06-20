@@ -82,6 +82,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added YAML output format support.
 * Added (limited) XML output format support.
 * Added `--root-key` program argument (and argument to `Tridy.stringify()`) to control the root tag name when outputting to XML.
+* Added `spaces` argument to `Tridy.stringify()` to control indent.
 * Fixed some incorrect documentation that wasn't updated.
 * Fixed client mode using a standalone local session as opposed to a server like it's supposed to.
 * Fixed `--client` option not conflicting with `--type-key`.

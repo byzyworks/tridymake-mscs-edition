@@ -1,0 +1,14 @@
+---
+- tree:
+    - free:
+        a: This is a string.
+        b: true
+        c:
+          d: 0
+          e: one
+        f:
+          - g
+          - h
+        i:
+          - j
+          - k
