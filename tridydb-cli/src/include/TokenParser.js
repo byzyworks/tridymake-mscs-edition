@@ -232,9 +232,12 @@ export class TokenParser {
 
     _readComment() {
         this._readWhilePred((ch) => {
-            return ch != "\n";
+            return ch !== "\n";
         });
-        this._parser.next();
+        if (this._parser.peek() === "\n") {
+            // The condition is because console mode in particular strips out line feeds prematurely.
+            this._parser.next();
+        }
     }
     
     _readNext() {

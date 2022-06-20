@@ -17,12 +17,14 @@ export class XMLConverter {
             delete input._xml;
 
             if (common.isArray(input.elements)) {
-                if ((input.elements.length === 1) && (input.elements[0].type === 'element') && (input.elements[0].name === root_key)) {
+                /**
+                 * "root" tags are automatically generated for the input by the syntax parser.
+                 * This allows multiple elements to be inputted without forcing a root tag to also be provided by the user.
+                 * Remember that what's being provided as raw input is likely only part of a document, not a full document.
+                 * Tridy already provides its own "root elements", like the free data structure's key.
+                 */
+                if ((input.elements.length === 1) && common.isArray(input.elements[0].elements)) {
                     for (const elem of input.elements[0].elements) {
-                        output.push(elem);
-                    }
-                } else {
-                    for (const elem of input.elements) {
                         output.push(elem);
                     }
                 }

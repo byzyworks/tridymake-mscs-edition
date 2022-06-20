@@ -88,4 +88,5 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed `--client` option not conflicting with `--type-key`.
 * Fixed client mode sending the syntax tree output of no-ops like `@tridy` to a server.
 * Fixed bug where a custom tree key would lead to an infinite loop when using `@get` with `@typeless`, `@tagless`, or `@trimmed`.
+* Fixed comments being dysfunctional in console mode.
 * Improved behavior of server mode when receiving incorrectly-formatted abstract syntax trees.

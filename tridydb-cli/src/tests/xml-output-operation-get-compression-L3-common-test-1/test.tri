@@ -22,10 +22,8 @@
 @new i;
 
 @in i @new @none @is @xml
-<root>
-	<j/>
-	<k>4</k>
-</root>
+<j/>
+<k>4</k>
 @end;
 
 @in i @new @none @is @xml

@@ -360,6 +360,13 @@ export class SyntaxParser {
         try {
             switch (type) {
                 case 'xml':
+                    /**
+                     * The "root" tags are stripped out automatically by the XML converter.
+                     * This allows multiple elements to be inputted without forcing a root tag to also be provided by the user.
+                     * Remember that what's being provided as raw input is likely only part of a document, not a full document.
+                     * Tridy already provides its own "root elements", like the free data structure's key.
+                     */
+                    data      = '<root>' + data + '</root>';
                     data      = xml.xml2js(data, { compact: false });
                     data._xml = true;
                     if (this._tokens.peek().is('key', 'end')) {

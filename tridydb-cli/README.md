@@ -2,7 +2,7 @@
 
 # **Tridy**
 
-Tridy (pronounced "tree-dee") was formed as a response to common generalized data storage formats such as XML, JSON, or YAML that normally represent data 'as-is', meaning where an object (as a subcollection of data) is to be represented multiple times, it must also exist and be copied to the same number of locations. This is likely to create considerable redundancy in a large number of situations where these common markdown formats would often be used, and while Tridy does not do away with it from the back-end (nor is it supposed to), it can at least do away with it from the front.
+Tridy (pronounced "tree-dee") was formed as a response to common generalized data storage formats such as JSON, or YAML, or XML that normally represent data 'as-is', meaning where an object (as a subcollection of data) is to be represented multiple times, it must also exist and be copied to the same number of locations. This is likely to create considerable redundancy in a large number of situations where these common markdown formats would often be used, and while Tridy does not do away with it from the back-end (nor is it supposed to), it can at least do away with it from the front.
 
 TridyDB provides a language and software solution for working with data that is hierarchically-structured without necessitating a great deal of separation between how the data is stored versus how it is used and presented. Notably, it is not intended to be as a replacement for SQL or even NoSQL as a general data storage solution, as while Tridy may solve some redundancies, it is not designed to be efficient. The data it manages is still duplicated redundantly in the back-end where it appears more than once, which is not the case with relational systems. That, of course, isn't mentioning the tons of other optimizations that so far exist in other SQL and NoSQL database systems.
 
@@ -144,6 +144,10 @@ Being as TridyDB is natively a JavaScript application, JSON is its most well-sup
 
 Currently, TridyDB supports either YAML [import](#syntax-yaml), JSON [import](#syntax-json), or XML [import](#syntax-xml). In addition, [output](#cli-common-output) for all three formats is supported, with some limitations due to TridyDB's JSON-centric internal storage format.
 
+Some special features that JSON lacks, like YAML's own so-called DRY-saving measure of anchors and aliases, might import without syntactical issues, but at the same time will be dereferenced and stripped out once they are stored. On the plus side, this at least keeps the data-input-to-storage mapping for YAML 1:1 with JSON. XML, on the other hand, has more basic features to retain that JSON doesn't have, like attributes and comments. Thus, as a price to pay for not losing this information when it's imported, XML's data-input-to-storage mapping is not 1:1, and is comparitively more verbose than either that of JSON or YAML.
+
+In short, JSON import and export will provide the best support.
+
 <br>
 
 <div id="tridydb-sec"/>
@@ -194,7 +198,7 @@ Since the tags were provided implicitly, the type identifier is automatically-de
 
 The fourth statement is meant to show some of where Tridy can be powerful. In any Tridy statement, `@in` is used to specify a **context**, which is the expression that any module is tested for before the statement can be applied to it. The operation always follows *after* the end of whatever the context expression is, so in this case, the context expression is `a @xor b`. Given this preceding expression, `@new c` will only be applied to an existing module if and only if it has the tags `a` or `b`, but never both at the same time. Only in the modules created by the first two statements would this evaluate as true, so only the first two modules are affected. However, they both receive a copy of the new module tagged as `c`, and the only change needed to make all three existing modules (under the root module) receive a copy would be to change `a @xor b` to `a @or b`.
 
-Finally, the latter half of the statement contains an example bit of arbitrary data given in a JSON format, which is delimited by the `@json` and `@end` clauses, respectively. The `@is` clause to which those are given as arguments is part of the statement **definition**, and is used to define the **free** data structure of the module, given (always) through a common format such as JSON or YAML. There are three other clauses which pertain to the module's definition: `@of` for specifying the module's type identifier, `@as` for the module's tags, and finally, `@has` for recursively nesting Tridy statements, and setting the initial **tree** data structure of the module.
+Finally, the latter half of the statement contains an example bit of arbitrary data given in a JSON format, which is delimited by the `@json` and `@end` clauses, respectively. The `@is` clause to which those are given as arguments is part of the statement **definition**, and is used to define the **free** data structure of the module, given (always) through a common format such as JSON, YAML, or XML. There are three other clauses which pertain to the module's definition: `@of` for specifying the module's type identifier, `@as` for the module's tags, and finally, `@has` for recursively nesting Tridy statements, and setting the initial **tree** data structure of the module.
 
 If the output format is a JSON object, then the statements above might have the following as its output:
 
@@ -257,7 +261,7 @@ Tridy is designed especially for these high-power operations, in a sense creatin
 
 ---
 
-TridyDB expects a kind of schema to foster it's capabilities and make it useful in a way that is as generalized as possible, but not so generalized that it can't offer anything over directly working with JSON, YAML, or similar. As part of this compromise, Tridy works with self-contained units of information that are collectively termed as **modules**. What actually makes a module a module is outlined in the list below:
+TridyDB expects a kind of schema to foster it's capabilities and make it useful in a way that is as generalized as possible, but not so generalized that it can't offer anything over directly working with JSON or a similar format. As part of this compromise, Tridy works with self-contained units of information that are collectively termed as **modules**. What actually makes a module a module is outlined in the list below:
 
 1. At a minimum, every module should (but is not required to) have of an array of strings that each individually form the module's **tags**.
 2. In reality, a module may also have a **free** data structure, a **tree** data structure, and a **type** specifier.
@@ -2804,11 +2808,7 @@ All three string input variants require `\` to use their respective characters a
 The `@json` clause is used as a starting delimiter for JSON-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a JSON object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character ( `\` ) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
 
 ```
-# Before
-@new @as a;
-
-# After
-@in a @new @json {
+@set @none @is @json {
     "string": "This is a string.",
     "number": 10,
     "boolean": true,
@@ -2822,35 +2822,28 @@ The `@json` clause is used as a starting delimiter for JSON-formatted input wher
         }
     }
 } @end;
+
+@get;
 ```
 
-```diff
+```json
 {
-    "tree": [
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "string": "This is a string.",
-+                   "number": 10,
-+                   "boolean": true,
-+                   "array": ["apples", "oranges"],
-+                   "map": {
-+                       "a": "b",
-+                       "c": "d",
-+                       "nested": {
-+                           "e": "f",
-+                           "g": "h"
-+                       }
-+                   }
-+               }
-            ]
+    "free": {
+        "string": "This is a string.",
+        "number": 10,
+        "boolean": true,
+        "array": ["apples", "oranges"],
+        "map": {
+            "a": "b",
+            "c": "d",
+            "nested": {
+                "e": "f",
+                "g": "h"
+            }
         }
-    ]
+    }
 }
 ```
-
-For obvious reasons that it bypasses Tridy's requirements for modules, using this or other raw definition tags is recommended against under normal circumstances where the module definition is not enforced by the application interfacing with Tridy.
 
 <br>
 
@@ -2860,14 +2853,10 @@ For obvious reasons that it bypasses Tridy's requirements for modules, using thi
 
 The `@yaml` clause is used as a starting delimiter for YAML-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@json` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as a YAML object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character ( `\` ) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
 
-YAML, unlike JSON, is sensitive to whitespace. However, the rules as with YAML raw input are no different than with YAML input on its own in other circumstances, so as long as identation is consistent without the use of tab characters, then the input should run through the interpreter successfully. 
+YAML, unlike JSON, is sensitive to whitespace. However, the rules as with YAML raw input are no different than with YAML input on its own in other circumstances, so as long as identation is consistent without the use of tab characters, then the input should run through the interpreter successfully.
 
 ```
-# Before
-@new @as a;
-
-# After
-@in a @new @yaml
+@set @none @is @yaml
     ---
     string: This is a string.
     number: 10
@@ -2882,35 +2871,80 @@ YAML, unlike JSON, is sensitive to whitespace. However, the rules as with YAML r
             e: f
             g: h
 @end;
+
+@get;
 ```
 
-```diff
+JSON-formatted output:
+
+```json
 {
-    "tree": [
-        {
-            "tags": ["a"],
-            "tree": [
-+               {
-+                   "string": "This is a string.",
-+                   "number": 10,
-+                   "boolean": true,
-+                   "array": ["apples", "oranges"],
-+                   "map": {
-+                       "a": "b",
-+                       "c": "d",
-+                       "nested": {
-+                           "e": "f",
-+                           "g": "h"
-+                       }
-+                   }
-+               }
-            ]
+    "free": {
+        "string": "This is a string.",
+        "number": 10,
+        "boolean": true,
+        "array": ["apples", "oranges"],
+        "map": {
+            "a": "b",
+            "c": "d",
+            "nested": {
+                "e": "f",
+                "g": "h"
+            }
         }
-    ]
+    }
 }
 ```
 
-For obvious reasons that it bypasses Tridy's requirements for modules, using this or other raw definition tags is recommended against under normal circumstances where the module definition is not enforced by the application interfacing with Tridy.
+YAML-formatted output:
+
+```yaml
+---
+- free:
+    string: This is a string.
+    number: 10
+    boolean: true
+    array:
+    - apples
+    - oranges
+    map:
+    a: b
+    c: d
+    nested:
+        e: f
+        g: h
+```
+
+Note that when importing YAML content, the information surrounding features that are superset to JSON are lost when they are imported. This is mostly referring to YAML's anchor, alias, and extension features that attempt to solve the Don't Repeat Yourself problem of markdown languages another way (by referencing). Use of these features inside of raw YAML import will not raise syntax errors. However, upon storing, they will have been dereferenced and stripped out to the effect that YAML import and YAML output are not necessarily one-to-one. Naturally, YAML comments will also be erased.
+
+```
+@set @none @is @yaml
+---
+- &status Good \# This is a YAML comment.
+- review: &standard
+    overall: *status
+- extended:
+    <<: *standard
+    flexibility: *status
+    ease-of-use: Fair
+@end;
+
+@get;
+```
+
+YAML-formatted output of the same raw input:
+
+```yaml
+---
+- free:
+    - Good
+    - review:
+        overall: Good
+    - extended:
+        overall: Good
+        flexibility: Good
+        ease-of-use: Fair
+```
 
 <br>
 
@@ -2918,7 +2952,201 @@ For obvious reasons that it bypasses Tridy's requirements for modules, using thi
 
 ### **Raw Definition: `@xml`**
 
-WIP
+The `@xml` clause is used as a starting delimiter for XML-formatted input wherever it is acceptable to provide raw input inside of a Tridy statement. When the `@xml` clause is given, the input is no longer validated according to Tridy rules, and instead becomes validated as an XML object. That is, until `@end` is given, which closes the formatted input and returns to Tridy mode. The backslash character ( `\` ) can be used as an escape meanwhile, which is needed especially in order to interpret `@` or `#` literally.
+
+Importing (and exporting) XML data is a bit more nuanced for TridyDB than it is for either JSON or YAML. For one, XML carries a breadth of additional features (the most notable being attributes and comments) that cannot excusably be erased or transformed into something else upon import, and in general is structured significantly differently compared to either of the aforementioned due to having no distinction between array and mapped data, and simply being made up of "elements".
+
+As a result, imported XML data is stored in a comparatively-verbose format that, while still stored as a JSON, cannot be translated back to it such that any arbitrary JSON can be created from XML input. Thus, whereas YAML raw input sacrifices some of its information to have 1:1 correspondence with JSON output, XML raw input sacrifices 1:1 correspondence with JSON to retain as much information as possible.
+
+```
+@set @none @is @xml
+    <root>
+        <!-- This is a comment. -->
+        <string>This is a string.</string>
+        <number>10</number>
+        <boolean>true</boolean>
+        <nested attr="This is an attribute.">
+            <apples/>
+            <oranges/>
+            <nested>
+                <e>f</e>
+                <g>h</g>
+            </nested>
+        </nested>
+    </root>
+@end;
+
+@get;
+```
+
+JSON-formatted output:
+
+```json
+[
+    {
+        "free": {
+            "elements": [
+                {
+                    "type": "element",
+                    "name": "root",
+                    "elements": [
+                        {
+                            "type": "element",
+                            "name": "root",
+                            "elements": [
+                                {
+                                    "type": "comment",
+                                    "comment": " This is a comment. "
+                                },
+                                {
+                                    "type": "element",
+                                    "name": "string",
+                                    "elements": [
+                                        {
+                                            "type": "text",
+                                            "text": "This is a string."
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "element",
+                                    "name": "number",
+                                    "elements": [
+                                        {
+                                            "type": "text",
+                                            "text": "10"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "element",
+                                    "name": "boolean",
+                                    "elements": [
+                                        {
+                                            "type": "text",
+                                            "text": "true"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "element",
+                                    "name": "nested",
+                                    "attributes": {
+                                        "attr": "This is an attribute."
+                                    },
+                                    "elements": [
+                                        {
+                                            "type": "element",
+                                            "name": "apples"
+                                        },
+                                        {
+                                            "type": "element",
+                                            "name": "oranges"
+                                        },
+                                        {
+                                            "type": "element",
+                                            "name": "nested",
+                                            "elements": [
+                                                {
+                                                    "type": "element",
+                                                    "name": "e",
+                                                    "elements": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "f"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "element",
+                                                    "name": "g",
+                                                    "elements": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "h"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "_xml": true
+        }
+    }
+]
+```
+
+XML-formatted output (note the "tree" and "tags" aliases have been altered for readability's sake):
+
+```xml
+<?xml version="1.0" encoding="utf8"?>
+<root>
+    <module>
+        <free>
+            <root>
+                <!-- This is a comment. -->
+                <string>This is a string.</string>
+                <number>10</number>
+                <boolean>true</boolean>
+                <nested attr="This is an attribute.">
+                    <apples/>
+                    <oranges/>
+                    <nested>
+                        <e>f</e>
+                        <g>h</g>
+                    </nested>
+                </nested>
+            </root>
+        </free>
+    </module>
+</root>
+```
+
+Note the name of the `root` element here is controlled by an alias unique to XML output. This can be modified as well.
+
+Also, it is not required that the user nests multiple tags under a single root tag when entering XML raw input. Even if there is one that's user-provided, another one will be automatically generated and stripped out of the XML data upon output to XML.
+
+```
+@new @none @is @xml
+    <a>
+        <b>1</b>
+    </a>
+@end;
+
+@new @none @is @xml
+    <a>1</a>
+    <b>2</b>
+@end;
+
+@get;
+```
+
+```xml
+<?xml version="1.0" encoding="utf8"?>
+<root>
+    <module>
+        <module>
+            <free>
+                <a>
+                    <b>1</b>
+                </a>
+            </free>
+        </module>
+        <module>
+            <free>
+                <a>1</a>
+                <b>2</b>
+            </free>
+        </module>
+    </module>
+</root>
+```
 
 <br>
 
@@ -2926,7 +3154,7 @@ WIP
 
 ### **Raw Definition: `@end`**
 
-Similar to an ending quotation mark, the `@end` clause is used as an ending delimiter for raw input clauses like `@json` and `@yaml`. Whereby these would pass control over parsing the input to their respective interpreter, `@end` closes this input and passes control back to the Tridy interpreter.
+Similar to an ending quotation mark, the `@end` clause is used as an ending delimiter for raw input clauses like `@json`, `@yaml`, and `@xml`. Whereby these would pass control over parsing the input to their respective interpreter, `@end` closes this input and passes control back to the Tridy interpreter.
 
 `@end` always appears at the end of a raw input string, as it is required for the Tridy statement to be completed with a Tridy-parsed semicolon in any case. The raw input string enclosed by the beginning delimiter and `@end` can be one to several lines long if need be, where line feed characters will either be trimmed out or kept in accordance with the format used.
 
@@ -3170,8 +3398,6 @@ Notably, trimmed output is *one-way*, meaning it cannot be plugged directly back
 
 `@trimmed` conflicts with `@raw`, `@typeless`, `@tagless`, `@merged`, and `@final`.
 
-WIP
-
 <br>
 
 <div id="syntax-merged"/>
@@ -3335,16 +3561,16 @@ The syntax rules are detailed below using Microsoft's command line syntax:
                         [@of {'<type identifier string>' | "<type identifier string>" | @none}]
                         [@as {<tags> | @none}]
                     }
-                    [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
+                    [@is {{@json <json> | @yaml <yaml> | @xml <xml>} @end | '<string>' | "<string>" | `<string>` | @none}]
                     [@has {\{ <tridy statements> \} | @none}]
                 |
-                    {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}
+                    {{@json <json> | @yaml <yaml> | @xml <xml>} @end | '<string>' | "<string>" | `<string>` | @none}
                 }
             |
                 @put
                 [@of {'<type identifier string>' | "<type identifier string>" | @none}]
                 [@as {<tags> | @none}]
-                [@is {{@json <json> | @yaml <yaml>} @end | '<string>' | "<string>" | `<string>` | @none}]
+                [@is {{@json <json> | @yaml <yaml> | @xml <xml>} @end | '<string>' | "<string>" | `<string>` | @none}]
                 [@has {\{ <tridy statements> \} | @none}]
             |
                 {@tag | @untag} [{<tags> | @none}]
@@ -3690,7 +3916,39 @@ $ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get
 # ]
 ```
 
-WIP
+`--format` or `-F` changes the output of the program to be of a particular markdown format. The default is `json`, but `yaml` and `xml` are also available as options, though they each have some of their own limitations.
+
+```bash
+$ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty --format json;
+# [
+#     {
+#         "free": {
+#             "foo": "bar"
+#         }
+#     }
+# ]
+```
+
+```bash
+$ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty --format yaml;
+# ---
+# - free:
+#     foo: bar
+```
+
+```bash
+$ tridydb inline --command '@set @as @none @is @json { "foo": "bar" } @end; @get;' --pretty --format xml;
+# <?xml version="1.0" encoding="utf8"?>
+# <root>
+#     <module>
+#         <free>
+#             <foo>bar</foo>
+#         </free>
+#     </module>
+# </root>
+```
+
+Note that it is recommended always to set `--format` to `xml` if ever XML raw input is expected to be provided through [`@xml`](#syntax-xml), since the output otherwise will be flooded with XML-specific metadata.
 
 <br>
 
@@ -3988,7 +4246,7 @@ The process of using tokens extracted from a Tridy statement to create an abstra
 A clause used as control flow for passing raw input through the Tridy interpreter.
 
 ### **Raw Input**
-A string of data that is passed through the Tridy interpreter in a common, established data format that doesn't include Tridy itself, namely JSON and/or YAML, or as a literal string.
+A string of data that is passed through the Tridy interpreter in a common, established data format that doesn't include Tridy itself, namely JSON, YAML, and/or XML, or as a literal string.
 
 ### **Root Module**
 The module in which all other modules are nested under, that is not nested under any other modules itself, and that is addressed whenever a context expression is not provided in a statement.
