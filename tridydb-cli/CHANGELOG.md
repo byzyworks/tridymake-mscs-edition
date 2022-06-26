@@ -13,15 +13,21 @@ Remember also to set the version number inside package.json and utility/common.
 <br>
 
 ### 2022/04/29
-## Version 1.0.0: Release
+##  Version 0.1.0: Baseline
 
-* TridyDB released.
+* TridyDB released in-house; changelog introduced.
 
-## Version 1.0.1
+<br>
+
+### 2022/04/29
+##  Version 0.1.1
 
 * Fixed a bug that would cause `@del` to delete the entire tree an element is inside of if matched as also the first module in its the tree.
 
-## Version 1.1.0
+<br>
+
+### 2022/05/24
+##  Version 0.2.0: Superset
 
 * Added clauses `@raw`, `@typeless`, `@tagless`, `@trimmed`, `@merged`, and `@final` as ending parameters to `@get` as a way to remove TridyDB metadata from the output (as a side effect making the output one-way / non-reusable by Tridy as input), and compress the remaining output down to varying degrees (`@raw` means no compression / the default behavior while `@final` has the greatest compression).
 * Added type specifiers as the fourth piece of TridyDB modules, which is automatically determined from the last tag now when not using `@as` to provide tags.
@@ -44,7 +50,10 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed a series of bugs affecting how expressions with more than one branch coming out at different levels would evaluate when combined using operators such as `@or`.
 * Fixed a bug where incomplete statements containing brackets wouldn't be carried correctly.
 
-## Version 1.2.0
+<br>
+
+### 2022/06/20
+##  Version 0.3.0: Variation
 
 * Improved TridyDB's flexibility when used as an NPM package; Tridy is now exported as a class as opposed to a singleton, so multiple Tridy instances are possible now.
 * Changed `@random` to use a seeded random number generator, as opposed to (as previously used) `Math.random()`.
@@ -90,3 +99,34 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed bug where a custom tree key would lead to an infinite loop when using `@get` with `@typeless`, `@tagless`, or `@trimmed`.
 * Fixed comments being dysfunctional in console mode.
 * Improved behavior of server mode when receiving incorrectly-formatted abstract syntax trees.
+
+<br>
+
+### Release Date TBD
+##  Version 0.4.0: Automate
+
+* Added `@offset` clause to complement `@limit` and ignore the first *n* *successfully* tested modules.
+* Added `@repeat` clause to complement `@limit` and retry every module again for the same statement *n* times.
+* Added statistic output for non-`@get` operations when log level > verbose.
+* Added `@stat` operation clause.
+* Added `@import` operation clause.
+* Added `@import-json` operation clause.
+* Added `@import-yaml` operation clause.
+* Added `@import-xml` operation clause.
+* Added `@export-json` operation clause.
+* Added `@export-yaml` operation clause.
+* Added `@export-xml` operation clause.
+
+<br>
+
+### Release Date TBD
+##  Version 0.5.0: TBD
+
+* Experimenting with `@`-less clauses.
+
+<br>
+
+### Release Date TBD
+##  Version 1.0.0: Public Release
+
+* TBD

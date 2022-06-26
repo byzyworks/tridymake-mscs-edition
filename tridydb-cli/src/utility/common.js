@@ -1,6 +1,6 @@
 export const APP = Object.freeze({
     NAME:    'TridyDB CLI',
-    VERSION: '1.2.0'
+    VERSION: '0.3.0'
 });
 
 export const pushAll = (target, source) => {
