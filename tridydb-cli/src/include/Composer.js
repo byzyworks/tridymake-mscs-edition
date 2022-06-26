@@ -649,6 +649,8 @@ export class Composer {
             case 'multi':
                 this._multiModule();
                 break;
+            case 'nop':
+                break;
         }
     }
 
@@ -694,6 +696,7 @@ export class Composer {
     _traverseModule(test, command, lvl, max_lvl, random, opts = { }) {
         opts.template = opts.template ?? null;
         opts.limit    = opts.limit    ?? null;
+        opts.offset   = opts.offset   ?? 0;
         opts.count    = opts.count    ?? 0;
 
         const index = this._getModuleIndex();
@@ -714,7 +717,7 @@ export class Composer {
             });
         }
 
-        if (matched) {
+        if (matched && (opts.count > opts.offset)) {
             this._operateModule(command, { template: opts.template });
         }
 
@@ -770,12 +773,16 @@ export class Composer {
 
     _parseStatement() {
         const context    = this._astree.enterGetAndLeave('context');
-        let   expression = context ? context.expression    : { };
-        const limit      = context ? context.limit ?? null : null;
+        let   expression = context ? context.expression     : { };
+        let   limit      = context ? context.limit  ?? null : null;
+        const offset     = context ? context.offset ?? 0    : 0;
+        const repeat     = context ? context.repeat ?? 0    : 0;
 
         if (!common.isEmpty(expression)) {
             expression = ContextParser.upgrade(expression);
         }
+
+        limit = (limit === null) ? null : limit + offset;
 
         const command = this._astree.enterGetAndLeave('operation');
 
@@ -791,7 +798,13 @@ export class Composer {
 
         const max_depth = this._getMaximumLevel(expression);
 
-        this._traverseModule(expression, command, 0, max_depth, this._random.prng(), { template: template, limit: limit });
+        const traverse = { template: template, limit: limit, offset: offset, count: 0 };
+        for (let i = 0; i <= repeat; i++) {
+            this._traverseModule(expression, command, 0, max_depth, this._random.prng(), traverse);
+            if ((limit !== null) && (traverse.count >= limit)) {
+                break;
+            }
+        }
     }
 
     _parse() {

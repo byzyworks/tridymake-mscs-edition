@@ -33,6 +33,12 @@ const toTridy = (method, opts = { }) => {
             if (opts.limit !== undefined) {
                 cmd += `@limit ${opts.limit} `;
             }
+            if (opts.offset !== undefined) {
+                cmd += `@offset ${opts.offset} `;
+            }
+            if (opts.repeat !== undefined) {
+                cmd += `@repeat ${opts.repeat} `;
+            }
         }
     
         let op;

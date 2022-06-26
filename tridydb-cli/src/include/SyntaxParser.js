@@ -222,11 +222,9 @@ export class SyntaxParser {
         return context;
     }
 
-    _handleContextAppendix() {
-        let current;
-
-        current = this._tokens.peek();
-        if (current.is('key', 'limit')) {
+    _handleContextAppendixParameter(keyword) {
+        let current = this._tokens.peek();
+        if (current.is('key', keyword)) {
             this._tokens.next();
 
             current = this._tokens.peek();
@@ -234,15 +232,28 @@ export class SyntaxParser {
                 this._handleUnexpected();
             }
 
-            const limit = Number(current.val);
-            if (!Number.isInteger(limit)) {
+            const value = Number(current.val);
+            if (!Number.isInteger(value) || value < 0) {
                 this._handleUnexpected();
             }
 
-            this._astree.enterSetAndLeave('limit', limit);
+            this._astree.enterSetAndLeave(keyword, value);
 
             this._tokens.next();
         }
+    }
+
+    _handleContextAppendixRequiringExpression() {
+        this._handleContextAppendixParameter('limit');
+        this._handleContextAppendixParameter('offset');
+    }
+
+    _handleContextAppendixNotRequiringExpression() {
+        this._astree.enterPos('context');
+
+        this._handleContextAppendixParameter('repeat');
+
+        this._astree.leavePos();
     }
     
     _handleContext() {
@@ -259,7 +270,7 @@ export class SyntaxParser {
     
         this._astree.enterSetAndLeave('expression', context);
 
-        this._handleContextAppendix();
+        this._handleContextAppendixRequiringExpression();
 
         this._astree.leavePos();
     }
@@ -425,6 +436,8 @@ export class SyntaxParser {
                 this._astree.enterSetAndLeave('operation', 'print');
             } else if (current.is('key', 'del')) {
                 this._astree.enterSetAndLeave('operation', 'delete');
+            } else if (current.is('key', 'stat')) {
+                this._astree.enterSetAndLeave('operation', 'nop');
             }
         } else if (current.isEditingOpToken()) {
             if (current.is('key', 'put')) {
@@ -709,6 +722,8 @@ export class SyntaxParser {
                 this._handleContext();
                 context_defined = true;
 
+                this._handleContextAppendixNotRequiringExpression();
+
                 if (this._tokens.peek().is('sym', ';')) {
                     this._handleUnexpected();
                 }
@@ -749,6 +764,8 @@ export class SyntaxParser {
                             this._handleContext();
                             context_defined = true;
                         }
+
+                        this._handleContextAppendixNotRequiringExpression();
                     }
     
                     if (operation_token.isReadOpToken()) {

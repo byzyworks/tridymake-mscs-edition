@@ -36,12 +36,18 @@ export class TokenlessParser {
         }
     }
 
-    static _handleContextAppendix(input) {
-        if (!common.isNullish(input.limit)) {
-            if ((typeof input.limit !== 'number') && !Number.isInteger(input.limit)) {
+    static _handleContextAppendixParameter(input) {
+        if (!common.isNullish(input)) {
+            if ((typeof input !== 'number') && !Number.isInteger(input) && (Number(input) >= 0)) {
                 this._handleUnexpected();
             }
         }
+    }
+
+    static _handleContextAppendix(input) {
+        this._handleContextAppendixParameter(input.limit);
+        this._handleContextAppendixParameter(input.offset);
+        this._handleContextAppendixParameter(input.repeat);
     }
 
     static _handleDefinition(input) {

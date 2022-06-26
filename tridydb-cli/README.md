@@ -68,32 +68,35 @@ To summarize, Tridy's aim is viewable, portable, modular, and acceptably-redunda
                 3.  [@exit](#syntax-exit)
                 4.  [@in](#syntax-in)
                 5.  [@limit](#syntax-limit)
-                6.  [@get](#syntax-get)
-                7.  [@new](#syntax-new)
-                8.  [@set](#syntax-set)
-                9.  [@del](#syntax-del)
-                10. [@put](#syntax-put)
-                11. [@tag](#syntax-tag)
-                12. [@untag](#syntax-untag)
-                13. [Multi-Statements](#syntax-multi)
-                14. [Explicit @of](#syntax-of)
-                15. [Explicit @as](#syntax-as)
-                16. [Implicit @of/@as](#syntax-implicit)
-                17. [@uuid](#syntax-uuid)
-                18. [@is](#syntax-is)
-                19. [Strings](#syntax-string)
-                20. [@json](#syntax-json)
-                21. [@yaml](#syntax-yaml)
-                22. [@xml](#syntax-xml)
-                23. [@end](#syntax-end)
-                24. [@has](#syntax-has)
-                25. [@none](#syntax-none)
-                26. [@raw](#syntax-raw)
-                27. [@typeless](#syntax-typeless)
-                28. [@tagless](#syntax-tagless)
-                29. [@trimmed](#syntax-trimmed)
-                31. [@merged](#syntax-merged)
-                32. [@final](#syntax-final)
+                6.  [@offset](#syntax-offset)
+                7.  [@repeat](#syntax-repeat)
+                8.  [@get](#syntax-get)
+                9.  [@new](#syntax-new)
+                10. [@set](#syntax-set)
+                11. [@del](#syntax-del)
+                12. [@put](#syntax-put)
+                13. [@tag](#syntax-tag)
+                14. [@untag](#syntax-untag)
+                15. [@stat](#syntax-stat)
+                16. [Multi-Statements](#syntax-multi)
+                17. [Explicit @of](#syntax-of)
+                18. [Explicit @as](#syntax-as)
+                19. [Implicit @of/@as](#syntax-implicit)
+                20. [@uuid](#syntax-uuid)
+                21. [@is](#syntax-is)
+                22. [Strings](#syntax-string)
+                23. [@json](#syntax-json)
+                24. [@yaml](#syntax-yaml)
+                25. [@xml](#syntax-xml)
+                26. [@end](#syntax-end)
+                27. [@has](#syntax-has)
+                28. [@none](#syntax-none)
+                29. [@raw](#syntax-raw)
+                30. [@typeless](#syntax-typeless)
+                31. [@tagless](#syntax-tagless)
+                32. [@trimmed](#syntax-trimmed)
+                33. [@merged](#syntax-merged)
+                34. [@final](#syntax-final)
             3.  [Summary](#syntax-summary)
         4.  [Getting Started](#running)
             1.  [As a Package](#package)
@@ -2150,6 +2153,22 @@ The role that `@limit` has is when the exact number of modules that a context ex
 
 <br>
 
+<div id="syntax-offset"/>
+
+### **Context Meta-Operation: `@offset`**
+
+WIP
+
+<br>
+
+<div id="syntax-repeat"/>
+
+### **Context Meta-Operation: `@repeat`**
+
+WIP
+
+<br>
+
 <div id="syntax-get"/>
 
 ### **Operation: `@get`**
@@ -2422,6 +2441,14 @@ The difference it has with using `@set` or `@put` to do the same is that this is
 Any tags not named with `@untag` are retained, while duplicate tags, if they exist in the module (only a possibility with raw input), would be removed as many times as they appear in the module. Non-existant tags named for removal are ignored.
 
 `@none` may be used in place of any arguments, though while having no effect over simply ommitting any tags.
+
+<br>
+
+<div id="syntax-stat"/>
+
+### **Operation: `@stat`**
+
+WIP
 
 <br>
 
@@ -4018,6 +4045,8 @@ As it only affects existing modules, the possible query parameters (like clauses
 | `compression` | `4` | Output compression level. | `@merged` |
 | `compression` | `5` | Output compression level (full compression). | `@final` |
 | `limit` | positive integer | Successes to allow before stopping. | `@limit` |
+| `offset` | positive integer | Successes to skip initially. | `@offset` |
+| `repeat` | positive integer | Times to loop the statement. | `@repeat` |
 
 <br>
 
@@ -4043,6 +4072,8 @@ As opposed to `PUT`, `@new` was chosen as equivalent to `POST` since like it, `@
 | `freeformat` | `dynamic` | The new module's free data structure import data type. | ``@is `<?freedata>` `` |
 | `freedata` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?freedata> @end` |
 | `limit` | positive integer | Successes to allow before stopping. | `@limit` |
+| `offset` | positive integer | Successes to skip initially. | `@offset` |
+| `repeat` | positive integer | Times to loop the statement. | `@repeat` |
 
 <br>
 
@@ -4074,6 +4105,8 @@ As opposed to `POST`, these are all equivalent to `PUT` since like it, they are 
 | `freeformat` | `dynamic` | The new module's free data structure import data type. | ``@is `<?freedata>` `` |
 | `freedata` | pre-formatted data | The new module's free data structure import data. | `@is <?freeformat> <?freedata> @end` |
 | `limit` | positive integer | Successes to allow before stopping. | `@limit` |
+| `offset` | positive integer | Successes to skip initially. | `@offset` |
+| `repeat` | positive integer | Times to loop the statement. | `@repeat` |
 
 <br>
 
@@ -4089,6 +4122,8 @@ As it only affects existing modules, the possible query parameters (like clauses
 | --- | --- | --- | --- |
 | `context` | context expression | The modules to delete. | `@in <?context>` |
 | `limit` | positive integer | Successes to allow before stopping. | `@limit` |
+| `offset` | positive integer | Successes to skip initially. | `@offset` |
+| `repeat` | positive integer | Times to loop the statement. | `@repeat` |
 
 <br>
 

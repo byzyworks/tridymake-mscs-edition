@@ -283,7 +283,8 @@ export class Token {
     isAffectingOpToken() {
         return false ||
             this.isReadOpToken() ||
-            this.is('key', 'del')
+            this.is('key', 'del') ||
+            this.is('key', 'stat')
         ;
     }
 
