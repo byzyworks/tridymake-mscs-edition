@@ -103,26 +103,40 @@ Remember also to set the version number inside package.json and utility/common.
 <br>
 
 ### Release Date TBD
-##  Version 0.4.0: Automate
+##  Version 0.4.0: Architect
 
 * Added `@offset` clause to complement `@limit` and ignore the first *n* *successfully* tested modules.
 * Added `@repeat` clause to complement `@limit` and retry every module again for the same statement *n* times.
-* Added statistic output for non-`@get` operations when log level > verbose.
-* Added `@stat` operation clause.
-* Added `@import` operation clause.
-* Added `@import-json` operation clause.
-* Added `@import-yaml` operation clause.
-* Added `@import-xml` operation clause.
-* Added `@export-json` operation clause.
-* Added `@export-yaml` operation clause.
-* Added `@export-xml` operation clause.
+* Added statistic output for non-`@get` operations when log level >= verbose. (PENDING)
+* Added `@stat` operation clause. (PENDING)
+* Added `@import` operation clause. (PENDING)
+* Added `@export` operation clause. (PENDING)
+* Added `@after` meta-operation clause. (PENDING)
+* Added `@before` meta-operation clause. (PENDING)
+* Added "functions" for user-generated input in place of literal input (requires user-placed JavaScript code). (PENDING)
+* Added `@function` input clause with string arguments. (PENDING)
+* Removed `@end` raw input end delimiter clause. (PENDING)
+* Re-added `%` as new raw input delimiter (for non-strings). (PENDING)
+* Added `@json` `@get` parameter clause. (PENDING)
+* Added `@yaml` `@get` parameter clause. (PENDING)
+* Added `@xml` `@get` parameter clause. (PENDING)
+* Added `@crude` `@get` parameter clause. (PENDING)
+* Added `@bytes` `@get` parameter clause. (PENDING)
+* Added `@tabbed` `@get` parameter clause. (PENDING)
+* Added `@spaced` `@get` parameter clause. (PENDING)
+* Added `@indent` `@get` parameter clause with integer argument. (PENDING)
+* Added compound value expression additive modifier `+`. (PENDING)
+* Added compound value expression multiplicative modifier `*`. (PENDING)
+* Added compound value expression exponential modifier `^`. (PENDING)
+* Removed context-locking. (PENDING)
+* Added multi-seed input for `--seed` (for passing to functions). (PENDING)
 
 <br>
 
 ### Release Date TBD
 ##  Version 0.5.0: TBD
 
-* Experimenting with `@`-less clauses.
+* Experimenting with `@`-less clauses / "simplified" syntax.
 
 <br>
 
