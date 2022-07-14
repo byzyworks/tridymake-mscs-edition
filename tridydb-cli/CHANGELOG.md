@@ -115,13 +115,13 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@before` meta-operation clause. (PENDING)
 * Added "functions" for user-generated input in place of literal input (requires user-placed JavaScript code). (PENDING)
 * Added `@function` input clause with string arguments. (PENDING)
-* Removed `@end` raw input end delimiter clause. (PENDING)
-* Re-added `%` as new raw input delimiter (for non-strings). (PENDING)
+* Removed `@end` raw input end delimiter clause.
+* Re-added `%` as new raw input delimiter (for non-strings).
 * Added `@json` `@get` parameter clause. (PENDING)
 * Added `@yaml` `@get` parameter clause. (PENDING)
 * Added `@xml` `@get` parameter clause. (PENDING)
-* Added `@crude` `@get` parameter clause. (PENDING)
-* Added `@bytes` `@get` parameter clause. (PENDING)
+* Added `@text` `@get` parameter clause. (PENDING)
+* Added `@binary` `@get` parameter clause. (PENDING)
 * Added `@tabbed` `@get` parameter clause. (PENDING)
 * Added `@spaced` `@get` parameter clause. (PENDING)
 * Added `@indent` `@get` parameter clause with integer argument. (PENDING)

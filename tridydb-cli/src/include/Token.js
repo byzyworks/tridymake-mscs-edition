@@ -308,7 +308,7 @@ export class Token {
         ;
     }
 
-    isRawInputStringToken() {
+    isRawInputStringStartToken() {
         return false ||
             this.is('lpart') ||
             this.is('mlpart') ||
@@ -316,12 +316,19 @@ export class Token {
         ;
     }
 
-    isRawInputToken() {
+    isRawInputStringToken() {
+        return false ||
+            this.isRawInputStringStartToken() ||
+            this.is('datapart')
+        ;
+    }
+
+    isRawInputStartToken() {
         return false ||
             this.is('key', 'xml') ||
             this.is('key', 'json') ||
             this.is('key', 'yaml') ||
-            this.isRawInputStringToken()
+            this.isRawInputStringStartToken()
         ;
     }
 

@@ -6,7 +6,7 @@ import { StateTree }     from './StateTree.js';
 import { Tag }           from './Tag.js';
 import { Token }         from './Token.js';
 
-import { global, isEmpty, parseDynamic } from '../utility/common.js';
+import { global, isEmpty, isNullish, parseDynamic } from '../utility/common.js';
 import { SyntaxError }                   from '../utility/error.js';
 
 export class SyntaxParser {
@@ -316,7 +316,7 @@ export class SyntaxParser {
         let data;
 
         const current = this._tokens.peek();
-        if (!current.isRawInputToken()) {
+        if (!current.isRawInputStartToken()) {
             return undefined;
         }
 
@@ -344,7 +344,7 @@ export class SyntaxParser {
             data = this._readWhileRaw({ multiline: true });
         }
 
-        if (data === null) {
+        if (isNullish(data)) {
             return undefined;
         }
 
@@ -380,21 +380,12 @@ export class SyntaxParser {
                     data      = '<root>' + data + '</root>';
                     data      = xml.xml2js(data, { compact: false });
                     data._xml = true;
-                    if (this._tokens.peek().is('key', 'end')) {
-                        this._tokens.next();
-                    }
                     break;
                 case 'json':
                     data = JSON.parse(data);
-                    if (this._tokens.peek().is('key', 'end')) {
-                        this._tokens.next();
-                    }
                     break;
                 case 'yaml':
                     data = yaml.load(data);
-                    if (this._tokens.peek().is('key', 'end')) {
-                        this._tokens.next();
-                    }
                     break;
                 case 'line':
                 case 'multiline':
@@ -426,7 +417,7 @@ export class SyntaxParser {
                 this._astree.enterSetAndLeave('operation', 'compose');
             }
             
-            if (this._tokens.peek().isRawInputToken()) {
+            if (this._tokens.peek().isRawInputStartToken()) {
                 this._astree.enterPos('raw');
             } else {
                 this._astree.enterPos('definition');

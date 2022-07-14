@@ -54,7 +54,7 @@ export class TokenParser {
     }
 
     _isSymbol(ch) {
-        return /[~!$%^&*()=\[\]{}|;:,<>?/]/g.test(ch);
+        return /[~!$^&*()=\[\]{}|;:,<>?/]/g.test(ch);
     }
 
     _isSingleLineStringQuote(ch) {
@@ -67,6 +67,10 @@ export class TokenParser {
 
     _isDynamicStringQuote(ch) {
         return ch === '`';
+    }
+
+    _isDataStringQuote(ch) {
+        return ch === '%';
     }
 
     _isEscape(ch) {
@@ -105,7 +109,7 @@ export class TokenParser {
             } else if (this._isEscape(ch)) {
                 this._parser.next();
                 is_escaped = true;
-            } else if (this._isKeywordStart(ch) || this._isCommentStart(ch)) {
+            } else if (this._isCommentStart(ch)) {
                 this._mode.push('normal');
                 break;
             } else if (this._isSingleLineStringQuote(ch) && (this._mode.peek() === 'line')) {
@@ -117,6 +121,10 @@ export class TokenParser {
                 this._mode.pop();
                 break;
             } else if (this._isDynamicStringQuote(ch) && (this._mode.peek() === 'dynamic')) {
+                this._parser.next();
+                this._mode.pop();
+                break;
+            } else if (this._isDataStringQuote(ch) && (this._mode.peek() === 'data')) {
                 this._parser.next();
                 this._mode.pop();
                 break;
@@ -136,24 +144,6 @@ export class TokenParser {
         const keyword = this._readWhilePred(this._isIdentifier.bind(this)).toLowerCase();
         if (isEmpty(keyword)) {
             throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "@".`);
-        }
-
-        switch (keyword) {
-            case 'xml':
-            case 'json':
-            case 'yaml':
-                if (this._mode.peek() !== keyword) {
-                    this._mode.push(keyword);
-                }
-                break;
-            case 'end':
-                switch (this._mode.peek()) {
-                    case 'xml':
-                    case 'json':
-                    case 'yaml':
-                        this._mode.pop();
-                        break;
-                }
         }
 
         return new Token('key', keyword, pos);
@@ -222,8 +212,8 @@ export class TokenParser {
             case 'dynamic':
                 type = 'dynpart';
                 break;
-            default:
-                type = 'mlpart';
+            case 'data':
+                type = 'datapart';
                 break;
         }
 
@@ -246,12 +236,10 @@ export class TokenParser {
         }
 
         switch (this._mode.peek()) {
-            case 'xml':
-            case 'json':
-            case 'yaml':
             case 'line':
             case 'multiline':
             case 'dynamic':
+            case 'data':
                 return this._readRaw();
         }
 
@@ -291,6 +279,12 @@ export class TokenParser {
         if (this._isDynamicStringQuote(ch)) {
             this._parser.next();
             this._mode.push('dynamic');
+            return this._readRaw();
+        }
+
+        if (this._isDataStringQuote(ch)) {
+            this._parser.next();
+            this._mode.push('data');
             return this._readRaw();
         }
 
