@@ -346,7 +346,7 @@ export class Composer {
 
     _matchingExpression(test, lvl, index, random, opts = { }) {
         if (common.isEmpty(test)) {
-            return common.isEmpty(index.context);
+            return index.context.length === lvl;
         } else if (common.isEmpty(index.context) || (lvl < 0) || (lvl >= index.context.length)) {
             return false;
         } else if (this._isExpressionTreeLeaf(test)) {
@@ -425,17 +425,6 @@ export class Composer {
                 module.leavePos();
             }
             this._astree.leavePos();
-
-            this._astree.enterPos(common.global.defaults.alias.nested);
-            if (!this._astree.isPosEmpty()) {
-                this._astree.leavePos();
-
-                this._target.push(module);
-                this._parse();
-                this._target.pop();
-            } else {
-                this._astree.leavePos();
-            }
         }
         this._astree.leavePos();
 
@@ -464,6 +453,12 @@ export class Composer {
         const target = this._target.peek();
 
         target.setPosValue(template);
+
+        this._astree.enterPos('definition');
+        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+            this._parse();
+        }
+        this._astree.leavePos();
     }
 
     _composeModule(template) {
@@ -473,7 +468,17 @@ export class Composer {
             throw new SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        target.enterPutAndLeave(this._alias.nested, template);
+        target.enterPos(this._alias.nested);
+        target.enterPos(target.putPosValue(template) - 1);
+
+        this._astree.enterPos('definition');
+        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+            this._parse();
+        }
+        this._astree.leavePos();
+
+        target.leavePos();
+        target.leavePos();
     }
 
     _printModule() {
@@ -524,12 +529,22 @@ export class Composer {
             throw new SyntaxError(`Tried to edit an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        const nulled = this._astree.enterGetAndLeave(['definition', 'nulled']);
+        this._astree.enterPos('definition');
+
+        const nulled = this._astree.enterGetAndLeave('nulled');
 
         this._editModulePart(target, template, nulled, 'type');
         this._editModulePart(target, template, nulled, 'tags');
         this._editModulePart(target, template, nulled, 'state');
-        this._editModulePart(target, template, nulled, 'nested');
+
+        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+            target.enterDeleteAndLeave(this._alias.nested);
+            this._parse();
+        } else if (common.isDictionary(nulled) && (nulled[common.global.defaults.alias.nested] === true)) {
+            target.enterDeleteAndLeave(this._alias.nested);
+        }
+
+        this._astree.leavePos();
     }
 
     _tagModule(template) {
@@ -615,6 +630,12 @@ export class Composer {
         template = new StateTree(target.getPosValue(), this._alias);
         template = this._createModule(template);
 
+        this._astree.enterPos('definition');
+        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+            this._parse();
+        }
+        this._astree.leavePos();
+
         target.setPosValue(template);
     }
 
@@ -693,7 +714,7 @@ export class Composer {
         return index;
     }
 
-    _traverseModule(test, command, lvl, max_lvl, random, opts = { }) {
+    _traverseModule(test, command, level, random, opts = { }) {
         opts.template = opts.template ?? null;
         opts.limit    = opts.limit    ?? null;
         opts.offset   = opts.offset   ?? 0;
@@ -701,16 +722,18 @@ export class Composer {
 
         const index = this._getModuleIndex();
 
-        const matched = this._matchingExpression(test, 0, index, random);
+        const matched = this._matchingExpression(test, level.start, index, random);
         if (matched === true) {
             opts.count++;
         }
 
-        if (((max_lvl === null) || (lvl < max_lvl)) && ((opts.limit === null) || (opts.count < opts.limit))) {
+        if (((level.max === null) || (level.current < level.max)) && ((opts.limit === null) || (opts.count < opts.limit))) {
             const target = this._target.peek();
 
             target.traverse(() => {
-                this._traverseModule(test, command, lvl + 1, max_lvl, random, opts);
+                const new_level = { start: level.start, current: level.current + 1, max: level.max };
+
+                this._traverseModule(test, command, new_level, random, opts);
                 if ((opts.limit !== null) && (opts.count >= opts.limit)) {
                     return 'break';
                 }
@@ -724,11 +747,17 @@ export class Composer {
         return matched;
     }
 
+    _getStartingLevel() {
+        // The 2 is determined from the number of (looping) indices required for one level of nesting.
+        // Level 0 has the position ['tree'][#], level 1 is at ['tree'][#]['tree'][#], and so on.
+        return this._target.peek().getFullPos().length / 2;
+    }
+
     /**
      * The purpose of this is strictly for optimizing how Tridy handles very large trees.
      * Without it, all modules in the database will be tested needlessly by a context expression.
      */
-    _getMaximumLevel(test) {
+    _getMaximumDepth(test) {
         if (common.isEmpty(test)) {
             return 0;
         }
@@ -739,7 +768,7 @@ export class Composer {
         
         let a_lvl = 0;
         if (test.a !== undefined) {
-            a_lvl = this._getMaximumLevel(test.a);
+            a_lvl = this._getMaximumDepth(test.a);
         }
         if (a_lvl === null) {
             return a_lvl;
@@ -747,7 +776,7 @@ export class Composer {
 
         let b_lvl = 0;
         if (test.b !== undefined) {
-            b_lvl = this._getMaximumLevel(test.b);
+            b_lvl = this._getMaximumDepth(test.b);
         }
         if (b_lvl === null) {
             return b_lvl;
@@ -755,7 +784,7 @@ export class Composer {
 
         let c_lvl = 0;
         if (test.c !== undefined) {
-            c_lvl = this._getMaximumLevel(test.c);
+            c_lvl = this._getMaximumDepth(test.c);
         }
         if (c_lvl === null) {
             return c_lvl;
@@ -796,11 +825,13 @@ export class Composer {
                 template = this._createModule();
         }
 
-        const max_depth = this._getMaximumLevel(expression);
+        const start_lvl = this._getStartingLevel();
+        const max_depth = this._getMaximumDepth(expression);
+        const level     = { start: start_lvl, current: start_lvl, max: start_lvl + max_depth };
 
         const traverse = { template: template, limit: limit, offset: offset, count: 0 };
         for (let i = 0; i <= repeat; i++) {
-            this._traverseModule(expression, command, 0, max_depth, this._random.prng(), traverse);
+            this._traverseModule(expression, command, level, this._random.prng(), traverse);
             if ((limit !== null) && (traverse.count >= limit)) {
                 break;
             }

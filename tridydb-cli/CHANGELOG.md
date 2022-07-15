@@ -128,7 +128,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added compound value expression additive modifier `+`. (PENDING)
 * Added compound value expression multiplicative modifier `*`. (PENDING)
 * Added compound value expression exponential modifier `^`. (PENDING)
-* Removed context-locking. (PENDING)
+* Removed context-locking.
 * Added multi-seed input for `--seed` (for passing to functions). (PENDING)
 
 <br>

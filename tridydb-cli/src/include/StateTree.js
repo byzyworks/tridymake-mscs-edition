@@ -100,7 +100,7 @@ export class StateTree {
     }
 
     getFullPos() {
-        return this._pos;
+        return common.deepCopy(this._pos);
     }
 
     getTopPos() {
@@ -157,7 +157,7 @@ export class StateTree {
                 this._tree = [ ];
                 this._tree.push(temp);
             }
-            this._tree.push(value);
+            return this._tree.push(value);
         } else {
             if (this._ptr[pos] === undefined) {
                 this._ptr[pos] = [ ];
@@ -166,7 +166,7 @@ export class StateTree {
                 this._ptr[pos] = [ ];
                 this._ptr[pos].push(temp);
             }
-            this._ptr[pos].push(value);
+            return this._ptr[pos].push(value);
         }
     }
 

@@ -289,7 +289,7 @@ export class SyntaxParser {
             /**
              * With certain formats like YAML that are whitespace-sensitive, the line feed needs to be respected so the indentation is as well.
              * If there are multiple "part" tokens, this function assumes each is equivalent to one line.
-             * This is because if the user is entering the a multi-line string in a special format, the tokenizer will produce a new "part" token for every line until it receives a token with the clause "@end".
+             * This is because if the user is entering the a multi-line string in a special format, the tokenizer will produce a new "part" token for every line until the ending delimiter is received.
              * There are no other circumstances where two or more consecutive "part" tokens are produced.
              */ 
             if (opts.multiline && (line > 0)) {
@@ -555,7 +555,7 @@ export class SyntaxParser {
     _handleDefinition() {
         // As usual, the grammar of the language is meant to appeal to different styles by offering different options with the same outcome.
         // Here, the user has three possible ways to enter tags: "@tridy @as <tags>", "@as <tags>", or just "<tags>".
-        // The first option, for instance, is just an optional way to distinguish it from the raw input (e.g. "@json ... @end") options that specify a format first.
+        // The first option, for instance, is just an optional way to distinguish it from the raw input (e.g. "@json % ... %") options that specify a format first.
         if (this._tokens.peek().is('key', 'tridy')) {
             this._tokens.next();
 
