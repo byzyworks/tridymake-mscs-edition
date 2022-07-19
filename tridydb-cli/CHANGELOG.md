@@ -117,19 +117,21 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@function` input clause with string arguments. (PENDING)
 * Removed `@end` raw input end delimiter clause.
 * Re-added `%` as new raw input delimiter (for non-strings).
-* Added `@json` `@get` parameter clause. (PENDING)
-* Added `@yaml` `@get` parameter clause. (PENDING)
-* Added `@xml` `@get` parameter clause. (PENDING)
+* Added `@indent` `@get` parameter clause with integer argument.
+* Added `@json` `@get` parameter clause.
+* Added `@yaml` `@get` parameter clause.
+* Added `@xml` `@get` parameter clause.
 * Added `@text` `@get` parameter clause. (PENDING)
 * Added `@binary` `@get` parameter clause. (PENDING)
-* Added `@tabbed` `@get` parameter clause. (PENDING)
-* Added `@spaced` `@get` parameter clause. (PENDING)
-* Added `@indent` `@get` parameter clause with integer argument. (PENDING)
+* Added `@list` `@get` parameter clause.
+* Added `@items` `@get` parameter clause.
 * Added compound value expression additive modifier `+`. (PENDING)
 * Added compound value expression multiplicative modifier `*`. (PENDING)
 * Added compound value expression exponential modifier `^`. (PENDING)
 * Removed context-locking.
-* Added multi-seed input for `--seed` (for passing to functions). (PENDING)
+* Added multi-seed input for `--seed` (for passing to functions).
+* Removed `--pretty`.
+* Fixed non-functional `offset` and `repeat` parameters in REST mode.
 
 <br>
 

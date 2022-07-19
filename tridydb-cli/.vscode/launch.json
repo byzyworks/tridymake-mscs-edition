@@ -4,36 +4,10 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Test File (Development) (default JSON output)",
+            "name": "Launch Test File (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty", "--format", "json"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Test File (Development) (YAML output)",
-            "program": "${workspaceFolder}/src/app.js",
-            "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty", "--format", "yaml"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Test File (Development) (XML output)",
-            "program": "${workspaceFolder}/src/app.js",
-            "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty", "--format", "xml", "--tags-key", "tag", "--tree-key", "module"],
+            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--default-indent", "4"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -53,36 +27,10 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Test Console (Development) (default JSON output)",
+            "name": "Launch Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty", "--format", "json"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Test Console (Development) (YAML output)",
-            "program": "${workspaceFolder}/src/app.js",
-            "cwd": "${workspaceFolder}/",
-            "args": ["console", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty", "--format", "yaml"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Test Console (Development) (XML output)",
-            "program": "${workspaceFolder}/src/app.js",
-            "cwd": "${workspaceFolder}/",
-            "args": ["console", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--pretty", "--format", "xml", "--tags-key", "tag", "--tree-key", "module"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--default-indent", "4"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -105,7 +53,7 @@
             "name": "Launch Client Test File (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--pretty"],
+            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--default-indent", "4"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -128,7 +76,7 @@
             "name": "Launch Client Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--pretty"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--default-indent", "4"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -148,36 +96,10 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Server (Development) (default JSON output)",
+            "name": "Launch Server (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug", "--format", "json"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Server (Development) (YAML output)",
-            "program": "${workspaceFolder}/src/app.js",
-            "cwd": "${workspaceFolder}/",
-            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug", "--format", "yaml"],
-            "outputCapture": "std",
-            "console": "externalTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Server (Development) (XML output)",
-            "program": "${workspaceFolder}/src/app.js",
-            "cwd": "${workspaceFolder}/",
-            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug", "--format", "xml", "--tags-key", "tag", "--tree-key", "module"],
+            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug", "--default-indent", "4"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {

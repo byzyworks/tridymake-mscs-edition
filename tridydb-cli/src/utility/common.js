@@ -248,8 +248,10 @@ const defaults = Object.freeze({
         timeout: 3000
     },
     output: {
-        format: 'json',
-        pretty: false
+        format:      'js',
+        compression: 'raw',
+        indent:      null,
+        list_mode:   'auto'
     },
     log_level: 'info'
 });

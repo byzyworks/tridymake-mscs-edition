@@ -7,7 +7,7 @@ import { Tag }           from './Tag.js';
 import { Token }         from './Token.js';
 
 import { global, isEmpty, isNullish, parseDynamic } from '../utility/common.js';
-import { SyntaxError }                   from '../utility/error.js';
+import { SyntaxError }                              from '../utility/error.js';
 
 export class SyntaxParser {
     constructor() { }
@@ -233,7 +233,7 @@ export class SyntaxParser {
             }
 
             const value = Number(current.val);
-            if (!Number.isInteger(value) || value < 0) {
+            if (!Number.isInteger(value) || (value < 0)) {
                 this._handleUnexpected();
             }
 
@@ -689,6 +689,118 @@ export class SyntaxParser {
         this._astree.leavePos();
     }
 
+    _handleReadOperation() {
+        let current;
+
+        this._astree.enterPos('output');
+
+        current = this._tokens.peek();
+        if (current.is('key', 'new')) {
+            this._astree.enterSetAndLeave(['list_start'], true);
+            
+            this._tokens.next();
+        }
+
+        current = this._tokens.peek();
+        if (current.is('key', 'indent')) {
+            this._tokens.next();
+
+            current = this._tokens.peek();
+            if (!current.is('tag')) {
+                this._handleUnexpected();
+            }
+
+            if (current.is('key', 'none')) {
+                this._astree.enterSetAndLeave('indent', -1);
+            } else {
+                const value = Number(current.val);
+                if (!Number.isInteger(value) || (value < 0)) {
+                    this._handleUnexpected();
+                }
+    
+                this._astree.enterSetAndLeave('indent', value);
+            }
+
+            this._tokens.next();
+        }
+
+        current = this._tokens.peek();
+        if (current.is('key', 'raw')) {
+            crude = false;
+            
+            this._astree.enterSetAndLeave(['compression'], 0);
+            
+            this._tokens.next();
+        } else if (current.is('key', 'typeless')) {
+            crude = false;
+
+            this._astree.enterSetAndLeave(['compression'], 1);
+
+            this._tokens.next();
+        } else if (current.is('key', 'tagless')) {
+            crude = false;
+
+            this._astree.enterSetAndLeave(['compression'], 2);
+
+            this._tokens.next();
+        } else if (current.is('key', 'trimmed')) {
+            crude = false;
+
+            this._astree.enterSetAndLeave(['compression'], 3);
+
+            this._tokens.next();
+        } else if (current.is('key', 'merged')) {
+            crude = false;
+
+            this._astree.enterSetAndLeave(['compression'], 4);
+
+            this._tokens.next();
+        } else if (current.is('key', 'final')) {
+            crude = false;
+
+            this._astree.enterSetAndLeave(['compression'], 5);
+
+            this._tokens.next();
+        }
+
+        current = this._tokens.peek();
+        if (current.is('key', 'json')) {
+            this._astree.enterSetAndLeave(['format'], 'json');
+            
+            this._tokens.next();
+        } else if (current.is('key', 'yaml')) {
+            this._astree.enterSetAndLeave(['format'], 'yaml');
+
+            this._tokens.next();
+        } else if (current.is('key', 'xml')) {
+            this._astree.enterSetAndLeave(['format'], 'xml');
+
+            this._tokens.next();
+        }
+
+        current = this._tokens.peek();
+        if (current.is('key', 'list')) {
+            this._astree.enterSetAndLeave(['list_mode'], 'list_only');
+            
+            this._tokens.next();
+        } else if (current.is('key', 'items')) {
+            this._astree.enterSetAndLeave(['list_mode'], 'items_only');
+            
+            this._tokens.next();
+        } else {
+            this._astree.enterSetAndLeave(['list_mode'], 'auto');
+        }
+
+        current = this._tokens.peek();
+        if (current.is('key', 'next')) {
+            this._astree.enterSetAndLeave(['list_end'], true);
+            
+            this._tokens.next();
+        }
+
+        this._astree.leavePos();
+    }
+
     _handleStatement() {
         let current;
 
@@ -760,32 +872,7 @@ export class SyntaxParser {
                     }
     
                     if (operation_token.isReadOpToken()) {
-                        current = this._tokens.peek();
-                        if (current.is('key', 'raw')) {
-                            this._astree.enterSetAndLeave(['compression'], 0);
-                            
-                            this._tokens.next();
-                        } else if (current.is('key', 'typeless')) {
-                            this._astree.enterSetAndLeave(['compression'], 1);
-    
-                            this._tokens.next();
-                        } else if (current.is('key', 'tagless')) {
-                            this._astree.enterSetAndLeave(['compression'], 2);
-    
-                            this._tokens.next();
-                        } else if (current.is('key', 'trimmed')) {
-                            this._astree.enterSetAndLeave(['compression'], 3);
-    
-                            this._tokens.next();
-                        } else if (current.is('key', 'merged')) {
-                            this._astree.enterSetAndLeave(['compression'], 4);
-    
-                            this._tokens.next();
-                        } else if (current.is('key', 'final')) {
-                            this._astree.enterSetAndLeave(['compression'], 5);
-    
-                            this._tokens.next();
-                        }
+                        this._handleReadOperation();
                     }
                 } else if (operation_token.isGeneralEditingOpToken()) {
                     this._handleOperation();

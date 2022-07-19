@@ -38,13 +38,27 @@ program
             .conflicts(['typeKey', 'tagsKey', 'freeKey', 'treeKey'])
     )
     .addOption(
-        new Option('-f, --file <files...>', 'Pre-load a Tridy database from one or several files.')
-            .conflicts('command')
+        new Option('-k, --default-compression <compression>', 'Specify the default output compression.')
+            .choices(['raw', 'typeless', 'tagless', 'trimmed', 'merged', 'final'])
+            .default(global.defaults.output.compression)
     )
     .addOption(
-        new Option('-F, --format <format>', 'Specify an output format.')
-            .choices(['xml', 'json', 'yaml'])
+        new Option('-F, --default-format <format>', 'Specify the default output format.')
+            .choices(['json', 'yaml', 'xml'])
             .default(global.defaults.output.format)
+    )
+    .addOption(
+        new Option('-i, --default-indent <indent>', 'Specify the default output indentation.')
+            .default(global.defaults.output.indent)
+    )
+    .addOption(
+        new Option('-j, --default-output-mode <mode>', 'Specify the default output mode.')
+            .choices('auto', 'list_only', 'items_only')
+            .default(global.defaults.output.list_mode)
+    )
+    .addOption(
+        new Option('-f, --file <files...>', 'Pre-load a Tridy database from one or several files.')
+            .conflicts('command')
     )
     .addOption(
         new Option('--free-key <key>', 'The key under which the free data structure is imported and exported as.')
@@ -67,9 +81,6 @@ program
             .default(global.defaults.log_level)
     )
     .addOption(
-        new Option('--pretty', 'Pretty-print the output data. Has no effect when the output format is "yaml".')
-    )
-    .addOption(
         new Option('-h, --remote-host <host>', 'Destination server to connect to when in client mode.')
             .default(global.defaults.remote.host)
     )
@@ -78,7 +89,7 @@ program
             .default(global.defaults.remote.port)
     )
     .addOption(
-        new Option('-s, --random-seed <seed>', 'Forces a random seed to use with @random or @shuffled.')
+        new Option('-s, --random-seed <seeds...>', 'Set the random seeds. If there are several, TridyDB will use the first and forward the others separately on-demand.')
     )
     .addOption(
         new Option('-t, --remote-timeout <timeout>', 'Timeout period (in milliseconds) to wait for responses when in client mode.')
@@ -120,16 +131,18 @@ program
         global.remote.port    = opts.remotePort;
         global.remote.timeout = opts.remoteTimeout;
 
-        global.output        = { };
-        global.output.format = opts.format;
-        global.output.pretty = opts.pretty;
+        global.output             = { };
+        global.output.format      = opts.defaultFormat;
+        global.output.compression = opts.defaultCompression;
+        global.output.indent      = opts.defaultIndent;
+        global.output.list_mode   = opts.defaultOutputMode;
         
         global.log_level = opts.logLevel;
         transports.console.level = opts.logLevel;
         logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         
         if (!isNullish(opts.randomSeed)) {
-            db.setRandomSeed(opts.randomSeed);
+            db.setRandomSeed(opts.randomSeed[0]);
         }
 
         if (opts.command) {
@@ -165,7 +178,9 @@ program
             program.error('error: either --command or --file need to be given inside of inline mode.');
         }
 
-        console.log(Tridy.stringify(preset));
+        preset = Tridy.stringify(preset);
+
+        console.log(preset);
     })
 ;
 

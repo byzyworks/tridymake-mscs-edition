@@ -5,14 +5,12 @@
  */
 
 import axios     from 'axios';
-import * as xml  from 'xml-js';
-import * as yaml from 'js-yaml';
 
 import { Composer }        from './Composer.js';
+import { Formatter }       from './Formatter.js';
 import { SyntaxParser }    from './SyntaxParser.js';
 import { StatementParser } from './StatementParser.js';
 import { StateTree }       from './StateTree.js';
-import { XMLConverter }    from './XMLConverter.js';
 
 import * as common                            from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
@@ -174,6 +172,7 @@ export class Tridy {
                     code = this._composer.compose(code, alias);
                 }
 
+
                 for (const part of code) {
                     output.push(part);
                 }
@@ -206,46 +205,82 @@ export class Tridy {
 
     /**
      * Converts the JSON output of query() or objectify() to a string (accounting for escaped backslashes).
+     * Note query() returns an array. In this case, the individual elements should be sent as 'input'.
      * 
      * @public
      * @static
      * @method
-     * @param   {Object}  input             Tridy JSON output.
-     * @param   {String}  opts.format       Format to export the JSON output in. Options are 'xml', 'json', or 'yaml'. Default is 'json'.
-     * @param   {Boolean} opts.pretty       True to output the string with indentation (4-spaced), false to output in a compressed format. Default is false.
-     * @param   {Number}  opts.spaces       Indent increment size in spaces to output with. Requires pretty-printing be enabled specifically for JSON and XML output. Default is 2 for YAML and 4 for JSON and XML.
-     * @param   {String}  opts.xml_root_key The name given to the XML root tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
-     * @param   {String}  opts.xml_res_key  The name given to the XML individual response tags. Relevant only when the output format is 'xml'. Default is 'tree'.
-     * @returns {String}                    Input object as a formatted string.
+     * @param   {Array<Object>} input             Tridy query() JSON output
+     * @param   {String}        opts.format       Default format to export the JSON output in. Options are 'json', 'yaml', or 'xml'. Default is 'json'.
+     * @param   {Number}        opts.indent       Default indent increment size in spaces to output with. Default is 4 spaces except for YAML, where it is 2 spaces. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 2 spaces is still default).
+     * @param   {String}        opts.list_mode    Default way to display output where there is one or multiple modules returned. By default, this is set to 'auto' where single modules are returned alone and multiple module are returned in an array, but there's also 'list_only' and 'items_only' modes.
+     * @param   {String}        opts.xml_list_key The name given to the XML list tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
+     * @param   {String}        opts.xml_item_key The name given to the XML individual item tags. Relevant only when the output format is 'xml'. Default is 'tree'.
+     * @returns {String | null}                   Input object as a formatted string, or null if it can't be converted to one.
      */
     static stringify(input, opts = { }) {
-        opts.format       = opts.format       ?? common.global.output.format ?? common.global.defaults.output.format;
-        opts.pretty       = opts.pretty       ?? common.global.output.pretty ?? common.global.defaults.output.pretty;
-        opts.spaces       = opts.spaces       ?? null;
-        opts.xml_root_key = opts.xml_root_key ?? common.global.alias.root    ?? common.global.defaults.alias.root;
-        opts.xml_res_key  = opts.xml_res_key  ?? common.global.alias.nested  ?? common.global.defaults.alias.nested;
+        opts.format       = (opts.format === 'js') ? 'json' : (opts.format ?? common.global.output.format_str ?? common.global.defaults.output.format_str);
+        opts.indent       = opts.indent       ?? common.global.output.indent     ?? common.global.defaults.output.indent;
+        opts.list_mode    = opts.list_mode    ?? common.global.output.list_mode  ?? common.global.defaults.output.list_mode;
+        opts.xml_list_key = opts.xml_list_key ?? common.global.alias.list        ?? common.global.defaults.alias.list;
+        opts.xml_item_key = opts.xml_item_key ?? common.global.alias.nested      ?? common.global.defaults.alias.nested;
 
-        switch (opts.format) {
-            case 'xml':
-                opts.spaces = opts.spaces ?? 4;
-                const converted = XMLConverter.convert(input, opts.xml_root_key, opts.xml_res_key);
-                if (opts.pretty) {
-                    return xml.js2xml(converted, { compact: false, spaces: opts.spaces });
-                }
-                return xml.js2xml(converted, { compact: false });
-            case 'json':
-                opts.spaces = opts.spaces ?? 4;
-                if (opts.pretty) {
-                    return JSON.stringify(input, null, opts.spaces).replace(/\\\\/g, '\\');
-                }
-                return JSON.stringify(input).replace(/\\\\/g, '\\');
-            case 'yaml':
-                opts.spaces = opts.spaces ?? 2;
-                if (common.isEmpty(input)) {
-                    return '---';
-                }
-                return "---\n" + yaml.dump(input, { indent: opts.spaces }).slice(0, -1);
+        let output = '';
+        
+        let collect = [ ];
+        let list    = [ ];
+        let current = null;
+
+        for (let i = 0; i < input.length; i++) {
+            const module = input[i].output;
+
+            let last = null;
+            if (i > 0) {
+                last = input[i - 1].params;
+            }
+
+            current              = input[i].params;
+            current.format       = (current.format === 'js') ? 'json' : (current.format ?? opts.format);
+            current.indent       = current.indent    ?? opts.indent;
+            current.list_mode    = current.list_mode ?? opts.list_mode;
+            current.xml_list_key = opts.xml_list_key;
+            current.xml_item_key = opts.xml_item_key;
+
+            if (!common.isEmpty(list) && (current.list_start || (current.list_mode === 'items_only') || (current.format !== last.format) || (current.indent !== last.indent))) {
+                collect.push({ output: list, params: last });
+                list = [ ];
+            }
+
+            list.push(module);
+
+            if (current.list_end || (current.list_mode === 'items_only')) {
+                collect.push({ output: list, params: current });
+                list = [ ];
+            }
         }
+
+        if (!common.isEmpty(list)) {
+            collect.push({ output: list, params: current });
+            list = [ ];
+        }
+
+        for (let i = 0; i < collect.length; i++) {
+            list = collect[i];
+
+            if ((list.params.list_mode === 'list_only') || ((list.params.list_mode === 'auto') && (list.output.length > 1))) {
+                output += Formatter.format(list.output, list.params);
+                output += '\n';
+            } else if ((list.params.list_mode === 'items_only') || ((list.params.list_mode === 'auto') && (list.output.length === 1))) {
+                output += Formatter.format(list.output[0], list.params);
+                output += '\n';
+            }
+            
+            if (i !== (collect.length - 1)) {
+                output += '\n';
+            }
+        }
+
+        return output;
     }
 
     /**

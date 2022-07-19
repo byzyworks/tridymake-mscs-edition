@@ -98,7 +98,7 @@ const toTridy = (method, opts = { }) => {
                                 cmd += ` @is \`${opts.statedata}\``;
                                 break;
                             default:
-                                cmd += ` @is @${opts.stateformat} ${opts.statedata} @end`;
+                                cmd += ` @is @${opts.stateformat} % ${opts.statedata} %`;
                                 break;
                         }
                     }
@@ -124,10 +124,14 @@ const toTridy = (method, opts = { }) => {
                     cmd += ` \`${opts.data}\``;
                     break;
                 default:
-                    cmd += ` @${opts.format} ${opts.data} @end`;
+                    cmd += ` @${opts.format} % ${opts.data} %`;
                     break;
             }
         } else if (method === 'get') {
+            if (opts.indent) {
+                cmd += ` @indent ${opts.indent}`;
+            }
+
             switch (opts.compression) {
                 case undefined:
                     break;
@@ -152,6 +156,22 @@ const toTridy = (method, opts = { }) => {
                 default:
                     throw new ServerSideServerError(`Invalid value passed to parameter "compression": "${opts.compression}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false });
             }
+
+            switch (opts.format) {
+                case 'json':
+                    cmd += ` @json`;
+                    break;
+                case 'yaml':
+                    cmd += ` @yaml`;
+                    break;
+                case 'xml':
+                    cmd += ` @xml`;
+                    break;
+                default:
+                    throw new ServerSideServerError(`Invalid value passed to parameter "format": "${opts.format}".`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false });
+            }
+
+            cmd += ` @list`;
         }
         
         cmd += ';';
@@ -164,37 +184,10 @@ const toTridy = (method, opts = { }) => {
     return cmd;
 }
 
-const getOpts = (req, res) => {
-    const opts = { };
-
-    if (req.query.mode !== undefined) {
-        opts.mode = req.query.mode;
-    }
-    if (req.query.context !== undefined) {
-        opts.context = req.query.context;
-    }
-    if (req.query.limit !== undefined) {
-        opts.limit = req.query.limit;
-    }
-    if (req.query.compression !== undefined) {
-        opts.compression = req.query.compression;
-    }
-    if ((req.query.format !== undefined) && (req.query.format !== 'mod')) {
-        opts.format = req.query.format;
-        opts.data   = req.query.data;
-    } else {
-        opts.format      = 'mod';
-        opts.type        = req.query.type;
-        opts.tags        = req.query.tags;
-        opts.stateformat = req.query.freeformat;
-        opts.statedata   = req.query.freedata;
-    }
-
-    return opts;
-}
-
 const handleRoute = async (method, req, res, next) => {
-    const opts = getOpts(req, res);
+    const opts = deepCopy(req.query);
+
+    opts.format = opts.format ?? 'mod';
 
     /**
      * "Verbatim mode" is where commands can be entered directly as Tridy code, bypassing the need for additional HTTP query parameters.
@@ -240,15 +233,19 @@ const handleRoute = async (method, req, res, next) => {
     }
 
     out = Tridy.stringify(out);
-    switch (global.output.format) {
-        case 'xml':
-            res.set('Content-Type', 'application/xml');
-            break;
+
+    switch (opts.format) {
         case 'json':
             res.set('Content-Type', 'application/json');
             break;
         case 'yaml':
             res.set('Content-Type', 'application/x-yaml');
+            break;
+        case 'xml':
+            res.set('Content-Type', 'application/xml');
+            break;
+        default:
+            res.set('Content-Type', 'application/text');
             break;
     }
     res.send(out);

@@ -10,6 +10,7 @@ import { Tag }           from './Tag.js';
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
+import { Formatter } from './Formatter.js';
 
 export class Composer {
     constructor() {
@@ -484,10 +485,18 @@ export class Composer {
     _printModule() {
         const target = this._target.peek();
 
-        let copy = Compressor.compressModule(target.getPosValue(), this._alias, this._astree.enterGetAndLeave(['compression']));
+        let copy;
+
+        this._astree.enterPos('output');
+
+        copy = Compressor.compressModule(target.getPosValue(), this._alias, this._astree.enterGetAndLeave(['compression']));
         if (copy === undefined) {
             copy = { };
         }
+
+        copy = { output: copy, params: this._astree.getPosValue() };
+
+        this._astree.leavePos();
 
         this._output.push(copy);
     }

@@ -137,32 +137,32 @@ export class Compressor {
     }
 
     static compressModule(module, alias, lvl = 0) {
-        module = common.deepCopy(module);
-
         switch (lvl) {
+            case 0:
+                return module;
             case 1:
+                module = common.deepCopy(module);
                 module = new StateTree(module, alias);
                 this._compressModuleLite(module, alias, { typeless: true, tagless: false });
-                module = module.getRaw();
-                break;
+                return module.getRaw();
             case 2:
+                module = common.deepCopy(module);
                 module = new StateTree(module, alias);
                 this._compressModuleLite(module, alias, { typeless: false, tagless: true });
-                module = module.getRaw();
-                break;
+                return module.getRaw();
             case 3:
+                module = common.deepCopy(module);
                 module = new StateTree(module, alias);
                 this._compressModuleLite(module, alias, { typeless: true, tagless: true });
-                module = module.getRaw();
-                break;
+                return module.getRaw();
             case 4:
-                module = this._compressModuleHeavy(module, alias, { strict: true });
-                break;
+                module = common.deepCopy(module);
+                return this._compressModuleHeavy(module, alias, { strict: true });
             case 5:
-                module = this._compressModuleHeavy(module, alias, { strict: false });
-                break;
+                module = common.deepCopy(module);
+                return this._compressModuleHeavy(module, alias, { strict: false });
+            default:
+                return null;
         }
-
-        return module;
     }
 }

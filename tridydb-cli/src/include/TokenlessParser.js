@@ -10,6 +10,18 @@ export class TokenlessParser {
         throw new SyntaxError('An incorrectly-formatted set of commands sent as an abstract syntax tree was received by the server, and was subsequently discarded.');
     }
 
+    static _handleInteger(input) {
+        if ((typeof input !== 'number') && !Number.isInteger(input)) {
+            this._handleUnexpected();
+        }
+    }
+
+    static _handlePositiveInteger(input) {
+        if ((typeof input !== 'number') && !Number.isInteger(input) && (Number(input) >= 0)) {
+            this._handleUnexpected();
+        }
+    }
+
     static _handleContext(input) {
         if (typeof input === 'string') {
             return;
@@ -36,18 +48,18 @@ export class TokenlessParser {
         }
     }
 
-    static _handleContextAppendixParameter(input) {
-        if (!common.isNullish(input)) {
-            if ((typeof input !== 'number') && !Number.isInteger(input) && (Number(input) >= 0)) {
-                this._handleUnexpected();
-            }
-        }
-    }
-
     static _handleContextAppendix(input) {
-        this._handleContextAppendixParameter(input.limit);
-        this._handleContextAppendixParameter(input.offset);
-        this._handleContextAppendixParameter(input.repeat);
+        if (!common.isNullish(input.limit)) {
+            this._handlePositiveInteger(input.limit);
+        }
+
+        if (!common.isNullish(input.offset)) {
+            this._handlePositiveInteger(input.offset);
+        }
+
+        if (!common.isNullish(input.repeat)) {
+            this._handlePositiveInteger(input.repeat);
+        }
     }
 
     static _handleDefinition(input) {
@@ -80,6 +92,24 @@ export class TokenlessParser {
         }
     }
 
+    static _handleOutput(input) {
+        if (!common.isNullish(input.indent)) {
+            this._handleInteger(input.indent);
+        }
+
+        if (!common.isNullish(input.compression)) {
+            this._handlePositiveInteger(input.compression);
+        }
+
+        if (typeof input.format !== 'string') {
+            this._handleUnexpected();
+        }
+
+        if (typeof input.list_mode !== 'string') {
+            this._handleUnexpected();
+        }
+    }
+
     static _handleStatement(input) {
         if (!common.isNullish(input.context)) {
             if (!common.isDictionary(input.context)) {
@@ -103,10 +133,12 @@ export class TokenlessParser {
             this._handleDefinition(input.definition);
         }
 
-        if (!common.isNullish(input.compression)) {
-            if (isNaN(input.compression)) {
+        if (!common.isNullish(input.output)) {
+            if (!common.isDictionary(input.output)) {
                 this._handleUnexpected();
             }
+
+            this._handleOutput(input.output);
         }
     }
 

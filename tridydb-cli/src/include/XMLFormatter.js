@@ -1,6 +1,6 @@
 import * as common from '../utility/common.js';
 
-export class XMLConverter {
+export class XMLFormatter {
     constructor() { }
 
     static _convertObject(input, root_key, this_key) {
