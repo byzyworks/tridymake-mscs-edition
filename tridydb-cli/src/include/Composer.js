@@ -10,7 +10,6 @@ import { Tag }           from './Tag.js';
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
-import { Formatter } from './Formatter.js';
 
 export class Composer {
     constructor() {

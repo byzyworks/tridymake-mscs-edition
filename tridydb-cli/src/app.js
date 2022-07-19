@@ -50,6 +50,7 @@ program
     .addOption(
         new Option('-i, --default-indent <indent>', 'Specify the default output indentation.')
             .default(global.defaults.output.indent)
+            .argParser(parseInt)
     )
     .addOption(
         new Option('-j, --default-output-mode <mode>', 'Specify the default output mode.')
@@ -87,6 +88,7 @@ program
     .addOption(
         new Option('-p, --remote-port <port>', 'Destination port to connect to when in client mode.')
             .default(global.defaults.remote.port)
+            .argParser(parseInt)
     )
     .addOption(
         new Option('-s, --random-seed <seeds...>', 'Set the random seeds. If there are several, TridyDB will use the first and forward the others separately on-demand.')
@@ -136,7 +138,7 @@ program
         global.output.compression = opts.defaultCompression;
         global.output.indent      = opts.defaultIndent;
         global.output.list_mode   = opts.defaultOutputMode;
-        
+
         global.log_level = opts.logLevel;
         transports.console.level = opts.logLevel;
         logger.verbose(`Console log level set to '${opts.logLevel}'.`);

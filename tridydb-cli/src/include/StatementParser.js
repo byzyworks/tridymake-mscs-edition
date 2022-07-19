@@ -74,7 +74,7 @@ export class StatementParser {
                 }
             }
 
-            if (pool[idx].is('sym', ';')) {
+            if (pool[idx].is('sym', ';') || pool[idx].is('sym', '}')) {
                 this._last_ended = true;
             } else {
                 this._last_ended = false;

@@ -19,8 +19,12 @@ export class Formatter {
                 return input;
             case 'json':
                 opts.indent = opts.indent ?? 4;
-                if (Number.isInteger(opts.indent) && (opts.indent >= 0)) {
-                    return JSON.stringify(input, null, opts.indent).replace(/\\\\/g, '\\');
+                if (Number.isInteger(opts.indent)) {
+                    if (opts.indent > 0) {
+                        return JSON.stringify(input, null, opts.indent).replace(/\\\\/g, '\\');
+                    } else if (opts.indent === 0) {
+                        return JSON.stringify(input, null, 1).replace(/\n\s+/g, "\n").replace(/\\\\/g, '\\');
+                    }
                 }
                 return JSON.stringify(input).replace(/\\\\/g, '\\');
             case 'yaml':
@@ -29,14 +33,18 @@ export class Formatter {
                     return '---';
                 }
                 if (!Number.isInteger(opts.indent) || (opts.indent < 1)) {
-                    opts.indent = 2;
+                    opts.indent = 1;
                 }
                 return "---\n" + yaml.dump(input, { indent: opts.indent }).slice(0, -1);
             case 'xml':
                 opts.indent = opts.indent ?? 4;
                 const converted = XMLFormatter.convert(input, opts.xml_list_key, opts.xml_item_key);
-                if (Number.isInteger(opts.indent) && (opts.indent >= 0)) {
-                    return xml.js2xml(converted, { compact: false, spaces: opts.indent });
+                if (Number.isInteger(opts.indent)) {
+                    if (opts.indent > 0) {
+                        return xml.js2xml(converted, { compact: false, spaces: opts.indent });
+                    } else if (opts.indent === 0) {
+                        return xml.js2xml(converted, { compact: false, spaces: 1 }).replace(/\n\s+/g, "\n");
+                    }
                 }
                 return xml.js2xml(converted, { compact: false });
             default:

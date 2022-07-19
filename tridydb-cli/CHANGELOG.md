@@ -111,6 +111,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@stat` operation clause. (PENDING)
 * Added `@import` operation clause. (PENDING)
 * Added `@export` operation clause. (PENDING)
+* Added `@file` raw input clause. (PENDING)
 * Added `@cut` operation clause. (PENDING)
 * Added `@copy` operation clause. (PENDING)
 * Added `@after` meta-operation clause. (PENDING)
@@ -135,6 +136,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added multi-seed input for `--seed` (for passing to functions).
 * Removed `--pretty`.
 * Fixed non-functional `offset` and `repeat` parameters in REST mode.
+* Removed need for semicolon after ending brackets with `@has` or multi-statements.
 
 <br>
 

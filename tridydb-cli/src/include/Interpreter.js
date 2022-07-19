@@ -212,18 +212,21 @@ export class Tridy {
      * @method
      * @param   {Array<Object>} input             Tridy query() JSON output
      * @param   {String}        opts.format       Default format to export the JSON output in. Options are 'json', 'yaml', or 'xml'. Default is 'json'.
-     * @param   {Number}        opts.indent       Default indent increment size in spaces to output with. Default is 4 spaces except for YAML, where it is 2 spaces. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 2 spaces is still default).
+     * @param   {Number}        opts.indent       Default indent increment size in spaces to output with. Default is 4 spaces except for YAML, where it is 2 spaces. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 1 space is a minimum).
      * @param   {String}        opts.list_mode    Default way to display output where there is one or multiple modules returned. By default, this is set to 'auto' where single modules are returned alone and multiple module are returned in an array, but there's also 'list_only' and 'items_only' modes.
      * @param   {String}        opts.xml_list_key The name given to the XML list tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
      * @param   {String}        opts.xml_item_key The name given to the XML individual item tags. Relevant only when the output format is 'xml'. Default is 'tree'.
      * @returns {String | null}                   Input object as a formatted string, or null if it can't be converted to one.
      */
     static stringify(input, opts = { }) {
-        opts.format       = (opts.format === 'js') ? 'json' : (opts.format ?? common.global.output.format_str ?? common.global.defaults.output.format_str);
-        opts.indent       = opts.indent       ?? common.global.output.indent     ?? common.global.defaults.output.indent;
-        opts.list_mode    = opts.list_mode    ?? common.global.output.list_mode  ?? common.global.defaults.output.list_mode;
-        opts.xml_list_key = opts.xml_list_key ?? common.global.alias.list        ?? common.global.defaults.alias.list;
-        opts.xml_item_key = opts.xml_item_key ?? common.global.alias.nested      ?? common.global.defaults.alias.nested;
+        opts.format       = opts.format       ?? common.global.output.format    ?? common.global.defaults.output.format;
+        opts.indent       = opts.indent       ?? common.global.output.indent    ?? common.global.defaults.output.indent;
+        opts.list_mode    = opts.list_mode    ?? common.global.output.list_mode ?? common.global.defaults.output.list_mode;
+        opts.xml_list_key = opts.xml_list_key ?? common.global.alias.list       ?? common.global.defaults.alias.list;
+        opts.xml_item_key = opts.xml_item_key ?? common.global.alias.nested     ?? common.global.defaults.alias.nested;
+
+        // 'js' returns an object from Formatter, 'json' returns a string.
+        opts.format = (opts.format === 'js') ? 'json' : opts.format;
 
         let output = '';
         
@@ -274,7 +277,7 @@ export class Tridy {
                 output += Formatter.format(list.output[0], list.params);
                 output += '\n';
             }
-            
+
             if (i !== (collect.length - 1)) {
                 output += '\n';
             }

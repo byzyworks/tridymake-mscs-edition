@@ -546,6 +546,7 @@ export class SyntaxParser {
 
             while (!this._tokens.peek().is('sym', '}')) {
                 this._handleStatement();
+                this._bracket_end = true;
             }
             this._astree.leaveNested();
             this._tokens.next();
@@ -706,19 +707,17 @@ export class SyntaxParser {
             this._tokens.next();
 
             current = this._tokens.peek();
-            if (!current.is('tag')) {
-                this._handleUnexpected();
-            }
-
             if (current.is('key', 'none')) {
                 this._astree.enterSetAndLeave('indent', -1);
-            } else {
+            } else if (current.is('tag')) {
                 const value = Number(current.val);
                 if (!Number.isInteger(value)) {
                     this._handleUnexpected();
                 }
     
                 this._astree.enterSetAndLeave('indent', value);
+            } else {
+                this._handleUnexpected();
             }
 
             this._tokens.next();
@@ -828,6 +827,7 @@ export class SyntaxParser {
                 this._astree.enterNested();
                 while (!this._tokens.peek().is('sym', '}')) {
                     this._handleStatement();
+                    this._bracket_end = true;
                 }
                 this._astree.leaveNested();
                 this._astree.leavePos();
@@ -882,8 +882,12 @@ export class SyntaxParser {
             }
         }
 
-        if (!this._tokens.peek().is('sym', ';')) {
-            this._handleUnexpected();
+        if (this._bracket_end === true) {
+            this._bracket_end = false;
+        } else {
+            if (!this._tokens.peek().is('sym', ';')) {
+                this._handleUnexpected();
+            }
         }
 
         this._tokens.next();

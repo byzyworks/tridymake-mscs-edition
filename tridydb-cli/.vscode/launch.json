@@ -7,7 +7,7 @@
             "name": "Launch Test File (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--default-indent", "4"],
+            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -30,7 +30,7 @@
             "name": "Launch Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console", "--file", "src/tests/_debug/test.tri", "--log-level", "debug", "--default-indent", "4"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -53,7 +53,7 @@
             "name": "Launch Client Test File (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--default-indent", "4"],
+            "args": ["inline", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -76,7 +76,7 @@
             "name": "Launch Client Test Console (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["console", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug", "--default-indent", "4"],
+            "args": ["console", "--file", "src/tests/_debug/test.tri", "--client", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
@@ -99,7 +99,7 @@
             "name": "Launch Server (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug", "--default-indent", "4"],
+            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {
