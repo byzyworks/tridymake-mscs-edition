@@ -239,7 +239,7 @@ const defaults = Object.freeze({
         tags:   'tags',
         state:  'free',
         nested: 'tree',
-        root:   'root'
+        list:   'root'
     },
     remote: {
         enable:  false,

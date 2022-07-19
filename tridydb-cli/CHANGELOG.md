@@ -111,6 +111,8 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@stat` operation clause. (PENDING)
 * Added `@import` operation clause. (PENDING)
 * Added `@export` operation clause. (PENDING)
+* Added `@cut` operation clause. (PENDING)
+* Added `@copy` operation clause. (PENDING)
 * Added `@after` meta-operation clause. (PENDING)
 * Added `@before` meta-operation clause. (PENDING)
 * Added "functions" for user-generated input in place of literal input (requires user-placed JavaScript code). (PENDING)
@@ -125,6 +127,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@binary` `@get` parameter clause. (PENDING)
 * Added `@list` `@get` parameter clause.
 * Added `@items` `@get` parameter clause.
+* Reworked output
 * Added compound value expression additive modifier `+`. (PENDING)
 * Added compound value expression multiplicative modifier `*`. (PENDING)
 * Added compound value expression exponential modifier `^`. (PENDING)

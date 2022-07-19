@@ -714,7 +714,7 @@ export class SyntaxParser {
                 this._astree.enterSetAndLeave('indent', -1);
             } else {
                 const value = Number(current.val);
-                if (!Number.isInteger(value) || (value < 0)) {
+                if (!Number.isInteger(value)) {
                     this._handleUnexpected();
                 }
     
@@ -726,38 +726,26 @@ export class SyntaxParser {
 
         current = this._tokens.peek();
         if (current.is('key', 'raw')) {
-            crude = false;
-            
             this._astree.enterSetAndLeave(['compression'], 0);
             
             this._tokens.next();
         } else if (current.is('key', 'typeless')) {
-            crude = false;
-
             this._astree.enterSetAndLeave(['compression'], 1);
 
             this._tokens.next();
         } else if (current.is('key', 'tagless')) {
-            crude = false;
-
             this._astree.enterSetAndLeave(['compression'], 2);
 
             this._tokens.next();
         } else if (current.is('key', 'trimmed')) {
-            crude = false;
-
             this._astree.enterSetAndLeave(['compression'], 3);
 
             this._tokens.next();
         } else if (current.is('key', 'merged')) {
-            crude = false;
-
             this._astree.enterSetAndLeave(['compression'], 4);
 
             this._tokens.next();
         } else if (current.is('key', 'final')) {
-            crude = false;
-
             this._astree.enterSetAndLeave(['compression'], 5);
 
             this._tokens.next();
