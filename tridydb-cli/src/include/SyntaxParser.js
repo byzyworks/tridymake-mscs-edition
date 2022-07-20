@@ -6,19 +6,21 @@ import { StateTree }     from './StateTree.js';
 import { Tag }           from './Tag.js';
 import { Token }         from './Token.js';
 
-import { global, isEmpty, isNullish, parseDynamic } from '../utility/common.js';
-import { SyntaxError }                              from '../utility/error.js';
+import * as common     from '../utility/common.js';
+import { SyntaxError } from '../utility/error.js';
 
 export class SyntaxParser {
-    constructor() { }
+    constructor() {
+        this._list_nonce = 0;
+    }
 
     _handleUnexpected(token = null) {
         token = token ?? this._tokens.peek();
         switch (token.debug.type) {
             case 'key':
-                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected clause "@${token.debug.val}".`);
+                throw new SyntaxError(Token.getPosString(token.debug) + `: Unexpected clause "@${token.debug.val}".`);
             default:
-                throw new SyntaxError(`line ${token.debug.line}, col ${token.debug.col}: Unexpected token "${token.debug.val}".`);
+                throw new SyntaxError(Token.getPosString(token.debug) + `: Unexpected token "${token.debug.val}".`);
         }
     }
 
@@ -118,7 +120,7 @@ export class SyntaxParser {
     }
 
     _isPreviousContextExpression(context) {
-        return (!isEmpty(context) && context[context.length - 1].isExpressionEnderContextToken());
+        return (!common.isEmpty(context) && context[context.length - 1].isExpressionEnderContextToken());
     }
     
     _handleContextPostfixOp(context) {
@@ -258,7 +260,7 @@ export class SyntaxParser {
     
     _handleContext() {
         let context = this._readWhileContextExpression();
-        if (isEmpty(context)) {
+        if (common.isEmpty(context)) {
             this._handleUnexpected();
         }
 
@@ -337,21 +339,21 @@ export class SyntaxParser {
             data = this._readWhileRaw({ multiline: true });
         } else if (current.is('dynpart')) {
             if (opts.string_only) {
-                throw new SyntaxError(`line ${current.debug.line}, col ${current.debug.col}: Using a dynamic (grave accent-marked) string is not allowed here.`);
+                throw new SyntaxError(Token.getPosString(current.debug) + `: Using a dynamic (grave accent-marked) string is not allowed here.`);
             }
 
             type = 'dynamic';
             data = this._readWhileRaw({ multiline: true });
         }
 
-        if (isNullish(data)) {
+        if (common.isNullish(data)) {
             return undefined;
         }
 
         if (type === 'line') {
             data = data.replace(/[\f\n\r\v]+/g, '');
         } else if (type === 'dynamic') {
-            data = parseDynamic(data);
+            data = common.parseDynamic(data);
         } else if (type !== 'multiline') {
             /**
              * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
@@ -504,17 +506,17 @@ export class SyntaxParser {
         opts.require = opts.require ?? false;
 
         const tags = this._readWhileTag();
-        if (!isEmpty(tags)) {
-            this._astree.enterSetAndLeave(global.defaults.alias.tags, tags);
+        if (!common.isEmpty(tags)) {
+            this._astree.enterSetAndLeave(common.global.defaults.alias.tags, tags);
         } else if (opts.require) {
             this._handleUnexpected();
         }
     }
 
     _handleTypeDefinitionImplicit() {
-        const tags = this._astree.enterGetAndLeave(global.defaults.alias.tags);
-        if (!isEmpty(tags)) {
-            this._astree.enterSetAndLeave(global.defaults.alias.type, Tag.getIdentifier(tags[tags.length - 1]));
+        const tags = this._astree.enterGetAndLeave(common.global.defaults.alias.tags);
+        if (!common.isEmpty(tags)) {
+            this._astree.enterSetAndLeave(common.global.defaults.alias.type, Tag.getIdentifier(tags[tags.length - 1]));
         }
     }
 
@@ -523,7 +525,7 @@ export class SyntaxParser {
         if (type === undefined) {
             this._handleUnexpected();
         }
-        this._astree.enterSetAndLeave(global.defaults.alias.type, type);
+        this._astree.enterSetAndLeave(common.global.defaults.alias.type, type);
     }
 
     _handleStateDefinition() {
@@ -531,7 +533,7 @@ export class SyntaxParser {
         if (free === undefined) {
             this._handleUnexpected();
         }
-        this._astree.enterSetAndLeave(global.defaults.alias.state, free);
+        this._astree.enterSetAndLeave(common.global.defaults.alias.state, free);
     }
 
     _handleNestedDefinition() {
@@ -645,7 +647,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.type], true);
+                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.type], true);
             } else {
                 this._handleTypeDefinitionExplicit();
             }
@@ -657,7 +659,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.tags], true);
+                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.tags], true);
             } else {
                 this._handleTagsDefinition({ require: true });
             }
@@ -669,7 +671,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.state], true);
+                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.state], true);
             } else {
                 this._handleStateDefinition();
             }
@@ -681,7 +683,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.nested], true);
+                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.nested], true);
             } else {
                 this._handleNestedDefinition();
             }
@@ -697,10 +699,12 @@ export class SyntaxParser {
 
         current = this._tokens.peek();
         if (current.is('key', 'new')) {
-            this._astree.enterSetAndLeave(['list_start'], true);
+            this._list_nonce++;
             
             this._tokens.next();
         }
+
+        this._astree.enterSetAndLeave(['list_nonce'], this._list_nonce);
 
         current = this._tokens.peek();
         if (current.is('key', 'indent')) {
@@ -780,7 +784,7 @@ export class SyntaxParser {
 
         current = this._tokens.peek();
         if (current.is('key', 'next')) {
-            this._astree.enterSetAndLeave(['list_end'], true);
+            this._list_nonce++;
             
             this._tokens.next();
         }

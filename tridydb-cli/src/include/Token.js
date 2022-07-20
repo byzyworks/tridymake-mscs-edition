@@ -1,3 +1,5 @@
+import { isNullish } from '../utility/common.js';
+
 export class Token {
     constructor(type, val, debug = { }) {
         this.type  = type;
@@ -348,5 +350,16 @@ export class Token {
             this.is('tag') ||
             this.is('key', 'uuid')
         ;
+    }
+
+    static getPosString(pos) {
+        let str = '';
+
+        if (!isNullish(pos.filepath)) {
+            str += `${pos.filepath}, `;
+        }
+        str += `line ${pos.line}, col ${pos.col}`;
+
+        return str;
     }
 }

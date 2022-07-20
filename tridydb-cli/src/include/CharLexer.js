@@ -1,10 +1,13 @@
-export class CharParser {
-    constructor() {
+export class CharLexer {
+    constructor(opts = { }) {
+        opts.filepath = opts.filepath ?? null;
+
         this._input = '';
 
-        this._pos  = 0;
-        this._line = 1;
-        this._col  = 0;
+        this._filepath = opts.filepath;
+        this._pos      = 0;
+        this._line     = 1;
+        this._col      = 0;
     }
     
     load(raw) {
@@ -39,11 +42,19 @@ export class CharParser {
         return this.peek() === '';
     }
 
+    getFilepath() {
+        return this._filepath;
+    }
+
     getLine() {
         return this._line;
     }
 
     getCol() {
         return this._col;
+    }
+
+    getPos() {
+        return { filepath: this._filepath, line: this._line, col: this._col };
     }
 }

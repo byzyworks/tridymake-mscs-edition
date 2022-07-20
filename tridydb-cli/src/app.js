@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
+import fs   from 'fs';
+import path from 'path';
 
 import { Option, program } from 'commander';
 
@@ -153,14 +154,14 @@ program
             preset = [ ];
         
             let input;
-            for (const path of opts.file) {
+            for (const filepath of opts.file) {
                 try {
-                    input = await fs.promises.readFile(path);
+                    input = await fs.promises.readFile(filepath);
                 } catch (err) {
-                    throw new Error(`Couldn't read "${path}"; file does not exist or is inaccessable.`);
+                    throw new Error(`Couldn't read "${filepath}"; file does not exist or is inaccessable.`);
                 }
         
-                input = await db.query(input, { accept_carry: false });
+                input = await db.query(input, { accept_carry: false, filepath: path.resolve(filepath) });
                 
                 for (const part of input) {
                     preset.push(part);

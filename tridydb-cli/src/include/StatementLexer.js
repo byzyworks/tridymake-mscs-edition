@@ -1,24 +1,29 @@
-import { TokenParser } from './TokenParser.js';
+import { Token }      from './Token.js';
+import { TokenLexer } from './TokenLexer.js';
 
 import { isEmpty }     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { List }        from '../utility/List.js';
 
-export class StatementParser {
+export class StatementLexer {
     constructor() {
-        this._parser = new TokenParser();
+        this._lexer = new TokenLexer();
 
         this._carry      = [ ];
         this._last_depth = 0;
         this._last_ended = false;
     }
 
-    load(input) {
-        this._parser.load(input);
+    load(input, opts) {
+        this._lexer.load(input, opts);
+    }
+
+    unload() {
+        this._lexer.unload();
     }
 
     clear() {
-        this._parser.clear();
+        this._lexer.clear();
 
         this._carry      = [ ];
         this._last_depth = 0;
@@ -49,7 +54,7 @@ export class StatementParser {
             pool.push(token);
         }
         
-        while (token = this._parser.next()) {
+        while (token = this._lexer.next()) {
             pool.push(token);
         }
 
@@ -70,7 +75,7 @@ export class StatementParser {
                 this._last_depth--;
 
                 if (this._last_depth < 0) {
-                    throw new SyntaxError(`line ${pool[idx].debug.line}, col ${pool[idx].debug.col}: Unexpected token "}".`);
+                    throw new SyntaxError(Token.getPosString(pool[idx].debug) + `: Unexpected token "}".`);
                 }
             }
 
@@ -105,6 +110,8 @@ export class StatementParser {
     }
 
     next(opts = { }) {
+        opts.accept_carry = opts.accept_carry ?? false;
+
         const tokens = this._readNext();
 
         if (!opts.accept_carry && this.isCarrying()) {

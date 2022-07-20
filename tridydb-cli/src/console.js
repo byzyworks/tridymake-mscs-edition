@@ -46,6 +46,9 @@ export const cli = async (opts = { }) => {
     while (global.exit !== true) {
         answers = await rl.question(getPrompt());
 
+        // The newline is added back since it affects lexer behavior around comments and debug information.
+        answers += "\n";
+
         let out;
         let retry = false;
         try {

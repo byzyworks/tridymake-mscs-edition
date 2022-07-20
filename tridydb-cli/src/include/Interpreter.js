@@ -4,13 +4,13 @@
  * @module
  */
 
-import axios     from 'axios';
+import axios from 'axios';
 
-import { Composer }        from './Composer.js';
-import { Formatter }       from './Formatter.js';
-import { SyntaxParser }    from './SyntaxParser.js';
-import { StatementParser } from './StatementParser.js';
-import { StateTree }       from './StateTree.js';
+import { Composer }       from './Composer.js';
+import { Formatter }      from './Formatter.js';
+import { SyntaxParser }   from './SyntaxParser.js';
+import { StatementLexer } from './StatementLexer.js';
+import { StateTree }      from './StateTree.js';
 
 import * as common                            from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
@@ -55,9 +55,9 @@ const sendTridyRequest = async (data, remote) => {
  */
 export class Tridy {
     constructor(opts = { }) {
-        this._tokenizer = new StatementParser();
-        this._parser    = new SyntaxParser();
-        this._composer  = new Composer();
+        this._lexer    = new StatementLexer();
+        this._parser   = new SyntaxParser();
+        this._composer = new Composer();
     }
 
     /**
@@ -93,6 +93,7 @@ export class Tridy {
      * @param   {String}  input             Tridy command(s)/statement(s).
      * @param   {Boolean} opts.tokenless    Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
      * @param   {Boolean} opts.accept_carry True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
+     * @param   {String}  opts.filepath     Path of the file that is the source of the command(s)/statement(s). Used for debugging. Default is null.
      * @param   {Boolean} opts.client_mode  True to run as a client, false to run standalone / as a server. Default is false.
      * @param   {String}  opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
      * @param   {Number}  opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
@@ -108,6 +109,7 @@ export class Tridy {
     async query(input, opts = { }) {
         opts.tokenless    = opts.tokenless    ?? false;
         opts.accept_carry = opts.accept_carry ?? false;
+        opts.filepath     = opts.filepath     ?? null;
 
         const alias = {
             type:   opts.type_key ?? common.global.alias.type   ?? common.global.defaults.alias.type,
@@ -126,7 +128,7 @@ export class Tridy {
         let output = [ ];
 
         if (!opts.tokenless) {
-            this._tokenizer.load(input);
+            this._lexer.load(input, { filepath: opts.filepath });
         }
 
         let code;
@@ -148,7 +150,7 @@ export class Tridy {
                 output.push(part);
             }
         } else {
-            while (code = this._tokenizer.next({ accept_carry: opts.accept_carry })) {
+            while (code = this._lexer.next({ accept_carry: opts.accept_carry })) {
                 // The two tokens are the clause and the semicolon.
                 if (code.length() === 2) {
                     if (code.peek().is('key', 'clear')) {
@@ -172,10 +174,13 @@ export class Tridy {
                     code = this._composer.compose(code, alias);
                 }
 
-
                 for (const part of code) {
                     output.push(part);
                 }
+            }
+
+            if (opts.filepath !== null) {
+                this._lexer.unload();
             }
         }
 
@@ -190,7 +195,7 @@ export class Tridy {
      * @returns {Boolean} True if carrying, false if not.
      */
     isCarrying() {
-        return this._tokenizer.isCarrying();
+        return this._lexer.isCarrying();
     }
 
     /**
@@ -200,7 +205,7 @@ export class Tridy {
      * @method
      */
     clearCarry() {
-        this._tokenizer.clear();
+        this._lexer.clear();
     }
 
     /**
@@ -249,14 +254,15 @@ export class Tridy {
             current.xml_list_key = opts.xml_list_key;
             current.xml_item_key = opts.xml_item_key;
 
-            if (!common.isEmpty(list) && (current.list_start || (current.list_mode === 'items_only') || (current.format !== last.format) || (current.indent !== last.indent))) {
+            // !common.isEmpty(list) --> last !== null
+            if (!common.isEmpty(list) && ((current.list_mode === 'items_only') || (current.format !== last.format) || (current.indent !== last.indent) || (current.list_nonce !== last.list_nonce))) {
                 collect.push({ output: list, params: last });
                 list = [ ];
             }
 
             list.push(module);
 
-            if (current.list_end || (current.list_mode === 'items_only')) {
+            if (current.list_mode === 'items_only') {
                 collect.push({ output: list, params: current });
                 list = [ ];
             }

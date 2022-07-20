@@ -1,24 +1,44 @@
-import { CharParser } from './CharParser.js';
-import { Token }      from './Token.js';
+import { CharLexer } from './CharLexer.js';
+import { Token }     from './Token.js';
 
 import { isEmpty, not } from '../utility/common.js';
 import { SyntaxError }  from '../utility/error.js';
 import { Stack }        from '../utility/Stack.js';
 
-export class TokenParser {
+export class TokenLexer {
     constructor() {
-        this._parser = new CharParser();
+        this._lexers = new Stack();
+        this._lexer  = new CharLexer();
+        this._lexers.push(this._lexer);
 
         this._mode    = new Stack();
         this._current = null;
     }
 
-    load(input) {
-        this._parser.load(input);
+    load(input, opts = { }) {
+        opts.filepath = opts.filepath ?? null;
+
+        if (opts.filepath === null) {
+            this._lexer.load(input);
+        } else {
+            this._lexer = new CharLexer({ filepath: opts.filepath });
+            this._lexers.push(this._lexer);
+            this._lexer.load(input);
+        }
+    }
+
+    unload() {
+        const length = this._lexers.length();
+        if (length > 1) {
+            this._lexers.pop();
+            this._lexer = this._lexers.peek();
+        } else if (length === 1) {
+            this._lexer.clear();
+        }
     }
 
     clear() {
-        this._parser.clear();
+        this._lexer.clear();
 
         this._mode    = new Stack();
         this._current = null;
@@ -81,14 +101,10 @@ export class TokenParser {
         return ch === '#';
     }
 
-    _getPos() {
-        return { line: this._parser.getLine(), col: this._parser.getCol() };
-    }
-
     _readWhilePred(pred) {
         let str = '';
-        while (!this._parser.isEOF() && pred(this._parser.peek())) {
-            str += this._parser.next();
+        while (!this._lexer.isEOF() && pred(this._lexer.peek())) {
+            str += this._lexer.next();
         }
 
         return str;
@@ -99,37 +115,37 @@ export class TokenParser {
         let str        = '';
         let ch;
 
-        while (!this._parser.isEOF()) {
-            ch = this._parser.peek();
+        while (!this._lexer.isEOF()) {
+            ch = this._lexer.peek();
 
             if (is_escaped) {
-                this._parser.next();
+                this._lexer.next();
                 str += ch;
                 is_escaped = false;
             } else if (this._isEscape(ch)) {
-                this._parser.next();
+                this._lexer.next();
                 is_escaped = true;
             } else if (this._isCommentStart(ch)) {
                 this._mode.push('normal');
                 break;
             } else if (this._isSingleLineStringQuote(ch) && (this._mode.peek() === 'line')) {
-                this._parser.next();
+                this._lexer.next();
                 this._mode.pop();
                 break;
             } else if (this._isMultiLineStringQuote(ch) && (this._mode.peek() === 'multiline')) {
-                this._parser.next();
+                this._lexer.next();
                 this._mode.pop();
                 break;
             } else if (this._isDynamicStringQuote(ch) && (this._mode.peek() === 'dynamic')) {
-                this._parser.next();
+                this._lexer.next();
                 this._mode.pop();
                 break;
             } else if (this._isDataStringQuote(ch) && (this._mode.peek() === 'data')) {
-                this._parser.next();
+                this._lexer.next();
                 this._mode.pop();
                 break;
             } else {
-                this._parser.next();
+                this._lexer.next();
                 str += ch;
             }
         }
@@ -138,19 +154,19 @@ export class TokenParser {
     }
 
     _readKeyword() {
-        const pos = this._getPos();
+        const pos = this._lexer.getPos();
         pos.col--;
 
         const keyword = this._readWhilePred(this._isIdentifier.bind(this)).toLowerCase();
         if (isEmpty(keyword)) {
-            throw new SyntaxError(`line ${pos.line}, col ${pos.col}: No valid identifier after "@".`);
+            throw new SyntaxError(Token.getPosString(pos) + `: No valid identifier after "@".`);
         }
 
         return new Token('key', keyword, pos);
     }
 
     _readTag() {
-        const pos = this._getPos();
+        const pos = this._lexer.getPos();
 
         const tag = this._readWhilePred(this._isTag.bind(this));
 
@@ -158,48 +174,48 @@ export class TokenParser {
     }
 
     _readSymbols() {
-        const pos = this._getPos();
+        const pos = this._lexer.getPos();
 
         let sym = '';
-        let ch  = this._parser.peek();
+        let ch  = this._lexer.peek();
         let pre;
         switch (ch) {
             case '!':
             case '=':
-                sym += this._parser.next();
-                ch  =  this._parser.peek();
+                sym += this._lexer.next();
+                ch  =  this._lexer.peek();
                 if (ch === '=') {
-                    sym += this._parser.next();
+                    sym += this._lexer.next();
                 }
                 break;
             case '<':
             case '>':
-                sym += this._parser.next();
+                sym += this._lexer.next();
                 pre =  ch;
-                ch  =  this._parser.peek();
+                ch  =  this._lexer.peek();
                 if (ch === '=') {
-                    sym += this._parser.next();
+                    sym += this._lexer.next();
                 } else if (ch === pre) {
-                    sym += this._parser.next();
+                    sym += this._lexer.next();
                 }
                 break;
             case '/':
-                sym += this._parser.next();
+                sym += this._lexer.next();
                 pre =  ch;
-                ch  =  this._parser.peek();
+                ch  =  this._lexer.peek();
                 if (ch === pre) {
-                    sym += this._parser.next();
+                    sym += this._lexer.next();
                 }
                 break;
             default:
-                sym += this._parser.next();
+                sym += this._lexer.next();
         }
 
         return new Token('sym', sym, pos);
     }
 
     _readRaw() {
-        const pos = this._getPos();
+        const pos = this._lexer.getPos();
 
         let type;
         switch (this._mode.peek()) {
@@ -224,14 +240,14 @@ export class TokenParser {
         this._readWhilePred((ch) => {
             return ch !== "\n";
         });
-        if (this._parser.peek() === "\n") {
+        if (this._lexer.peek() === "\n") {
             // The condition is because console mode in particular strips out line feeds prematurely.
-            this._parser.next();
+            this._lexer.next();
         }
     }
     
     _readNext() {
-        if (this._parser.isEOF()) {
+        if (this._lexer.isEOF()) {
             return null;
         }
 
@@ -249,10 +265,10 @@ export class TokenParser {
             this._mode.pop();
         }
 
-        const ch = this._parser.peek();
+        const ch = this._lexer.peek();
 
         if (this._isKeywordStart(ch)) {
-            this._parser.next();
+            this._lexer.next();
             return this._readKeyword();
         }
 
@@ -265,25 +281,25 @@ export class TokenParser {
         }
 
         if (this._isSingleLineStringQuote(ch)) {
-            this._parser.next();
+            this._lexer.next();
             this._mode.push('line');
             return this._readRaw();
         }
 
         if (this._isMultiLineStringQuote(ch)) {
-            this._parser.next();
+            this._lexer.next();
             this._mode.push('multiline');
             return this._readRaw();
         }
 
         if (this._isDynamicStringQuote(ch)) {
-            this._parser.next();
+            this._lexer.next();
             this._mode.push('dynamic');
             return this._readRaw();
         }
 
         if (this._isDataStringQuote(ch)) {
-            this._parser.next();
+            this._lexer.next();
             this._mode.push('data');
             return this._readRaw();
         }
@@ -291,19 +307,18 @@ export class TokenParser {
         // This function needs to return something always, at least until it reaches the end of the input.
         // The statement parser will stop checking for new tokens once this function returns null or undefined.
         if (this._isCommentStart(ch)) {
-            this._parser.next();
+            this._lexer.next();
             this._readComment();
             return this._readNext();
         }
 
         this._readWhilePred(this._isWhitespace.bind(this));
 
-        if (this._parser.isEOF()) {
+        if (this._lexer.isEOF()) {
             return null;
         }
 
-        const pos = this._getPos();
         const anomaly = this._readWhilePred(not(this._isWhitespace.bind(this)));
-        throw new SyntaxError(`line ${pos.line}, col ${pos.col}: Unknown token type of "${anomaly}".`);
+        throw new SyntaxError(Token.getPosString(this._lexer.getPos()) + `: Unknown token type of "${anomaly}".`);
     }
 }

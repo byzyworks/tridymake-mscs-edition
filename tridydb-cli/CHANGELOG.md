@@ -128,15 +128,19 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@binary` `@get` parameter clause. (PENDING)
 * Added `@list` `@get` parameter clause.
 * Added `@items` `@get` parameter clause.
+* Added `@new` (list-controlling) `@get` parameter clause.
+* Added `@next` (list-controlling) `@get` parameter clause.
 * Reworked output
 * Added compound value expression additive modifier `+`. (PENDING)
 * Added compound value expression multiplicative modifier `*`. (PENDING)
 * Added compound value expression exponential modifier `^`. (PENDING)
 * Removed context-locking.
 * Added multi-seed input for `--seed` (for passing to functions).
-* Removed `--pretty`.
+* Removed `--pretty` program argument.
 * Fixed non-functional `offset` and `repeat` parameters in REST mode.
 * Removed need for semicolon after ending brackets with `@has` or multi-statements.
+* Fixed bug where line number (displayed debugging information) wouldn't increment in multi-line console mode input.
+* Added file path to displayed debugging information.
 
 <br>
 
