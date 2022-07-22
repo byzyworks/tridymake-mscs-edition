@@ -101,8 +101,10 @@ export class TokenlessParser {
             this._handlePositiveInteger(input.compression);
         }
 
-        if (typeof input.format !== 'string') {
-            this._handleUnexpected();
+        if (!common.isNullish(input.format)) {
+            if (typeof input.format !== 'string') {
+                this._handleUnexpected();
+            }
         }
 
         if (typeof input.list_mode !== 'string') {

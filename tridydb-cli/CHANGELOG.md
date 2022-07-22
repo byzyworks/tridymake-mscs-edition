@@ -109,9 +109,9 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@repeat` clause to complement `@limit` and retry every module again for the same statement *n* times.
 * Added statistic output for non-`@get` operations when log level >= verbose. (PENDING)
 * Added `@stat` operation clause. (PENDING)
-* Added `@import` operation clause. (PENDING)
+* Added `@import` operation clause.
 * Added `@export` operation clause. (PENDING)
-* Added `@file` raw input clause. (PENDING)
+* Added `@file` raw input clause.
 * Added `@cut` operation clause. (PENDING)
 * Added `@copy` operation clause. (PENDING)
 * Added `@after` meta-operation clause. (PENDING)
@@ -130,17 +130,22 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@items` `@get` parameter clause.
 * Added `@new` (list-controlling) `@get` parameter clause.
 * Added `@next` (list-controlling) `@get` parameter clause.
-* Reworked output
+* Reworked output behavior.
 * Added compound value expression additive modifier `+`. (PENDING)
 * Added compound value expression multiplicative modifier `*`. (PENDING)
 * Added compound value expression exponential modifier `^`. (PENDING)
 * Removed context-locking.
 * Added multi-seed input for `--seed` (for passing to functions).
-* Removed `--pretty` program argument.
+* Removed `--pretty` program option (this is now the default).
 * Fixed non-functional `offset` and `repeat` parameters in REST mode.
 * Removed need for semicolon after ending brackets with `@has` or multi-statements.
 * Fixed bug where line number (displayed debugging information) wouldn't increment in multi-line console mode input.
 * Added file path to displayed debugging information.
+* Added `--server-preformat` program option.
+* Added `--server-allow-restful` program option.
+* Added `--server-allow-verbatim` program option.
+* Added `--server-deny-syntax-tree` program option.
+* Limited functionality of `@clear` and `@exit` to console mode.
 
 <br>
 

@@ -4,25 +4,30 @@ import { StatusCodes } from 'http-status-codes';
 import { Tridy }           from '../include/Interpreter.js';
 import { TokenlessParser } from '../include/TokenlessParser.js';
 
-import { global }                             from '../utility/common.js';
+import { global, deepCopy, isEmpty }          from '../utility/common.js';
 import { SyntaxError, ServerSideServerError } from '../utility/error.js';
 import { logger }                             from '../utility/logger.js';
 
 import { db } from '../database.js';
 
 const toTridy = (method, opts = { }) => {
-    // Yes, this is vulnerable to injection. No, don't use this except locally.
-    // At the very least treat the port for this like you would any other database port.
+    /**
+     * Yes, RESTful mode is potentially vulnerable to injection.
+     * Verbatim mode is just RESTful mode that decided to stop caring what you send it.
+     * Anything except syntax tree mode should be avoided.
+     * Even with it, it's better not to run a TridyDB server except locally.
+     * At the very least treat the port for this like you would any other database port.
+     */
 
     let cmd;
 
-    if ((opts.format === 'verb') || (opts.format === 'astree')) {
-        if (opts.format === 'astree') {
-            logger.debug(`Received Tridy syntax: ${opts.data}`);
+    if (opts.format === 'astree') {
+        logger.debug(`Received Tridy syntax: ${opts.data}`);
 
-            TokenlessParser.parse(opts.data);
-        }
+        TokenlessParser.parse(opts.data);
 
+        cmd = opts.data;
+    } else if (opts.format === 'verb') {
         cmd = opts.data;
     } else {
         cmd = '';
@@ -189,6 +194,23 @@ const handleRoute = async (method, req, res, next) => {
 
     opts.format = opts.format ?? 'mod';
 
+    if (opts.format === 'astree') {
+        const allow_tree = global.server.allow_tree ?? global.defaults.server.allow_tree;
+        if (!allow_tree) {
+            return next(new ServerSideServerError(`The server received an syntax tree query even though syntax tree mode is disabled.`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
+        }
+    } else if (opts.format === 'verb') {
+        const allow_verb = global.server.allow_verb ?? global.defaults.server.allow_verb;
+        if (!allow_verb) {
+            return next(new ServerSideServerError(`The server received a verbatim query even though verbatim mode is disabled.`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
+        }
+    } else {
+        const allow_rest = global.server.allow_rest ?? global.defaults.server.allow_rest;
+        if (!allow_rest) {
+            return next(new ServerSideServerError(`The server (presumably) received a RESTful query even though RESTful mode is disabled.`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
+        }
+    }
+
     /**
      * "Verbatim mode" is where commands can be entered directly as Tridy code, bypassing the need for additional HTTP query parameters.
      * It is the only way to send a Tridy command to the server that contains nested statements.
@@ -232,23 +254,31 @@ const handleRoute = async (method, req, res, next) => {
         throw err;
     }
 
-    out = Tridy.stringify(out);
-
-    switch (opts.format) {
-        case 'json':
-            res.set('Content-Type', 'application/json');
-            break;
-        case 'yaml':
-            res.set('Content-Type', 'application/x-yaml');
-            break;
-        case 'xml':
-            res.set('Content-Type', 'application/xml');
-            break;
-        default:
-            res.set('Content-Type', 'application/text');
-            break;
+    const preformat = global.output.preformat ?? global.defaults.output.preformat;
+    if (preformat) {
+        if (!isEmpty(out)) {
+            out = Tridy.stringify(out);
+        }
+    
+        switch (opts.format) {
+            case 'json':
+                res.set('Content-Type', 'application/json');
+                break;
+            case 'yaml':
+                res.set('Content-Type', 'application/x-yaml');
+                break;
+            case 'xml':
+                res.set('Content-Type', 'application/xml');
+                break;
+            default:
+                res.set('Content-Type', 'application/text');
+                break;
+        }
+    
+        res.send(out);
+    } else {
+        res.json(out);
     }
-    res.send(out);
 }
 
 export const routes = express.Router();

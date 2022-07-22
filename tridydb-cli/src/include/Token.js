@@ -310,6 +310,12 @@ export class Token {
         ;
     }
 
+    isImportOpToken() {
+        return false ||
+            this.is('key', 'import')
+        ;
+    }
+
     isRawInputStringStartToken() {
         return false ||
             this.is('lpart') ||
@@ -327,9 +333,9 @@ export class Token {
 
     isRawInputStartToken() {
         return false ||
-            this.is('key', 'xml') ||
             this.is('key', 'json') ||
             this.is('key', 'yaml') ||
+            this.is('key', 'xml') ||
             this.isRawInputStringStartToken()
         ;
     }

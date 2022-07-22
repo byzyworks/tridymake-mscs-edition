@@ -7,9 +7,9 @@ import { Option, program } from 'commander';
 
 import { Tridy } from './include/Interpreter.js';
 
-import { APP, global, isNullish }         from './utility/common.js';
-import { error_handler }                  from './utility/error.js';
-import { transports, logger, log_levels } from './utility/logger.js';
+import { APP, global, isEmpty, isNullish } from './utility/common.js';
+import { error_handler, SyntaxError }      from './utility/error.js';
+import { transports, logger, log_levels }  from './utility/logger.js';
 
 import { db }     from './database.js';
 import { cli }    from './console.js';
@@ -103,8 +103,20 @@ program
             .default(global.defaults.alias.type)
     )
     .addOption(
+        new Option('--server-allow-verbatim', 'Allows verbatim (raw token string) queries to be sent to this server. Only applies in server mode. Disabled by default for security reasons.')
+    )
+    .addOption(
+        new Option('--server-allow-restful', 'Allows structured RESTful queries to be sent to this server. Only applies in server mode. Disabled by default for security reasons.')
+    )
+    .addOption(
+        new Option('--server-deny-syntax-trees', 'Denies abstract syntax tree queries sent to this server. Only applies in server mode. Note that this will cause problems with TridyDB clients.')
+    )
+    .addOption(
         new Option('-P, --server-port <port>', 'The port number to bind to when in server mode.')
-            .default(global.defaults.remote.port)
+            .default(global.defaults.server.port)
+    )
+    .addOption(
+        new Option('--server-preformat', 'Whether the server should send a JSON with format metadata kept separate or a response with that metadata already merged in. Use only if interacting directly with another application that needs a specific format.')
     )
     .addOption(
         new Option('--tags-key <key>', 'The key under which tags are imported and exported as.')
@@ -134,6 +146,12 @@ program
         global.remote.port    = opts.remotePort;
         global.remote.timeout = opts.remoteTimeout;
 
+        global.server.port       = opts.serverPort;
+        global.server.preformat  = opts.serverPreformat;
+        global.server.allow_tree = !opts.serverDenySyntaxTrees;
+        global.server.allow_verb = opts.serverAllowVerbatim;
+        global.server.allow_rest = opts.serverAllowRestful;
+
         global.output             = { };
         global.output.format      = opts.defaultFormat;
         global.output.compression = opts.defaultCompression;
@@ -156,12 +174,20 @@ program
             let input;
             for (const filepath of opts.file) {
                 try {
-                    input = await fs.promises.readFile(filepath);
+                    input = await fs.promises.readFile(filepath, 'utf-8');
                 } catch (err) {
                     throw new Error(`Couldn't read "${filepath}"; file does not exist or is inaccessable.`);
                 }
         
-                input = await db.query(input, { accept_carry: false, filepath: path.resolve(filepath) });
+                try {
+                    input = await db.query(input, { accept_carry: false, filepath: path.resolve(filepath) });
+                } catch (err) {
+                    if (err instanceof SyntaxError) {
+                        error_handler.handle(err);
+                    } else {
+                        throw err;
+                    }
+                }
                 
                 for (const part of input) {
                     preset.push(part);
@@ -181,7 +207,9 @@ program
             program.error('error: either --command or --file need to be given inside of inline mode.');
         }
 
-        preset = Tridy.stringify(preset);
+        if (!isEmpty(preset)) {
+            preset = Tridy.stringify(preset);
+        }
 
         console.log(preset);
     })

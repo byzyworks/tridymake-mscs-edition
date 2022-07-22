@@ -1,6 +1,6 @@
 export class Stack {
-    constructor() {
-        this._arr = [ ];
+    constructor(preset = null) {
+        this._arr = preset ?? [ ];
     }
 
     toArray() {

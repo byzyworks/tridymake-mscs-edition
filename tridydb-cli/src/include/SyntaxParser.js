@@ -1,13 +1,17 @@
+import fs from 'fs';
+
 import * as xml  from 'xml-js';
 import * as yaml from 'js-yaml';
 
 import { ContextParser } from './ContextParser.js';
+import { Tridy }         from './Interpreter.js';
 import { StateTree }     from './StateTree.js';
 import { Tag }           from './Tag.js';
 import { Token }         from './Token.js';
 
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
+import { List }        from '../utility/List.js';
 
 export class SyntaxParser {
     constructor() {
@@ -22,6 +26,22 @@ export class SyntaxParser {
             default:
                 throw new SyntaxError(Token.getPosString(token.debug) + `: Unexpected token "${token.debug.val}".`);
         }
+    }
+
+    _handleControlOperation() {
+        // Control statements tend to have functionality that is handled elsewhere.
+        const current = this._tokens.peek();
+        if (current.is('key', 'tridy')) {
+            this._tokens.next();
+        } else if (current.is('key', 'clear')) {
+            common.global.flags.clear = true;
+
+            this._tokens.next();
+        } else if (current.is('key', 'exit')) {
+            common.global.flags.exit = true;
+
+            this._tokens.next();
+        }   
     }
 
     // The operator given below is what the parser assumes the user means when two operands are separated by no operand other than a whitespace.
@@ -306,7 +326,7 @@ export class SyntaxParser {
         return data;
     }
 
-    _readWhileRawAndParse(opts = { }) {
+    async _readWhileRawAndParse(opts = { }) {
         opts.string_only = opts.string_only ?? false;
         /**
          * Note to return undefined when the raw input stream is empty or its value cannot be determined, and avoid returning null under such circumstances.
@@ -314,10 +334,11 @@ export class SyntaxParser {
          * Undefined would never be returned since JSON does not translate a literal undefined value to a native type, unlike null.
          */
 
+        let current;
         let type;
         let data;
 
-        const current = this._tokens.peek();
+        current = this._tokens.peek();
         if (!current.isRawInputStartToken()) {
             return undefined;
         }
@@ -330,7 +351,15 @@ export class SyntaxParser {
             this._tokens.next();
 
             type = current.val;
-            data = this._readWhileRaw({ multiline: true });
+
+            current = this._tokens.peek();
+            if (current.is('key', 'file')) {
+                this._tokens.next();
+
+                data = (await this._readFileImport()).content;
+            } else {
+                data = this._readWhileRaw({ multiline: true });
+            }
         } else if (current.is('lpart')) {
             type = 'line';
             data = this._readWhileRaw({ multiline: false });
@@ -372,6 +401,16 @@ export class SyntaxParser {
         
         try {
             switch (type) {
+                case 'line':
+                case 'multiline':
+                case 'dynamic':
+                    break;
+                case 'json':
+                    data = JSON.parse(data);
+                    break;
+                case 'yaml':
+                    data = yaml.load(data);
+                    break;
                 case 'xml':
                     /**
                      * The "root" tags are stripped out automatically by the XML converter.
@@ -383,16 +422,6 @@ export class SyntaxParser {
                     data      = xml.xml2js(data, { compact: false });
                     data._xml = true;
                     break;
-                case 'json':
-                    data = JSON.parse(data);
-                    break;
-                case 'yaml':
-                    data = yaml.load(data);
-                    break;
-                case 'line':
-                case 'multiline':
-                case 'dynamic':
-                    break;
             }
         } catch (err) {
             throw new SyntaxError(err.message);
@@ -401,8 +430,8 @@ export class SyntaxParser {
         return data;
     }
 
-    _handleRawDefinition() {
-        const raw = this._readWhileRawAndParse({ string_only: false });
+    async _handleRawDefinition() {
+        const raw = await this._readWhileRawAndParse({ string_only: false });
         if (raw === undefined) {
             this._handleUnexpected();
         }
@@ -442,6 +471,10 @@ export class SyntaxParser {
             }
 
             this._astree.enterPos('definition');
+        } else if (current.isImportOpToken()) {
+            if (current.is('key', 'import')) {
+                this._astree.enterSetAndLeave('operation', 'import');
+            }
         } else {
             this._handleUnexpected(current);
         }
@@ -520,23 +553,23 @@ export class SyntaxParser {
         }
     }
 
-    _handleTypeDefinitionExplicit() {
-        const type = this._readWhileRawAndParse({ string_only: true });
+    async _handleTypeDefinitionExplicit() {
+        const type = await this._readWhileRawAndParse({ string_only: true });
         if (type === undefined) {
             this._handleUnexpected();
         }
         this._astree.enterSetAndLeave(common.global.defaults.alias.type, type);
     }
 
-    _handleStateDefinition() {
-        const free = this._readWhileRawAndParse({ string_only: false });
+    async _handleStateDefinition() {
+        const free = await this._readWhileRawAndParse({ string_only: false });
         if (free === undefined) {
             this._handleUnexpected();
         }
         this._astree.enterSetAndLeave(common.global.defaults.alias.state, free);
     }
 
-    _handleNestedDefinition() {
+    async _handleNestedDefinition() {
         if (this._tokens.peek().is('key', 'none')) {
             this._tokens.next();
         } else {
@@ -547,7 +580,7 @@ export class SyntaxParser {
             this._tokens.next();
 
             while (!this._tokens.peek().is('sym', '}')) {
-                this._handleStatement();
+                await this._handleStatement();
                 this._bracket_end = true;
             }
             this._astree.leaveNested();
@@ -555,7 +588,7 @@ export class SyntaxParser {
         }
     }
 
-    _handleDefinition() {
+    async _handleDefinition() {
         // As usual, the grammar of the language is meant to appeal to different styles by offering different options with the same outcome.
         // Here, the user has three possible ways to enter tags: "@tridy @as <tags>", "@as <tags>", or just "<tags>".
         // The first option, for instance, is just an optional way to distinguish it from the raw input (e.g. "@json % ... %") options that specify a format first.
@@ -568,7 +601,7 @@ export class SyntaxParser {
                 if (this._tokens.peek().is('key', 'none')) {
                     this._tokens.next();
                 } else {
-                    this._handleTypeDefinitionExplicit();
+                    await this._handleTypeDefinitionExplicit();
                 }
             }
 
@@ -587,7 +620,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
             } else {
-                this._handleTypeDefinitionExplicit();
+                await this._handleTypeDefinitionExplicit();
             }
 
             if (this._tokens.peek().is('key', 'as')) {
@@ -623,7 +656,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
             } else {
-                this._handleStateDefinition();
+                await this._handleStateDefinition();
             }
         }
 
@@ -633,14 +666,14 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
             } else {
-                this._handleNestedDefinition();
+                await this._handleNestedDefinition();
             }
         }
 
         this._astree.leavePos();
     }
 
-    _handleEditDefinition() {
+    async _handleEditDefinition() {
         if (this._tokens.peek().is('key', 'of')) {
             this._tokens.next();
     
@@ -649,7 +682,7 @@ export class SyntaxParser {
 
                 this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.type], true);
             } else {
-                this._handleTypeDefinitionExplicit();
+                await this._handleTypeDefinitionExplicit();
             }
         }
         
@@ -673,7 +706,7 @@ export class SyntaxParser {
 
                 this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.state], true);
             } else {
-                this._handleStateDefinition();
+                await this._handleStateDefinition();
             }
         }
 
@@ -685,7 +718,7 @@ export class SyntaxParser {
 
                 this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.nested], true);
             } else {
-                this._handleNestedDefinition();
+                await this._handleNestedDefinition();
             }
         }
 
@@ -792,14 +825,46 @@ export class SyntaxParser {
         this._astree.leavePos();
     }
 
-    _handleStatement() {
+    async _readFileImport() {
+        const link = await this._readWhileRawAndParse({ string_only: true });
+        if (link === undefined) {
+            this._handleUnexpected();
+        }
+
+        let content;
+        try {
+            content = await fs.promises.readFile(link, 'utf-8');
+        } catch (err) {
+            throw new SyntaxError(`Couldn't read "${link}"; file does not exist or is inaccessable.`);
+        }
+
+        return {
+            link:    link,
+            content: content
+        };
+    }
+
+    async _handleImportOperation() {
+        const imported = await this._readFileImport();
+
+        const handler = new Tridy();
+        const output  = await handler.query(imported.content, {
+            tokenless:    false,
+            accept_carry: false,
+            filepath:     imported.link,
+            astree_only:  true
+        });
+        
+        if (!common.isEmpty(output)) {
+            this._astree.enterSetAndLeave(['definition'], output);
+        }
+    }
+
+    async _handleStatement() {
         let current;
 
         if (this._tokens.peek().isControlOpToken()) {
-            // As a control statement, the functionality for it is handled directly by the interpreter, and not here.
-            // This forces it to be handled from a client's perspective, thus having no effect on a server, other than it being accepted.
-
-            this._tokens.next();  
+            this._handleControlOperation();
         } else {
             /**
              * '@in' should be required to give a context expression with some operations.
@@ -844,10 +909,10 @@ export class SyntaxParser {
     
                     switch (this._astree.getTopPos()) {
                         case 'raw':
-                            this._handleRawDefinition();
+                            await this._handleRawDefinition();
                             break;
                         case 'definition':
-                            this._handleDefinition();
+                            await this._handleDefinition();
                             break;
                     }
                 } else if (operation_token.isAffectingOpToken()) {
@@ -869,7 +934,7 @@ export class SyntaxParser {
                 } else if (operation_token.isGeneralEditingOpToken()) {
                     this._handleOperation();
     
-                    this._handleEditDefinition();
+                    await this._handleEditDefinition();
                 } else if (operation_token.isTagEditingOpToken()) {
                     this._handleOperation();
 
@@ -882,6 +947,10 @@ export class SyntaxParser {
                     } else {
                         this._handleTagsDefinition({ require: false });
                     }
+                } else if (operation_token.isImportOpToken()) {
+                    this._handleOperation();
+
+                    await this._handleImportOperation();
                 }
             }
         }
@@ -899,17 +968,17 @@ export class SyntaxParser {
         this._astree.nextItem();
     }
 
-    parse(input, opts = { }) {
-        this._tokens = input;
+    async parse(tokens, opts = { }) {
+        this._tokens = new List(tokens);
 
         this._astree = new StateTree();
 
         this._astree.enterNested();
-        while (!this._tokens.isEnd()) {
-            this._handleStatement();
+        while (!this._tokens.isEnd() && (common.global.flags.exit !== true)) {
+            await this._handleStatement();
         }
         this._astree.leaveNested();
 
-        return this._astree;
+        return this._astree.getRaw();
     }
 }

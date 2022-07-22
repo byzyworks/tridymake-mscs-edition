@@ -1,16 +1,13 @@
 import { CharLexer } from './CharLexer.js';
 import { Token }     from './Token.js';
 
-import { isEmpty, not } from '../utility/common.js';
-import { SyntaxError }  from '../utility/error.js';
-import { Stack }        from '../utility/Stack.js';
+import { not }         from '../utility/common.js';
+import { SyntaxError } from '../utility/error.js';
+import { Stack }       from '../utility/Stack.js';
 
 export class TokenLexer {
     constructor() {
-        this._lexers = new Stack();
-        this._lexer  = new CharLexer();
-        this._lexers.push(this._lexer);
-
+        this._lexer   = new CharLexer();
         this._mode    = new Stack();
         this._current = null;
     }
@@ -18,23 +15,11 @@ export class TokenLexer {
     load(input, opts = { }) {
         opts.filepath = opts.filepath ?? null;
 
-        if (opts.filepath === null) {
-            this._lexer.load(input);
-        } else {
-            this._lexer = new CharLexer({ filepath: opts.filepath });
-            this._lexers.push(this._lexer);
-            this._lexer.load(input);
-        }
-    }
-
-    unload() {
-        const length = this._lexers.length();
-        if (length > 1) {
-            this._lexers.pop();
-            this._lexer = this._lexers.peek();
-        } else if (length === 1) {
+        if (opts.filepath !== null) {
             this._lexer.clear();
+            this._lexer = new CharLexer({ filepath: opts.filepath });
         }
+        this._lexer.load(input);
     }
 
     clear() {
@@ -158,9 +143,6 @@ export class TokenLexer {
         pos.col--;
 
         const keyword = this._readWhilePred(this._isIdentifier.bind(this)).toLowerCase();
-        if (isEmpty(keyword)) {
-            throw new SyntaxError(Token.getPosString(pos) + `: No valid identifier after "@".`);
-        }
 
         return new Token('key', keyword, pos);
     }
@@ -318,7 +300,8 @@ export class TokenLexer {
             return null;
         }
 
+        const pos     = this._lexer.getPos();
         const anomaly = this._readWhilePred(not(this._isWhitespace.bind(this)));
-        throw new SyntaxError(Token.getPosString(this._lexer.getPos()) + `: Unknown token type of "${anomaly}".`);
+        throw new SyntaxError(Token.getPosString(pos) + `: Unexpected token "${anomaly}".`);
     }
 }

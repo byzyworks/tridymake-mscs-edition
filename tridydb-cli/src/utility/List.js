@@ -1,8 +1,8 @@
 import { Stack } from './Stack.js';
 
 export class List extends Stack {
-    constructor() {
-        super();
+    constructor(preset = null) {
+        super(preset);
 
         this._it = 0;
     }

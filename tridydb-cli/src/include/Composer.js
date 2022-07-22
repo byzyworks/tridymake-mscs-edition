@@ -676,6 +676,7 @@ export class Composer {
                 this._untagModule(opts.template);
                 break;
             case 'multi':
+            case 'import':
                 this._multiModule();
                 break;
             case 'nop':
@@ -851,7 +852,7 @@ export class Composer {
     }
 
     compose(input, alias, opts = { }) {
-        this._astree = input;
+        this._astree = new StateTree(input);
 
         this._alias = alias;
 

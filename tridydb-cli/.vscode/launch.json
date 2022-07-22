@@ -99,7 +99,7 @@
             "name": "Launch Server (Development)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",
-            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug"],
+            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug", "--server-allow-verbatim", "--server-allow-restful"],
             "outputCapture": "std",
             "console": "externalTerminal",
             "env": {

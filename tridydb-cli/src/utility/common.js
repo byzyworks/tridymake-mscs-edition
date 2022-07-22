@@ -234,6 +234,10 @@ export const not = (fn, ...args) => {
 }
 
 const defaults = Object.freeze({
+    flags: {
+        clear: false,
+        exit:  false
+    },
     alias: {
         type:   'type',
         tags:   'tags',
@@ -247,11 +251,19 @@ const defaults = Object.freeze({
         port:    21780,
         timeout: 3000
     },
+    server: {
+        port:       21780,
+        preformat:  false,
+        allow_tree: true,
+        allow_verb: false,
+        allow_rest: false
+    },
     output: {
         format:      'js',
         compression: 'raw',
         indent:      null,
-        list_mode:   'auto'
+        list_mode:   'auto',
+        preformat:   false
     },
     log_level: 'info'
 });

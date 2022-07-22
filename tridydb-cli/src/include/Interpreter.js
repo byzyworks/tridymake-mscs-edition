@@ -10,7 +10,6 @@ import { Composer }       from './Composer.js';
 import { Formatter }      from './Formatter.js';
 import { SyntaxParser }   from './SyntaxParser.js';
 import { StatementLexer } from './StatementLexer.js';
-import { StateTree }      from './StateTree.js';
 
 import * as common                            from '../utility/common.js';
 import { SyntaxError, ClientSideServerError } from '../utility/error.js';
@@ -23,13 +22,17 @@ const sendTridyRequest = async (data, remote) => {
                 'Content-Type': 'application/json'
             },
             method: 'put',
-            url: 'http://' + remote.host + ':' + remote.port,
+            url:    'http://' + remote.host + ':' + remote.port,
             params: {
                 format: 'astree',
-                data: data
+                data:   data
             },
             timeout: remote.timeout
         });
+
+        if (out.data === '') {
+            return [ ];
+        }
 
         return out.data;
     } catch (err) {
@@ -49,9 +52,9 @@ const sendTridyRequest = async (data, remote) => {
  * Interacting with this class is all done through the query() method, which automatically pipes the input through these separate components in order.
  * 
  * @class
- * @property {StatementParser} _tokenizer Extracts tokens from the input string, and manages statement-queuing.
- * @property {SyntaxParser}    _parser    Processes tokens into an abstract syntax tree.
- * @property {Composer}        _composer  Maintains and appends an object database using instructions received from the parser.
+ * @property {StatementParser} _lexer    Extracts tokens from the input string, and manages statement-queuing.
+ * @property {SyntaxParser}    _parser   Processes tokens into an abstract syntax tree.
+ * @property {Composer}        _composer Maintains and appends an object database using instructions received from the parser.
  */
 export class Tridy {
     constructor(opts = { }) {
@@ -93,7 +96,9 @@ export class Tridy {
      * @param   {String}  input             Tridy command(s)/statement(s).
      * @param   {Boolean} opts.tokenless    Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
      * @param   {Boolean} opts.accept_carry True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
+     * @param   {Boolean} opts.interactive  Allows interactive control commands like @clear and @exit to be effective. Default is false.
      * @param   {String}  opts.filepath     Path of the file that is the source of the command(s)/statement(s). Used for debugging. Default is null.
+     * @param   {Boolean} opts.astree_only  Only return the abstract syntax tree; do not attempt to execute it and return the results thereof. Default is false.
      * @param   {Boolean} opts.client_mode  True to run as a client, false to run standalone / as a server. Default is false.
      * @param   {String}  opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
      * @param   {Number}  opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
@@ -102,14 +107,16 @@ export class Tridy {
      * @param   {String}  opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
      * @param   {String}  opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
      * @param   {String}  opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
-     * @returns {Array<Object>}             The output of the statement(s).
+     * @returns {Array<Object>}             The output of the statement(s), including presentation metadata.
      * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.
      */
     async query(input, opts = { }) {
         opts.tokenless    = opts.tokenless    ?? false;
         opts.accept_carry = opts.accept_carry ?? false;
+        opts.interactive  = opts.interactive  ?? false;
         opts.filepath     = opts.filepath     ?? null;
+        opts.astree_only  = opts.astree_only  ?? false;
 
         const alias = {
             type:   opts.type_key ?? common.global.alias.type   ?? common.global.defaults.alias.type,
@@ -125,63 +132,93 @@ export class Tridy {
             timeout: opts.timeout     ?? common.global.remote.timeout ?? common.global.defaults.remote.timeout
         };
 
+        let astree;
         let output = [ ];
 
-        if (!opts.tokenless) {
-            this._lexer.load(input, { filepath: opts.filepath });
-        }
-
-        let code;
         if (opts.tokenless) {
             try {
-                input = JSON.parse(input);
+                astree = JSON.parse(input);
             } catch (err) {
                 throw new SyntaxError(err.message);
             }
-            code = new StateTree(input);
 
-            if (remote.enable) {
-                code = await sendTridyRequest(code.getRaw(), remote);
-            } else {
-                code = this._composer.compose(code, alias);
+            if (opts.astree_only) {
+                return astree;
             }
 
-            for (const part of code) {
+            if (common.isEmpty(astree)) {
+                return output;
+            }
+    
+            let results;
+            if (remote.enable) {
+                results = await sendTridyRequest(astree, remote);
+            } else {
+                results = this._composer.compose(astree, alias);
+            }
+    
+            for (const part of results) {
                 output.push(part);
             }
         } else {
-            while (code = this._lexer.next({ accept_carry: opts.accept_carry })) {
-                // The two tokens are the clause and the semicolon.
-                if (code.length() === 2) {
-                    if (code.peek().is('key', 'clear')) {
-                        output = [ ];
-                        console.clear();
-                        continue;
-                    } else if (code.peek().is('key', 'exit')) {
-                        common.global.exit = true;
-                        break;
-                    }
-                }
+            this._lexer.load(input, { filepath: opts.filepath });
 
-                code = this._parser.parse(code);
-                if (common.isEmpty(code.getRaw())) {
+            let tokens;
+    
+            while (tokens = this._lexer.next({ accept_carry: opts.accept_carry })) {
+                astree = await this._parser.parse(tokens);
+    
+                if (common.global.flags.exit === true) {
+                    if ((opts.filepath !== null) || !opts.interactive) {
+                        common.global.flags.exit = false;
+
+                        throw new SyntaxError(`The @exit command does not work in non-interactive contexts such as scripts or inside server mode.`);
+                    }
+
+                    break;
+                }
+    
+                if (common.global.flags.clear === true) {
+                    common.global.flags.clear = false;
+
+                    if ((opts.filepath !== null) || !opts.interactive) {
+                        throw new SyntaxError(`The @clear command does not work in non-interactive contexts such as scripts or inside server mode.`);
+                    }
+
+                    output = [ ];
+                    console.clear();
+    
                     continue;
                 }
-
-                if (remote.enable) {
-                    code = await sendTridyRequest(code.getRaw(), remote);
+    
+                if (opts.astree_only) {
+                    if (!common.isEmpty(astree)) {
+                        output.push(astree[common.global.defaults.alias.nested][0]);
+                    }
                 } else {
-                    code = this._composer.compose(code, alias);
-                }
+                    if (common.isEmpty(astree)) {
+                        return output;
+                    }
+            
+                    let results;
+                    if (remote.enable) {
+                        results = await sendTridyRequest(astree, remote);
+                    } else {
+                        results = this._composer.compose(astree, alias);
+                    }
 
-                for (const part of code) {
-                    output.push(part);
+                    for (const part of results) {
+                        output.push(part);
+                    }
                 }
             }
+        }
 
-            if (opts.filepath !== null) {
-                this._lexer.unload();
-            }
+        if (opts.astree_only) {
+            const wrapper = { };
+            wrapper[common.global.defaults.alias.nested] = output;
+
+            return wrapper;
         }
 
         return output;

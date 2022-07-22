@@ -43,7 +43,7 @@ export const cli = async (opts = { }) => {
 
     let answers;
 
-    while (global.exit !== true) {
+    while (global.flags.exit !== true) {
         answers = await rl.question(getPrompt());
 
         // The newline is added back since it affects lexer behavior around comments and debug information.
@@ -52,7 +52,7 @@ export const cli = async (opts = { }) => {
         let out;
         let retry = false;
         try {
-            out = await db.query(answers, { accept_carry: true, random_seed: opts.random_seed });
+            out = await db.query(answers, { accept_carry: true, interactive: true, random_seed: opts.random_seed });
         } catch (err) {
             if (err instanceof SyntaxError) {
                 db.clearCarry();

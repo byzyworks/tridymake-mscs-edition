@@ -3,7 +3,6 @@ import { TokenLexer } from './TokenLexer.js';
 
 import { isEmpty }     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
-import { List }        from '../utility/List.js';
 
 export class StatementLexer {
     constructor() {
@@ -16,10 +15,6 @@ export class StatementLexer {
 
     load(input, opts) {
         this._lexer.load(input, opts);
-    }
-
-    unload() {
-        this._lexer.unload();
     }
 
     clear() {
@@ -43,7 +38,7 @@ export class StatementLexer {
     }
 
     _readNext() {
-        const tokens = new List();
+        const tokens = [ ];
 
         const pool = [ ];
         let idx;
@@ -123,7 +118,7 @@ export class StatementLexer {
             this.clear();
         }
 
-        if (tokens.isEmpty()) {
+        if (isEmpty(tokens)) {
             return null;
         }
         return tokens;
