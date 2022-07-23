@@ -326,6 +326,25 @@ export class SyntaxParser {
         return data;
     }
 
+    async _readFileImport() {
+        const link = await this._readWhileRawAndParse({ string_only: true });
+        if (link === undefined) {
+            this._handleUnexpected();
+        }
+
+        let content;
+        try {
+            content = await fs.promises.readFile(link, 'utf-8');
+        } catch (err) {
+            throw new SyntaxError(`Couldn't read "${link}"; file does not exist or is inaccessable.`);
+        }
+
+        return {
+            link:    link,
+            content: content
+        };
+    }
+
     async _readWhileRawAndParse(opts = { }) {
         opts.string_only = opts.string_only ?? false;
         /**
@@ -725,6 +744,33 @@ export class SyntaxParser {
         this._astree.leavePos();
     }
 
+    _handleCopyOperation() {
+        const cut = this._tokens.next().is('key', 'cut');
+
+        /**
+         * The first sub-operation, _save, is done with respect to the context expression specified after the operation, not before.
+         * The context was already set to the one before by default to the one given after @in, so we have to switch them out.
+         * Luckily, the first line in this block already captures the original expression, so we don't need to worry about overriding.
+         */
+        const target = this._astree.enterGetAndLeave('context');
+        this._astree.enterDeleteAndLeave('context');
+        if (this._tokens.peek().isContextToken()) {
+            this._handleContext();
+        }
+        const source = this._astree.enterGetAndLeave('context');
+        this._astree.enterSetAndLeave('operation', '_save');
+        this._astree.nextItem();
+
+        if (cut) {
+            this._astree.enterSetAndLeave('context', source);
+            this._astree.enterSetAndLeave('operation', 'delete');
+            this._astree.nextItem();
+        }
+
+        this._astree.enterSetAndLeave('context', target);
+        this._astree.enterSetAndLeave('operation', '_load');
+    }
+
     _handleReadOperation() {
         let current;
 
@@ -825,25 +871,6 @@ export class SyntaxParser {
         this._astree.leavePos();
     }
 
-    async _readFileImport() {
-        const link = await this._readWhileRawAndParse({ string_only: true });
-        if (link === undefined) {
-            this._handleUnexpected();
-        }
-
-        let content;
-        try {
-            content = await fs.promises.readFile(link, 'utf-8');
-        } catch (err) {
-            throw new SyntaxError(`Couldn't read "${link}"; file does not exist or is inaccessable.`);
-        }
-
-        return {
-            link:    link,
-            content: content
-        };
-    }
-
     async _handleImportOperation() {
         const imported = await this._readFileImport();
 
@@ -942,11 +969,12 @@ export class SyntaxParser {
                         this._tokens.next();
                     }
     
-                    if (this._tokens.peek().is('key', 'none')) {
-                        this._tokens.next();
-                    } else {
-                        this._handleTagsDefinition({ require: false });
-                    }
+                    this._handleTagsDefinition({ require: false });
+                } else if (operation_token.isCopyOpToken()) {
+                    // No _handleOperation() because both cut and copy translate to multiple base operations.
+                    // It is awkward to cycle between multiple operations in this case, so _handleCopyOperation as a single method avoids handling the operation and parameters separately.
+
+                    this._handleCopyOperation();
                 } else if (operation_token.isImportOpToken()) {
                     this._handleOperation();
 

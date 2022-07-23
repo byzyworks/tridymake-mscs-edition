@@ -310,6 +310,13 @@ export class Token {
         ;
     }
 
+    isCopyOpToken() {
+        return false ||
+            this.is('key', 'cut') ||
+            this.is('key', 'copy')
+        ;
+    }
+
     isImportOpToken() {
         return false ||
             this.is('key', 'import')

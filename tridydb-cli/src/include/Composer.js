@@ -482,22 +482,22 @@ export class Composer {
     }
 
     _printModule() {
-        const target = this._target.peek();
-
-        let copy;
-
         this._astree.enterPos('output');
 
-        copy = Compressor.compressModule(target.getPosValue(), this._alias, this._astree.enterGetAndLeave(['compression']));
+        const target = this._target.peek();
+
+        let copy = target.getPosValue();
+
+        copy = Compressor.compressModule(copy, this._alias, this._astree.enterGetAndLeave(['compression']));
         if (copy === undefined) {
             copy = { };
         }
 
         copy = { output: copy, params: this._astree.getPosValue() };
 
-        this._astree.leavePos();
-
         this._output.push(copy);
+
+        this._astree.leavePos();
     }
 
     _deleteModule() {
@@ -631,6 +631,18 @@ export class Composer {
         target.leavePos();
     }
 
+    _saveModule() {
+        const target = this._target.peek();
+
+        this._saved.push(target.getPosValue());
+    }
+
+    _loadModule() {
+        for (const module of this._saved) {
+            this._composeModule(common.deepCopy(module));
+        }
+    }
+
     _multiModule() {
         let target = this._target.peek();
 
@@ -674,6 +686,12 @@ export class Composer {
                 break;
             case 'untag':
                 this._untagModule(opts.template);
+                break;
+            case '_save':
+                this._saveModule();
+                break;
+            case '_load':
+                this._loadModule();
                 break;
             case 'multi':
             case 'import':
@@ -826,9 +844,15 @@ export class Composer {
 
         let template = null;
         switch (command) {
+            case '_save':
+                this._saved = [ ];
+                break;
+            case '_load':
             case 'print':
             case 'delete':
             case 'multi':
+            case 'import':
+            case 'nop':
                 break;
             default:
                 template = this._createModule();
@@ -844,6 +868,10 @@ export class Composer {
             if ((limit !== null) && (traverse.count >= limit)) {
                 break;
             }
+        }
+
+        if (command === '_load') {
+            this._saved = [ ];
         }
     }
 

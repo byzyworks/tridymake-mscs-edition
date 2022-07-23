@@ -24,4 +24,11 @@ export class List extends Stack {
     isEnd() {
         return this._it >= this._arr.length;
     }
+
+    nextIf(pred) {
+        const result = pred(this.peek());
+        if (result === true) {
+            this.next();
+        }
+    }
 }

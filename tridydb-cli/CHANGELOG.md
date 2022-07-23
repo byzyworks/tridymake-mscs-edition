@@ -112,8 +112,8 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@import` operation clause.
 * Added `@export` operation clause. (PENDING)
 * Added `@file` raw input clause.
-* Added `@cut` operation clause. (PENDING)
-* Added `@copy` operation clause. (PENDING)
+* Added `@cut` operation clause.
+* Added `@copy` operation clause.
 * Added `@after` meta-operation clause. (PENDING)
 * Added `@before` meta-operation clause. (PENDING)
 * Added "functions" for user-generated input in place of literal input (requires user-placed JavaScript code). (PENDING)
@@ -146,6 +146,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `--server-allow-verbatim` program option.
 * Added `--server-deny-syntax-tree` program option.
 * Limited functionality of `@clear` and `@exit` to console mode.
+* Removed `@none` as argument to `@tag` and `@untag`.
 
 <br>
 
