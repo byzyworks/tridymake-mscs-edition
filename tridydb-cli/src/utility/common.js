@@ -263,7 +263,11 @@ const defaults = Object.freeze({
         compression: 'raw',
         indent:      null,
         list_mode:   'auto',
-        preformat:   false
+        file: {
+            path:  null,
+            mode:  'create',
+            quiet: false
+        }
     },
     log_level: 'info'
 });

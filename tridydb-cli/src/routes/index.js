@@ -254,10 +254,10 @@ const handleRoute = async (method, req, res, next) => {
         throw err;
     }
 
-    const preformat = global.output.preformat ?? global.defaults.output.preformat;
+    const preformat = global.server.preformat ?? global.defaults.server.preformat;
     if (preformat) {
         if (!isEmpty(out)) {
-            out = Tridy.stringify(out);
+            out = await Tridy.stringify(out);
         }
     
         switch (opts.format) {

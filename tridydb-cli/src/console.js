@@ -64,9 +64,11 @@ export const cli = async (opts = { }) => {
         }
 
         if (!retry && !isEmpty(out)) {
-            out = Tridy.stringify(out);
+            out = await Tridy.stringify(out);
 
-            console.log(out);
+            if (!isEmpty(out)) {
+                console.log(out);
+            }
         }
     }
 

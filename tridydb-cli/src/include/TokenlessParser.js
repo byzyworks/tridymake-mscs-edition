@@ -110,6 +110,28 @@ export class TokenlessParser {
         if (typeof input.list_mode !== 'string') {
             this._handleUnexpected();
         }
+
+        if (!common.isNullish(input.file)) {
+            if (typeof input.file !== 'string') {
+                this._handleUnexpected();
+            }
+        }
+
+        if (!common.isNullish(input.file_mode)) {
+            if (typeof input.file_mode !== 'string') {
+                this._handleUnexpected();
+            }
+        }
+
+        if (!common.isNullish(input.file_quiet)) {
+            if (typeof input.file_quiet !== 'boolean') {
+                this._handleUnexpected();
+            }
+        }
+
+        this._handleInteger(input.list_nonce);
+
+        this._handleInteger(input.stmt_nonce);
     }
 
     static _handleStatement(input) {

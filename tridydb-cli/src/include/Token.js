@@ -264,6 +264,7 @@ export class Token {
     isControlOpToken() {
         return false ||
             this.is('key', 'tridy') ||
+            this.is('key', 'split') ||
             this.is('key', 'clear') ||
             this.is('key', 'exit')
         ;
@@ -320,6 +321,12 @@ export class Token {
     isImportOpToken() {
         return false ||
             this.is('key', 'import')
+        ;
+    }
+
+    isExportOpToken() {
+        return false ||
+            this.is('key', 'export')
         ;
     }
 

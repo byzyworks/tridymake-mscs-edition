@@ -488,7 +488,7 @@ export class Composer {
 
         let copy = target.getPosValue();
 
-        copy = Compressor.compressModule(copy, this._alias, this._astree.enterGetAndLeave(['compression']));
+        copy = Compressor.compressModule(copy, this._alias, this._astree.enterGetAndLeave('compression'));
         if (copy === undefined) {
             copy = { };
         }

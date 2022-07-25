@@ -3,7 +3,20 @@ import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 import { isNullish } from './common.js';
 import { logger }    from './logger.js';
 
-export class SyntaxError extends Error {
+class ClientError extends Error { }
+
+export class FileError extends ClientError {
+    constructor(description) {
+        description = 'File Error: ' + description;
+
+        super(description);
+        Object.setPrototypeOf(this, new.target.prototype);
+
+        Error.captureStackTrace(this);
+    }
+}
+
+export class SyntaxError extends ClientError {
     constructor(description) {
         description = 'Syntax Error: ' + description;
 
@@ -116,7 +129,7 @@ class ErrorHandler {
                     }
                 }
             } finally {
-                if (!(err instanceof SyntaxError) && (!(err instanceof ServerError) || (err.opts.is_fatal === true))) {
+                if (!(err instanceof ClientError) && (!(err instanceof ServerError) || (err.opts.is_fatal === true))) {
                     logger.end();
                     process.exitCode = 1;
                 }
@@ -128,7 +141,7 @@ class ErrorHandler {
         let status;
         if ((this.lastError instanceof ServerSideServerError) && (this.lastError.opts.http_code !== undefined)) {
             status = this.lastError.opts.http_code;
-        } else if (this.lastError instanceof SyntaxError) {
+        } else if (this.lastError instanceof ClientError) {
             status = StatusCodes.BAD_REQUEST;
         } else {
             status = StatusCodes.INTERNAL_SERVER_ERROR;

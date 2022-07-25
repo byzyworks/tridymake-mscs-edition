@@ -48,7 +48,7 @@ export class Formatter {
                 }
                 return xml.js2xml(converted, { compact: false });
             default:
-                return null;
+                throw new SyntaxError(`Invalid format "${opts.format}".`);
         }
     }
 }

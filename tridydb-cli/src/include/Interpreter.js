@@ -4,6 +4,8 @@
  * @module
  */
 
+import fs from 'fs';
+
 import axios from 'axios';
 
 import { Composer }       from './Composer.js';
@@ -11,8 +13,8 @@ import { Formatter }      from './Formatter.js';
 import { SyntaxParser }   from './SyntaxParser.js';
 import { StatementLexer } from './StatementLexer.js';
 
-import * as common                            from '../utility/common.js';
-import { SyntaxError, ClientSideServerError } from '../utility/error.js';
+import * as common from '../utility/common.js';
+import * as error  from '../utility/error.js';
 
 const sendTridyRequest = async (data, remote) => {
     try {
@@ -30,17 +32,52 @@ const sendTridyRequest = async (data, remote) => {
             timeout: remote.timeout
         });
 
-        if (out.data === '') {
+        if (common.isEmpty(out.data)) {
             return [ ];
+        }
+
+        if (!common.isArray(out.data)) {
+            return [ out.data ];
         }
 
         return out.data;
     } catch (err) {
         if (err.response) {
-            throw new ClientSideServerError(err.response.data);
+            throw new error.ClientSideServerError(err.response.data);
         }
-        throw new ClientSideServerError();
+        throw new error.ClientSideServerError();
     }
+}
+
+const exportToFile = async (data, filepath, mode, quiet) => {
+    switch (mode) {
+        case 'create':
+            mode = 'ax'; // 'wx' assumptively behaves no different.
+            break;
+        case 'append':
+            mode = 'a';
+            break;
+        case 'replace':
+            mode = 'w';
+            break;
+        default:
+            throw new error.SyntaxError(`Invalid file export mode "${mode}".`);
+    }
+
+    let result;
+    try {
+        result = await fs.promises.writeFile(filepath, data, {
+            encoding: 'utf-8',
+            flag:     mode,
+            mode:     0o755
+        });
+    } catch (err) {
+        if (quiet !== true) {
+            error.error_handler.handle(new error.FileError(err.message));
+        }
+    }
+
+    return result;
 }
 
 /**
@@ -139,7 +176,7 @@ export class Tridy {
             try {
                 astree = JSON.parse(input);
             } catch (err) {
-                throw new SyntaxError(err.message);
+                throw new error.SyntaxError(err.message);
             }
 
             if (opts.astree_only) {
@@ -167,12 +204,12 @@ export class Tridy {
     
             while (tokens = this._lexer.next({ accept_carry: opts.accept_carry })) {
                 astree = await this._parser.parse(tokens);
-    
+                
                 if (common.global.flags.exit === true) {
                     if ((opts.filepath !== null) || !opts.interactive) {
                         common.global.flags.exit = false;
 
-                        throw new SyntaxError(`The @exit command does not work in non-interactive contexts such as scripts or inside server mode.`);
+                        throw new error.SyntaxError(`The @exit command does not work in non-interactive contexts such as scripts or inside server mode.`);
                     }
 
                     break;
@@ -182,7 +219,7 @@ export class Tridy {
                     common.global.flags.clear = false;
 
                     if ((opts.filepath !== null) || !opts.interactive) {
-                        throw new SyntaxError(`The @clear command does not work in non-interactive contexts such as scripts or inside server mode.`);
+                        throw new error.SyntaxError(`The @clear command does not work in non-interactive contexts such as scripts or inside server mode.`);
                     }
 
                     output = [ ];
@@ -197,7 +234,7 @@ export class Tridy {
                     }
                 } else {
                     if (common.isEmpty(astree)) {
-                        return output;
+                        continue;
                     }
             
                     let results;
@@ -247,7 +284,7 @@ export class Tridy {
 
     /**
      * Converts the JSON output of query() or objectify() to a string (accounting for escaped backslashes).
-     * Note query() returns an array. In this case, the individual elements should be sent as 'input'.
+     * If there are exported files, this will also output them to the appropriate places.
      * 
      * @public
      * @static
@@ -256,25 +293,74 @@ export class Tridy {
      * @param   {String}        opts.format       Default format to export the JSON output in. Options are 'json', 'yaml', or 'xml'. Default is 'json'.
      * @param   {Number}        opts.indent       Default indent increment size in spaces to output with. Default is 4 spaces except for YAML, where it is 2 spaces. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 1 space is a minimum).
      * @param   {String}        opts.list_mode    Default way to display output where there is one or multiple modules returned. By default, this is set to 'auto' where single modules are returned alone and multiple module are returned in an array, but there's also 'list_only' and 'items_only' modes.
+     * @param   {String}        opts.file         Default file to export to. If null, then this is standard output / the console. Default is null. 
+     * @param   {String}        opts.file_mode    Default behavior when the file exported to already exists. Options are 'create' (where nothing is done), 'append', and 'replace'. Default is 'create'.
+     * @param   {Boolean}       opts.file_quiet   Default behavior on whether to throw an error when a file exported to already exists. Default is false (will throw an error).
      * @param   {String}        opts.xml_list_key The name given to the XML list tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
      * @param   {String}        opts.xml_item_key The name given to the XML individual item tags. Relevant only when the output format is 'xml'. Default is 'tree'.
+     * @param   {Boolean}       opts.no_export    Whether to export file-directed output or not. Default is false.
      * @returns {String | null}                   Input object as a formatted string, or null if it can't be converted to one.
+     * @throws  {SyntaxError}                     Thrown if some parameters are received incorrectly, either from the method caller or from the server, if there is one.
      */
-    static stringify(input, opts = { }) {
-        opts.format       = opts.format       ?? common.global.output.format    ?? common.global.defaults.output.format;
-        opts.indent       = opts.indent       ?? common.global.output.indent    ?? common.global.defaults.output.indent;
-        opts.list_mode    = opts.list_mode    ?? common.global.output.list_mode ?? common.global.defaults.output.list_mode;
-        opts.xml_list_key = opts.xml_list_key ?? common.global.alias.list       ?? common.global.defaults.alias.list;
-        opts.xml_item_key = opts.xml_item_key ?? common.global.alias.nested     ?? common.global.defaults.alias.nested;
+    static async stringify(input, opts = { }) {
+        opts.format       = opts.format       ?? common.global.output.format     ?? common.global.defaults.output.format;
+        opts.indent       = opts.indent       ?? common.global.output.indent     ?? common.global.defaults.output.indent;
+        opts.list_mode    = opts.list_mode    ?? common.global.output.list_mode  ?? common.global.defaults.output.list_mode;
+        opts.file         = opts.file         ?? common.global.output.file.path  ?? common.global.defaults.output.file.path;
+        opts.file_mode    = opts.file_mode    ?? common.global.output.file.mode  ?? common.global.defaults.output.file.mode;
+        opts.file_quiet   = opts.file_quiet   ?? common.global.output.file.quiet ?? common.global.defaults.output.file.quiet;
+        opts.xml_list_key = opts.xml_list_key ?? common.global.alias.list        ?? common.global.defaults.alias.list;
+        opts.xml_item_key = opts.xml_item_key ?? common.global.alias.nested      ?? common.global.defaults.alias.nested;
+        opts.no_export    = opts.no_export    ?? false;
 
         // 'js' returns an object from Formatter, 'json' returns a string.
         opts.format = (opts.format === 'js') ? 'json' : opts.format;
-
-        let output = '';
         
+        let stdout = '';
+
         let collect = [ ];
         let list    = [ ];
         let current = null;
+        
+        for (let i = 0; i < input.length; i++) {
+            if (!common.isDictionary(input[i]) || common.isNullish(input[i].output)) {
+                input[i] = { output: input[i], params: { } };
+            }
+        }
+
+        /**
+         * The order files have relative to each other doesn't matter, while it matters for every other parameter.
+         * However, we don't want to cause lists for one file to split on conditions specific to another file, or to standard output.
+         * The sorting prevents
+         * Hence, commands affecting the same file should be grouped together, while the original order of commands should be maintained otherwise.
+         */
+        input.sort((a, b) => {
+            a = a.params.file;
+            b = b.params.file;
+
+            if (common.isNullish(a) && common.isNullish(b)) {
+                return 0;
+            }
+            if (!common.isNullish(a)) {
+                a = a.toLowerCase();
+                if (common.isNullish(b)) {
+                    return 1;
+                }
+            }
+            if (!common.isNullish(b)) {
+                b = b.toLowerCase();
+                if (common.isNullish(a)) {
+                    return -1;
+                }
+            }
+            if (a < b) {
+              return -1;
+            }
+            if (a > b) {
+              return 1;
+            }
+            return 0;
+        });
 
         for (let i = 0; i < input.length; i++) {
             const module = input[i].output;
@@ -286,13 +372,25 @@ export class Tridy {
 
             current              = input[i].params;
             current.format       = (current.format === 'js') ? 'json' : (current.format ?? opts.format);
-            current.indent       = current.indent    ?? opts.indent;
-            current.list_mode    = current.list_mode ?? opts.list_mode;
+            current.indent       = current.indent     ?? opts.indent;
+            current.list_mode    = current.list_mode  ?? opts.list_mode;
+            current.file         = current.file       ?? opts.file;
+            current.file_mode    = current.file_mode  ?? opts.file_mode;
+            current.file_quiet   = current.file_quiet ?? opts.file_quiet;
             current.xml_list_key = opts.xml_list_key;
             current.xml_item_key = opts.xml_item_key;
 
-            // !common.isEmpty(list) --> last !== null
-            if (!common.isEmpty(list) && ((current.list_mode === 'items_only') || (current.format !== last.format) || (current.indent !== last.indent) || (current.list_nonce !== last.list_nonce))) {
+            let changed_parameters = false;
+            if (last !== null) {
+                if (current.file === null) {
+                    changed_parameters ||= ((current.format !== last.format) || (current.indent !== last.indent) || (current.list_nonce !== last.list_nonce));
+                } else {
+                    // There is only one format / indentation / list output grouping per statement, so it would be redundant to check those here.
+                    changed_parameters ||= (current.stmt_nonce !== last.stmt_nonce);
+                }
+            }
+
+            if (!common.isEmpty(list) && ((current.list_mode === 'items_only') || changed_parameters)) {
                 collect.push({ output: list, params: last });
                 list = [ ];
             }
@@ -313,20 +411,25 @@ export class Tridy {
         for (let i = 0; i < collect.length; i++) {
             list = collect[i];
 
+            let output = '';
             if ((list.params.list_mode === 'list_only') || ((list.params.list_mode === 'auto') && (list.output.length > 1))) {
                 output += Formatter.format(list.output, list.params);
-                output += '\n';
+                output += "\n";
             } else if ((list.params.list_mode === 'items_only') || ((list.params.list_mode === 'auto') && (list.output.length === 1))) {
                 output += Formatter.format(list.output[0], list.params);
-                output += '\n';
+                output += "\n";
+            } else {
+                throw new error.SyntaxError(`Invalid list mode "${list.params.list_mode}".`);
             }
 
-            if (i !== (collect.length - 1)) {
-                output += '\n';
+            if (list.params.file === null) {
+                stdout += output;
+            } else if (!opts.no_export) {
+                await exportToFile(output, list.params.file, list.params.file_mode, list.params.file_quiet);
             }
         }
 
-        return output;
+        return stdout;
     }
 
     /**
@@ -343,7 +446,7 @@ export class Tridy {
         try {
             return JSON.parse(input.replace(/\\/g, '\\\\'));
         } catch (err) {
-            throw new SyntaxError(err.message);
+            throw new error.SyntaxError(err.message);
         }
     }
 }

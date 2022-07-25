@@ -109,6 +109,19 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Launch Server (Development) (Preformatting)",
+            "program": "${workspaceFolder}/src/app.js",
+            "cwd": "${workspaceFolder}/",
+            "args": ["server", "--file", "src/tests/_debug/test.tri", "--localhost", "--log-level", "debug", "--server-allow-verbatim", "--server-allow-restful", "--server-preformat"],
+            "outputCapture": "std",
+            "console": "externalTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Launch Server (Production)",
             "program": "${workspaceFolder}/src/app.js",
             "cwd": "${workspaceFolder}/",

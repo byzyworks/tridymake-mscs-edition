@@ -110,7 +110,6 @@ Remember also to set the version number inside package.json and utility/common.
 * Added statistic output for non-`@get` operations when log level >= verbose. (PENDING)
 * Added `@stat` operation clause. (PENDING)
 * Added `@import` operation clause.
-* Added `@export` operation clause. (PENDING)
 * Added `@file` raw input clause.
 * Added `@cut` operation clause.
 * Added `@copy` operation clause.
@@ -128,8 +127,12 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@binary` `@get` parameter clause. (PENDING)
 * Added `@list` `@get` parameter clause.
 * Added `@items` `@get` parameter clause.
-* Added `@new` (list-controlling) `@get` parameter clause.
-* Added `@next` (list-controlling) `@get` parameter clause.
+* Added `@create` `@get` parameter clause.
+* Added `@append` `@get` parameter clause.
+* Added `@replace` `@get` parameter clause.
+* Added `@file` `@get` parameter clause.
+* Added `@quiet` `@get` parameter clause.
+* Added `@split` (list-controlling) control clause.
 * Reworked output behavior.
 * Added compound value expression additive modifier `+`. (PENDING)
 * Added compound value expression multiplicative modifier `*`. (PENDING)

@@ -133,14 +133,12 @@ program
     .hook('preAction', async (thisCommand, actionCommand) => {
         const opts = program.opts();
 
-        global.alias        = { };
         global.alias.type   = opts.typeKey;
         global.alias.tags   = opts.tagsKey;
         global.alias.state  = opts.freeKey;
         global.alias.nested = opts.treeKey;
         global.alias.root   = opts.rootKey;
         
-        global.remote         = { };
         global.remote.enable  = opts.client;
         global.remote.host    = opts.remoteHost;
         global.remote.port    = opts.remotePort;
@@ -152,7 +150,6 @@ program
         global.server.allow_verb = opts.serverAllowVerbatim;
         global.server.allow_rest = opts.serverAllowRestful;
 
-        global.output             = { };
         global.output.format      = opts.defaultFormat;
         global.output.compression = opts.defaultCompression;
         global.output.indent      = opts.defaultIndent;
@@ -200,7 +197,7 @@ program
 program
     .command('inline')
     .description('Print the output of --command or --file and exit.')
-    .action((opts, command) => {
+    .action(async (opts, command) => {
         opts = command.optsWithGlobals();
 
         if (!opts.command && !opts.file) {
@@ -208,7 +205,7 @@ program
         }
 
         if (!isEmpty(preset)) {
-            preset = Tridy.stringify(preset);
+            preset = await Tridy.stringify(preset);
         }
 
         console.log(preset);

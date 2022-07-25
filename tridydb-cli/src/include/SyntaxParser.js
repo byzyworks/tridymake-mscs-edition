@@ -9,12 +9,13 @@ import { StateTree }     from './StateTree.js';
 import { Tag }           from './Tag.js';
 import { Token }         from './Token.js';
 
-import * as common     from '../utility/common.js';
-import { SyntaxError } from '../utility/error.js';
-import { List }        from '../utility/List.js';
+import * as common                from '../utility/common.js';
+import { SyntaxError, FileError } from '../utility/error.js';
+import { List }                   from '../utility/List.js';
 
 export class SyntaxParser {
     constructor() {
+        this._stmt_nonce = 0;
         this._list_nonce = 0;
     }
 
@@ -33,6 +34,10 @@ export class SyntaxParser {
         const current = this._tokens.peek();
         if (current.is('key', 'tridy')) {
             this._tokens.next();
+        } else if (current.is('key', 'split')) {
+            this._list_nonce++;
+            
+            this._tokens.next();
         } else if (current.is('key', 'clear')) {
             common.global.flags.clear = true;
 
@@ -41,7 +46,7 @@ export class SyntaxParser {
             common.global.flags.exit = true;
 
             this._tokens.next();
-        }   
+        }
     }
 
     // The operator given below is what the parser assumes the user means when two operands are separated by no operand other than a whitespace.
@@ -336,7 +341,7 @@ export class SyntaxParser {
         try {
             content = await fs.promises.readFile(link, 'utf-8');
         } catch (err) {
-            throw new SyntaxError(`Couldn't read "${link}"; file does not exist or is inaccessable.`);
+            throw new FileError(err.message);
         }
 
         return {
@@ -450,53 +455,16 @@ export class SyntaxParser {
     }
 
     async _handleRawDefinition() {
+        this._astree.enterPos('definition');
+
         const raw = await this._readWhileRawAndParse({ string_only: false });
         if (raw === undefined) {
             this._handleUnexpected();
         }
-        this._astree.setPosValue(raw);
-        this._astree.leavePos();
-    }
-    
-    _handleOperation() {
-        const current = this._tokens.next();
-        if (current.isDefiningOpToken()) {
-            if (current.is('key', 'set')) {
-                this._astree.enterSetAndLeave('operation', 'overwrite');
-            } else if (current.is('key', 'new')) {
-                this._astree.enterSetAndLeave('operation', 'compose');
-            }
-            
-            if (this._tokens.peek().isRawInputStartToken()) {
-                this._astree.enterPos('raw');
-            } else {
-                this._astree.enterPos('definition');
-            }
-        } else if (current.isAffectingOpToken()) {
-            if (current.is('key', 'get')) {
-                this._astree.enterSetAndLeave('operation', 'print');
-            } else if (current.is('key', 'del')) {
-                this._astree.enterSetAndLeave('operation', 'delete');
-            } else if (current.is('key', 'stat')) {
-                this._astree.enterSetAndLeave('operation', 'nop');
-            }
-        } else if (current.isEditingOpToken()) {
-            if (current.is('key', 'put')) {
-                this._astree.enterSetAndLeave('operation', 'edit');
-            } else if (current.is('key', 'tag')) {
-                this._astree.enterSetAndLeave('operation', 'tag');
-            } else if (current.is('key', 'untag')) {
-                this._astree.enterSetAndLeave('operation', 'untag');
-            }
 
-            this._astree.enterPos('definition');
-        } else if (current.isImportOpToken()) {
-            if (current.is('key', 'import')) {
-                this._astree.enterSetAndLeave('operation', 'import');
-            }
-        } else {
-            this._handleUnexpected(current);
-        }
+        this._astree.setPosValue(raw);
+
+        this._astree.leavePos();
     }
 
     _readWhileTag() {
@@ -608,6 +576,8 @@ export class SyntaxParser {
     }
 
     async _handleDefinition() {
+        this._astree.enterPos('definition');
+
         // As usual, the grammar of the language is meant to appeal to different styles by offering different options with the same outcome.
         // Here, the user has three possible ways to enter tags: "@tridy @as <tags>", "@as <tags>", or just "<tags>".
         // The first option, for instance, is just an optional way to distinguish it from the raw input (e.g. "@json % ... %") options that specify a format first.
@@ -693,6 +663,8 @@ export class SyntaxParser {
     }
 
     async _handleEditDefinition() {
+        this._astree.enterPos('definition');
+
         if (this._tokens.peek().is('key', 'of')) {
             this._tokens.next();
     
@@ -771,19 +743,13 @@ export class SyntaxParser {
         this._astree.enterSetAndLeave('operation', '_load');
     }
 
-    _handleReadOperation() {
+    async _handleReadParameters() {
         let current;
 
         this._astree.enterPos('output');
 
-        current = this._tokens.peek();
-        if (current.is('key', 'new')) {
-            this._list_nonce++;
-            
-            this._tokens.next();
-        }
-
-        this._astree.enterSetAndLeave(['list_nonce'], this._list_nonce);
+        this._astree.enterSetAndLeave('stmt_nonce', this._stmt_nonce);
+        this._astree.enterSetAndLeave('list_nonce', this._list_nonce);
 
         current = this._tokens.peek();
         if (current.is('key', 'indent')) {
@@ -808,70 +774,109 @@ export class SyntaxParser {
 
         current = this._tokens.peek();
         if (current.is('key', 'raw')) {
-            this._astree.enterSetAndLeave(['compression'], 0);
+            this._astree.enterSetAndLeave('compression', 0);
             
             this._tokens.next();
         } else if (current.is('key', 'typeless')) {
-            this._astree.enterSetAndLeave(['compression'], 1);
+            this._astree.enterSetAndLeave('compression', 1);
 
             this._tokens.next();
         } else if (current.is('key', 'tagless')) {
-            this._astree.enterSetAndLeave(['compression'], 2);
+            this._astree.enterSetAndLeave('compression', 2);
 
             this._tokens.next();
         } else if (current.is('key', 'trimmed')) {
-            this._astree.enterSetAndLeave(['compression'], 3);
+            this._astree.enterSetAndLeave('compression', 3);
 
             this._tokens.next();
         } else if (current.is('key', 'merged')) {
-            this._astree.enterSetAndLeave(['compression'], 4);
+            this._astree.enterSetAndLeave('compression', 4);
 
             this._tokens.next();
         } else if (current.is('key', 'final')) {
-            this._astree.enterSetAndLeave(['compression'], 5);
+            this._astree.enterSetAndLeave('compression', 5);
 
             this._tokens.next();
         }
 
         current = this._tokens.peek();
         if (current.is('key', 'json')) {
-            this._astree.enterSetAndLeave(['format'], 'json');
+            this._astree.enterSetAndLeave('format', 'json');
             
             this._tokens.next();
         } else if (current.is('key', 'yaml')) {
-            this._astree.enterSetAndLeave(['format'], 'yaml');
+            this._astree.enterSetAndLeave('format', 'yaml');
 
             this._tokens.next();
         } else if (current.is('key', 'xml')) {
-            this._astree.enterSetAndLeave(['format'], 'xml');
+            this._astree.enterSetAndLeave('format', 'xml');
 
             this._tokens.next();
         }
+
+        let force_console = false;
 
         current = this._tokens.peek();
         if (current.is('key', 'list')) {
-            this._astree.enterSetAndLeave(['list_mode'], 'list_only');
+            this._astree.enterSetAndLeave('list_mode', 'list_only');
             
             this._tokens.next();
         } else if (current.is('key', 'items')) {
-            this._astree.enterSetAndLeave(['list_mode'], 'items_only');
+            force_console = true;
+            this._astree.enterSetAndLeave('list_mode', 'items_only');
             
             this._tokens.next();
         } else {
-            this._astree.enterSetAndLeave(['list_mode'], 'auto');
+            this._astree.enterSetAndLeave('list_mode', 'auto');
         }
 
-        current = this._tokens.peek();
-        if (current.is('key', 'next')) {
-            this._list_nonce++;
-            
-            this._tokens.next();
+        if (!force_console) {
+            let force_file = false;
+
+            current = this._tokens.peek();
+            if (current.is('key', 'create')) {
+                force_file = true;
+                this._astree.enterSetAndLeave('file_mode', 'create');
+                
+                this._tokens.next();
+            } else if (current.is('key', 'append')) {
+                force_file = true;
+                this._astree.enterSetAndLeave('file_mode', 'append');
+                
+                this._tokens.next();
+            } else if (current.is('key', 'replace')) {
+                force_file = true;
+                this._astree.enterSetAndLeave('file_mode', 'replace');
+
+                this._tokens.next();
+            }
+
+            if (force_file) {
+                current = this._tokens.peek();
+                if (current.is('key', 'file')) {
+                    this._tokens.next();
+    
+                    const link = await this._readWhileRawAndParse({ string_only: true });
+                    if (link === undefined) {
+                        this._handleUnexpected();
+                    }
+    
+                    this._astree.enterSetAndLeave('file', link);
+                }
+
+                current = this._tokens.peek();
+                if (current.is('key', 'quiet')) {
+                    this._astree.enterSetAndLeave('file_quiet', true);
+
+                    this._tokens.next();
+                }
+            }
         }
 
         this._astree.leavePos();
     }
 
-    async _handleImportOperation() {
+    async _handleImportParameters() {
         const imported = await this._readFileImport();
 
         const handler = new Tridy();
@@ -883,13 +888,88 @@ export class SyntaxParser {
         });
         
         if (!common.isEmpty(output)) {
-            this._astree.enterSetAndLeave(['definition'], output);
+            this._astree.enterSetAndLeave('definition', output);
+        }
+    }
+
+    async _handleOperation() {
+        const operation_token = this._tokens.peek();
+
+        if (operation_token.isDefiningOpToken()) {
+            if (operation_token.is('key', 'set')) {
+                this._astree.enterSetAndLeave('operation', 'overwrite');
+            } else if (operation_token.is('key', 'new')) {
+                this._astree.enterSetAndLeave('operation', 'compose');
+            }
+
+            this._tokens.next();
+            
+            if (this._tokens.peek().isRawInputStartToken()) {
+                await this._handleRawDefinition();
+            } else {
+                await this._handleDefinition();
+            }
+        } else if (operation_token.isAffectingOpToken()) {
+            if (operation_token.is('key', 'get')) {
+                this._astree.enterSetAndLeave('operation', 'print');
+            } else if (operation_token.is('key', 'del')) {
+                this._astree.enterSetAndLeave('operation', 'delete');
+            } else if (operation_token.is('key', 'stat')) {
+                this._astree.enterSetAndLeave('operation', 'nop');
+            }
+
+            this._tokens.next();
+
+            if (!this._context_defined) {
+                if (this._tokens.peek().isContextToken()) {
+                    this._handleContext();
+                    this._context_defined = true;
+                }
+
+                this._handleContextAppendixNotRequiringExpression();
+            }
+
+            if (operation_token.isReadOpToken()) {
+                await this._handleReadParameters();
+            }
+        } else if (operation_token.isEditingOpToken()) {
+            if (operation_token.is('key', 'put')) {
+                this._astree.enterSetAndLeave('operation', 'edit');
+            } else if (operation_token.is('key', 'tag')) {
+                this._astree.enterSetAndLeave('operation', 'tag');
+            } else if (operation_token.is('key', 'untag')) {
+                this._astree.enterSetAndLeave('operation', 'untag');
+            }
+
+            this._tokens.next();
+
+            if (operation_token.isGeneralEditingOpToken()) {
+                await this._handleEditDefinition();
+            } else if (operation_token.isTagEditingOpToken()) {
+                if (this._tokens.peek().is('key', 'as')) {
+                    this._tokens.next();
+                }
+
+                this._astree.enterPos('definition');
+                this._handleTagsDefinition({ require: false });
+                this._astree.leavePos();
+            }
+        } else if (operation_token.isCopyOpToken()) {
+            this._handleCopyOperation();
+        } else if (operation_token.isImportOpToken()) {
+            if (operation_token.is('key', 'import')) {
+                this._astree.enterSetAndLeave('operation', 'import');
+            }
+
+            this._tokens.next();
+
+            await this._handleImportParameters();
+        } else {
+            this._handleUnexpected();
         }
     }
 
     async _handleStatement() {
-        let current;
-
         if (this._tokens.peek().isControlOpToken()) {
             this._handleControlOperation();
         } else {
@@ -900,13 +980,13 @@ export class SyntaxParser {
              * However, it gets complicated when you want something like ''@new' a/b' when a doesn't exist yet, or ''@new' a/b|(b/c)'.
              * Meanwhile ''@get' a/b' works because you know you're only addressing an existing module with it.
              */
-            let context_defined = false;
+            this._context_defined = false;
 
             if (this._tokens.peek().is('key', 'in')) {
                 this._tokens.next();
 
                 this._handleContext();
-                context_defined = true;
+                this._context_defined = true;
 
                 this._handleContextAppendixNotRequiringExpression();
 
@@ -929,57 +1009,7 @@ export class SyntaxParser {
                 this._astree.leavePos();
                 this._tokens.next();
             } else {
-                const operation_token = this._tokens.peek();
-            
-                if (operation_token.isDefiningOpToken()) {
-                    this._handleOperation();
-    
-                    switch (this._astree.getTopPos()) {
-                        case 'raw':
-                            await this._handleRawDefinition();
-                            break;
-                        case 'definition':
-                            await this._handleDefinition();
-                            break;
-                    }
-                } else if (operation_token.isAffectingOpToken()) {
-                    this._handleOperation();
-    
-                    if (!context_defined) {
-                        current = this._tokens.peek();
-                        if (current.isContextToken()) {
-                            this._handleContext();
-                            context_defined = true;
-                        }
-
-                        this._handleContextAppendixNotRequiringExpression();
-                    }
-    
-                    if (operation_token.isReadOpToken()) {
-                        this._handleReadOperation();
-                    }
-                } else if (operation_token.isGeneralEditingOpToken()) {
-                    this._handleOperation();
-    
-                    await this._handleEditDefinition();
-                } else if (operation_token.isTagEditingOpToken()) {
-                    this._handleOperation();
-
-                    if (this._tokens.peek().is('key', 'as')) {
-                        this._tokens.next();
-                    }
-    
-                    this._handleTagsDefinition({ require: false });
-                } else if (operation_token.isCopyOpToken()) {
-                    // No _handleOperation() because both cut and copy translate to multiple base operations.
-                    // It is awkward to cycle between multiple operations in this case, so _handleCopyOperation as a single method avoids handling the operation and parameters separately.
-
-                    this._handleCopyOperation();
-                } else if (operation_token.isImportOpToken()) {
-                    this._handleOperation();
-
-                    await this._handleImportOperation();
-                }
+                await this._handleOperation();
             }
         }
 
@@ -994,6 +1024,8 @@ export class SyntaxParser {
         this._tokens.next();
 
         this._astree.nextItem();
+
+        this._stmt_nonce++;
     }
 
     async parse(tokens, opts = { }) {
