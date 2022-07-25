@@ -1,15 +1,15 @@
 import express         from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { Tridy }           from '../include/Interpreter.js';
-import { TokenlessParser } from '../include/TokenlessParser.js';
+import { HTTPMethodParser } from '../include/HTTPMethodParser.js';
+import { Tridy }            from '../include/Interpreter.js';
+import { TokenlessParser }  from '../include/TokenlessParser.js';
 
 import { global, deepCopy, isEmpty }          from '../utility/common.js';
 import { SyntaxError, ServerSideServerError } from '../utility/error.js';
 import { logger }                             from '../utility/logger.js';
 
-import { db }             from '../database.js';
-import { getRESTMethods } from '../server.js';
+import { db } from '../database.js';
 
 const handleRoute = async (method, req, res, next) => {
     const opts = deepCopy(req.query);
@@ -50,7 +50,7 @@ const handleRoute = async (method, req, res, next) => {
         }
     }
 
-    const allowed = getRESTMethods(command);
+    const allowed = HTTPMethodParser.parse(command);
     if (allowed[method] === false) {
         return next(new ServerSideServerError(`The ${method.toUpperCase()} method does not have sufficient permissions to handle the request received previously.`, null, { http_code: StatusCodes.BAD_REQUEST, is_fatal: false }));
     }

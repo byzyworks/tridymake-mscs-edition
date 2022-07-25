@@ -136,7 +136,8 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@quiet` `@get` parameter clause.
 * Added `@split` (list-controlling) control clause.
 * Reworked output behavior.
-* Added compound value expression additive modifier `+`. (PENDING)
+* Tags now accept string values. (PENDING)
+* Added compound value expression additive/concatenation modifier `+`. (PENDING)
 * Added compound value expression multiplicative modifier `*`. (PENDING)
 * Added compound value expression exponential modifier `^`. (PENDING)
 * Removed context-locking.
