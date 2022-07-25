@@ -1,9 +1,9 @@
 import { CharLexer } from './CharLexer.js';
-import { Token }     from './Token.js';
 
 import { not }         from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
+import { Token }       from '../utility/Token.js';
 
 export class TokenLexer {
     constructor() {

@@ -4,12 +4,12 @@ import uuid       from 'uuid-random';
 
 import { Compressor }    from './Compressor.js';
 import { ContextParser } from './ContextParser.js';
-import { StateTree }     from './StateTree.js';
-import { Tag }           from './Tag.js';
 
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Stack }       from '../utility/Stack.js';
+import { StateTree }   from '../utility/StateTree.js';
+import { Tag }         from '../utility/Tag.js';
 
 export class Composer {
     constructor() {
@@ -637,7 +637,15 @@ export class Composer {
         this._saved.push(target.getPosValue());
     }
 
+    _deleteLoadedModule() {
+        this._cut_in_progress = true;
+    }
+
     _loadModule() {
+        if (this._cut_in_progress === true) {
+
+        }
+
         for (const module of this._saved) {
             this._composeModule(common.deepCopy(module));
         }

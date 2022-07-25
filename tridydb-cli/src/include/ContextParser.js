@@ -1,8 +1,7 @@
-import { Token } from './Token.js';
-
 import { isDictionary, isEmpty } from '../utility/common.js';
 import { Stack }                 from '../utility/Stack.js';
 import { Queue }                 from '../utility/Queue.js';
+import { Token }                 from '../utility/Token.js';
 
 export class ContextParser {
     constructor() { }

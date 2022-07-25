@@ -5,13 +5,13 @@ import * as yaml from 'js-yaml';
 
 import { ContextParser } from './ContextParser.js';
 import { Tridy }         from './Interpreter.js';
-import { StateTree }     from './StateTree.js';
-import { Tag }           from './Tag.js';
-import { Token }         from './Token.js';
 
 import * as common                from '../utility/common.js';
 import { SyntaxError, FileError } from '../utility/error.js';
 import { List }                   from '../utility/List.js';
+import { StateTree }              from '../utility/StateTree.js';
+import { Tag }                    from '../utility/Tag.js';
+import { Token }                  from '../utility/Token.js';
 
 export class SyntaxParser {
     constructor() {
@@ -855,8 +855,6 @@ export class SyntaxParser {
                 this._astree.enterSetAndLeave('list_mode', 'items_only');
                 
                 this._tokens.next();
-            } else {
-                this._astree.enterSetAndLeave('list_mode', 'auto');
             }
         }
 

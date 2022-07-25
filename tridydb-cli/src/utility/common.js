@@ -255,8 +255,7 @@ const defaults = Object.freeze({
         port:       21780,
         preformat:  false,
         allow_tree: true,
-        allow_verb: false,
-        allow_rest: false
+        allow_verb: false
     },
     output: {
         format:      'js',

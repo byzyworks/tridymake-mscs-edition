@@ -1,7 +1,6 @@
-import { Token } from './Token.js';
-
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
+import { Token }       from '../utility/Token.js';
 
 export class TokenlessParser {
     constructor() { }
@@ -11,13 +10,13 @@ export class TokenlessParser {
     }
 
     static _handleInteger(input) {
-        if ((typeof input !== 'number') && !Number.isInteger(input)) {
+        if ((typeof input !== 'number') || !Number.isInteger(input)) {
             this._handleUnexpected();
         }
     }
 
     static _handlePositiveInteger(input) {
-        if ((typeof input !== 'number') && !Number.isInteger(input) && (Number(input) >= 0)) {
+        if ((typeof input !== 'number') || (!Number.isInteger(input) && (Number(input) >= 0))) {
             this._handleUnexpected();
         }
     }
@@ -107,8 +106,10 @@ export class TokenlessParser {
             }
         }
 
-        if (typeof input.list_mode !== 'string') {
-            this._handleUnexpected();
+        if (!common.isNullish(input.file)) {
+            if (typeof input.list_mode !== 'string') {
+                this._handleUnexpected();
+            }
         }
 
         if (!common.isNullish(input.file)) {
@@ -129,9 +130,13 @@ export class TokenlessParser {
             }
         }
 
-        this._handleInteger(input.list_nonce);
+        if (!common.isNullish(input.file_quiet)) {
+            this._handleInteger(input.list_nonce);
+        }
 
-        this._handleInteger(input.stmt_nonce);
+        if (!common.isNullish(input.file_quiet)) {
+            this._handleInteger(input.stmt_nonce);
+        }
     }
 
     static _handleStatement(input) {
@@ -184,5 +189,7 @@ export class TokenlessParser {
         for (const stmt of input[common.global.defaults.alias.nested]) {
             this._handleStatement(stmt);
         }
+
+        return input;
     }
 }

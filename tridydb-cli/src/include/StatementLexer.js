@@ -1,8 +1,8 @@
-import { Token }      from './Token.js';
 import { TokenLexer } from './TokenLexer.js';
 
 import { isEmpty }     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
+import { Token }       from '../utility/Token.js';
 
 export class StatementLexer {
     constructor() {

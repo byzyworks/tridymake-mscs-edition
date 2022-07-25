@@ -147,11 +147,13 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed bug where line number (displayed debugging information) wouldn't increment in multi-line console mode input.
 * Added file path to displayed debugging information.
 * Added `--server-preformat` program option.
-* Added `--server-allow-restful` program option.
 * Added `--server-allow-verbatim` program option.
 * Added `--server-deny-syntax-tree` program option.
 * Limited functionality of `@clear` and `@exit` to console mode.
 * Removed `@none` as argument to `@tag` and `@untag`.
+* Removed the RESTful server sub-mode.
+* Changed syntax tree and verbatim server sub-modes to no longer force use of PUT method.
+* Redesigned syntax and verbatim server sub-modes to set acceptable method calls based on query contents.
 
 <br>
 

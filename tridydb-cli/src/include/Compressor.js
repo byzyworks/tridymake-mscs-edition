@@ -1,6 +1,5 @@
-import { StateTree } from './StateTree.js';
-
-import * as common from '../utility/common.js';
+import * as common   from '../utility/common.js';
+import { StateTree } from '../utility/StateTree.js';
 
 export class Compressor {
     constructor() { }

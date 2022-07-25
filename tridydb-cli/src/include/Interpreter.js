@@ -130,23 +130,23 @@ export class Tridy {
      * @async
      * @public
      * @method
-     * @param   {String}  input             Tridy command(s)/statement(s).
-     * @param   {Boolean} opts.tokenless    Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
-     * @param   {Boolean} opts.accept_carry True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
-     * @param   {Boolean} opts.interactive  Allows interactive control commands like @clear and @exit to be effective. Default is false.
-     * @param   {String}  opts.filepath     Path of the file that is the source of the command(s)/statement(s). Used for debugging. Default is null.
-     * @param   {Boolean} opts.astree_only  Only return the abstract syntax tree; do not attempt to execute it and return the results thereof. Default is false.
-     * @param   {Boolean} opts.client_mode  True to run as a client, false to run standalone / as a server. Default is false.
-     * @param   {String}  opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
-     * @param   {Number}  opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
-     * @param   {Number}  opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
-     * @param   {String}  opts.type_key     The key used to classify modules when printing compressed output using @merged or @final. Default is 'type'.
-     * @param   {String}  opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
-     * @param   {String}  opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
-     * @param   {String}  opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
-     * @returns {Array<Object>}             The output of the statement(s), including presentation metadata.
-     * @throws  {SyntaxError}               Thrown if the input isn't valid Tridy code.
-     * @throws  {ClientSideServerError}     Thrown if the server host (optional) sends back an error response.
+     * @param   {String | Object} input             Tridy command(s)/statement(s). A string is required unless opts.tokenless is true.
+     * @param   {Boolean}         opts.tokenless    Used for internal control flow where it's better to send a pre-processed abstract syntax tree directly as input. Default is false.
+     * @param   {Boolean}         opts.accept_carry True to statefully retain tokens from incomplete statements, false to throw SyntaxError if receiving an incomplete statement. Default is false.
+     * @param   {Boolean}         opts.interactive  Allows interactive control commands like @clear and @exit to be effective. Default is false.
+     * @param   {String}          opts.filepath     Path of the file that is the source of the command(s)/statement(s). Used for debugging. Default is null.
+     * @param   {Boolean}         opts.astree_only  Only return the abstract syntax tree; do not attempt to execute it and return the results thereof. Default is false.
+     * @param   {Boolean}         opts.client_mode  True to run as a client, false to run standalone / as a server. Default is false.
+     * @param   {String}          opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
+     * @param   {Number}          opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
+     * @param   {Number}          opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
+     * @param   {String}          opts.type_key     The key used to classify modules when printing compressed output using @merged or @final. Default is 'type'.
+     * @param   {String}          opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
+     * @param   {String}          opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
+     * @param   {String}          opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @returns {Array<Object>}                     The output of the statement(s), including presentation metadata.
+     * @throws  {SyntaxError}                       Thrown if the input isn't valid Tridy code.
+     * @throws  {ClientSideServerError}             Thrown if the server host (optional) sends back an error response.
      */
     async query(input, opts = { }) {
         opts.tokenless    = opts.tokenless    ?? false;
@@ -173,10 +173,14 @@ export class Tridy {
         let output = [ ];
 
         if (opts.tokenless) {
-            try {
-                astree = JSON.parse(input);
-            } catch (err) {
-                throw new error.SyntaxError(err.message);
+            if (common.isObject(input)) {
+                astree = input;
+            } else {
+                try {
+                    astree = JSON.parse(input);
+                } catch (err) {
+                    throw new error.SyntaxError(err.message);
+                }
             }
 
             if (opts.astree_only) {
@@ -291,7 +295,7 @@ export class Tridy {
      * @method
      * @param   {Array<Object>} input             Tridy query() JSON output
      * @param   {String}        opts.format       Default format to export the JSON output in. Options are 'json', 'yaml', or 'xml'. Default is 'json'.
-     * @param   {Number}        opts.indent       Default indent increment size in spaces to output with. Default is 4 spaces except for YAML, where it is 2 spaces. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 1 space is a minimum).
+     * @param   {Number}        opts.indent       Default indent increment size in spaces to output with. Default is null, which auto-generates 4 spaces except for YAML, where it is 2 spaces, and none for text output. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 1 space is a minimum).
      * @param   {String}        opts.list_mode    Default way to display output where there is one or multiple modules returned. By default, this is set to 'auto' where single modules are returned alone and multiple module are returned in an array, but there's also 'list_only' and 'items_only' modes.
      * @param   {String}        opts.file         Default file to export to. If null, then this is standard output / the console. Default is null. 
      * @param   {String}        opts.file_mode    Default behavior when the file exported to already exists. Options are 'create' (where nothing is done), 'append', and 'replace'. Default is 'create'.
@@ -377,8 +381,14 @@ export class Tridy {
             current.file         = current.file       ?? opts.file;
             current.file_mode    = current.file_mode  ?? opts.file_mode;
             current.file_quiet   = current.file_quiet ?? opts.file_quiet;
+            current.list_nonce   = current.list_nonce ?? -1; // The nonces all begin at 0. Defaulting to -1 separates out the 'null' nonces in the output.
+            current.stmt_nonce   = current.stmt_nonce ?? -1;
             current.xml_list_key = opts.xml_list_key;
             current.xml_item_key = opts.xml_item_key;
+
+            if ((current.indent !== null) && ((typeof current.indent !== 'number') || !Number.isInteger(current.indent))) {
+                throw new error.SyntaxError(`Invalid indent mode "${indent}".`);
+            }
 
             let changed_parameters = false;
             if (last !== null) {

@@ -106,9 +106,6 @@ program
         new Option('--server-allow-verbatim', 'Allows verbatim (raw token string) queries to be sent to this server. Only applies in server mode. Disabled by default for security reasons.')
     )
     .addOption(
-        new Option('--server-allow-restful', 'Allows structured RESTful queries to be sent to this server. Only applies in server mode. Disabled by default for security reasons.')
-    )
-    .addOption(
         new Option('--server-deny-syntax-trees', 'Denies abstract syntax tree queries sent to this server. Only applies in server mode. Note that this will cause problems with TridyDB clients.')
     )
     .addOption(
@@ -148,7 +145,6 @@ program
         global.server.preformat  = opts.serverPreformat;
         global.server.allow_tree = !opts.serverDenySyntaxTrees;
         global.server.allow_verb = opts.serverAllowVerbatim;
-        global.server.allow_rest = opts.serverAllowRestful;
 
         global.output.format      = opts.defaultFormat;
         global.output.compression = opts.defaultCompression;
@@ -222,7 +218,7 @@ program
 
 program
     .command('server')
-    .description('Start a RESTful HTTP server.')
+    .description('Start an HTTP server.')
     .action(async (opts, command) => {
         await server(command.optsWithGlobals());
     })
