@@ -1,7 +1,9 @@
 import * as xml  from 'xml-js';
 import * as yaml from 'js-yaml';
 
-import { XMLFormatter } from './XMLFormatter.js';
+import { NestedTextFormatter } from './NestedTextFormatter.js';
+import { SimpleTextFormatter } from './SimpleTextFormatter.js';
+import { XMLFormatter }        from './XMLFormatter.js';
 
 import * as common from '../utility/common.js';
 
@@ -47,6 +49,11 @@ export class Formatter {
                     }
                 }
                 return xml.js2xml(converted, { compact: false });
+            case 'simple-text':
+                opts.indent = opts.indent ?? -1;
+                return SimpleTextFormatter.convert(input, { indent: opts.indent });
+            case 'nested-text':
+                return NestedTextFormatter.convert(input);
             default:
                 throw new SyntaxError(`Invalid format "${opts.format}".`);
         }

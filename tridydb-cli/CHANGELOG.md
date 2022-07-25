@@ -123,7 +123,9 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@json` `@get` parameter clause.
 * Added `@yaml` `@get` parameter clause.
 * Added `@xml` `@get` parameter clause.
-* Added `@text` `@get` parameter clause. (PENDING)
+* Added `@simple` `@get` parameter clause.
+* Added `@nested` `@get` parameter clause. (PENDING)
+* Added `@text` `@get` parameter clause.
 * Added `@binary` `@get` parameter clause. (PENDING)
 * Added `@list` `@get` parameter clause.
 * Added `@items` `@get` parameter clause.

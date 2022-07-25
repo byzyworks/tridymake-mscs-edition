@@ -772,28 +772,37 @@ export class SyntaxParser {
             this._tokens.next();
         }
 
+        let force_complex = false;
+        let force_text    = false;
+
         current = this._tokens.peek();
         if (current.is('key', 'raw')) {
+            force_complex = true;
             this._astree.enterSetAndLeave('compression', 0);
             
             this._tokens.next();
         } else if (current.is('key', 'typeless')) {
+            force_complex = true;
             this._astree.enterSetAndLeave('compression', 1);
 
             this._tokens.next();
         } else if (current.is('key', 'tagless')) {
+            force_complex = true;
             this._astree.enterSetAndLeave('compression', 2);
 
             this._tokens.next();
         } else if (current.is('key', 'trimmed')) {
+            force_complex = true;
             this._astree.enterSetAndLeave('compression', 3);
 
             this._tokens.next();
         } else if (current.is('key', 'merged')) {
+            force_complex = true;
             this._astree.enterSetAndLeave('compression', 4);
 
             this._tokens.next();
         } else if (current.is('key', 'final')) {
+            force_complex = true;
             this._astree.enterSetAndLeave('compression', 5);
 
             this._tokens.next();
@@ -812,64 +821,83 @@ export class SyntaxParser {
             this._astree.enterSetAndLeave('format', 'xml');
 
             this._tokens.next();
+        } else if (!force_complex) {
+            if (current.is('key', 'simple')) {
+                this._tokens.next();
+
+                current = this._tokens.peek();
+                if (current.is('key', 'text')) {
+                    force_text = true;
+                    this._astree.enterSetAndLeave('format', 'simple-text');
+                    
+                    this._tokens.next();
+                }
+            } else if (current.is('key', 'nested')) {
+                this._tokens.next();
+
+                current = this._tokens.peek();
+                if (current.is('key', 'text')) {
+                    force_text = true;
+                    this._astree.enterSetAndLeave('format', 'nested-text');
+                    
+                    this._tokens.next();
+                }
+            }
         }
 
-        let force_console = false;
+        if (!force_text) {
+            current = this._tokens.peek();
+            if (current.is('key', 'list')) {
+                this._astree.enterSetAndLeave('list_mode', 'list_only');
+                
+                this._tokens.next();
+            } else if (current.is('key', 'items')) {
+                this._astree.enterSetAndLeave('list_mode', 'items_only');
+                
+                this._tokens.next();
+            } else {
+                this._astree.enterSetAndLeave('list_mode', 'auto');
+            }
+        }
+
+        let force_file = false;
 
         current = this._tokens.peek();
-        if (current.is('key', 'list')) {
-            this._astree.enterSetAndLeave('list_mode', 'list_only');
+        if (current.is('key', 'create')) {
+            force_file = true;
+            this._astree.enterSetAndLeave('file_mode', 'create');
             
             this._tokens.next();
-        } else if (current.is('key', 'items')) {
-            force_console = true;
-            this._astree.enterSetAndLeave('list_mode', 'items_only');
+        } else if (current.is('key', 'append')) {
+            force_file = true;
+            this._astree.enterSetAndLeave('file_mode', 'append');
             
             this._tokens.next();
-        } else {
-            this._astree.enterSetAndLeave('list_mode', 'auto');
+        } else if (current.is('key', 'replace')) {
+            force_file = true;
+            this._astree.enterSetAndLeave('file_mode', 'replace');
+
+            this._tokens.next();
         }
 
-        if (!force_console) {
-            let force_file = false;
-
+        if (force_file) {
             current = this._tokens.peek();
-            if (current.is('key', 'create')) {
-                force_file = true;
-                this._astree.enterSetAndLeave('file_mode', 'create');
-                
+            if (current.is('key', 'file')) {
                 this._tokens.next();
-            } else if (current.is('key', 'append')) {
-                force_file = true;
-                this._astree.enterSetAndLeave('file_mode', 'append');
-                
-                this._tokens.next();
-            } else if (current.is('key', 'replace')) {
-                force_file = true;
-                this._astree.enterSetAndLeave('file_mode', 'replace');
 
-                this._tokens.next();
+                const link = await this._readWhileRawAndParse({ string_only: true });
+                if (link === undefined) {
+                    this._handleUnexpected();
+                }
+
+                this._astree.enterSetAndLeave('file', link);
             }
 
-            if (force_file) {
-                current = this._tokens.peek();
-                if (current.is('key', 'file')) {
-                    this._tokens.next();
-    
-                    const link = await this._readWhileRawAndParse({ string_only: true });
-                    if (link === undefined) {
-                        this._handleUnexpected();
-                    }
-    
-                    this._astree.enterSetAndLeave('file', link);
-                }
+            current = this._tokens.peek();
+            if (current.is('key', 'quiet')) {
+                this._astree.enterSetAndLeave('file_quiet', true);
 
-                current = this._tokens.peek();
-                if (current.is('key', 'quiet')) {
-                    this._astree.enterSetAndLeave('file_quiet', true);
-
-                    this._tokens.next();
-                }
+                this._tokens.next();
             }
         }
 
