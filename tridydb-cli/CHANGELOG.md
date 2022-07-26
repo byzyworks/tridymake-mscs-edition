@@ -108,8 +108,8 @@ Remember also to set the version number inside package.json and utility/common.
 
 * Added `@offset` clause to complement `@limit` and ignore the first *n* *successfully* tested modules.
 * Added `@repeat` clause to complement `@limit` and retry every module again for the same statement *n* times.
-* Added statistic output for non-`@get` operations when log level >= verbose. (PENDING)
-* Added `@stat` operation clause. (PENDING)
+* Added statistic output for non-`@get` operations when log level >= verbose.
+* Added `@stat` operation clause.
 * Added `@import` operation clause.
 * Added `@file` raw input clause.
 * Added `@cut` operation clause.

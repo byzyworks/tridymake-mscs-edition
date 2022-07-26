@@ -392,7 +392,7 @@ export class Composer {
         }
     }
 
-    _createModule(module = null) {
+    _createModuleTemplate(module = null) {
         if (module === null) {
             module = new StateTree(module, this._alias);
         }
@@ -422,7 +422,7 @@ export class Composer {
         return result;
     }
 
-    async _uniqueCopy(template, opts = { }) {
+    async _uniqueCopyTemplate(template, opts = { }) {
         opts.functions = opts.functions ?? null;
         opts.params    = opts.params    ?? null;
 
@@ -650,7 +650,7 @@ export class Composer {
 
         let template;
         template = new StateTree(target.getPosValue(), this._alias);
-        template = this._createModule(template);
+        template = this._createModuleTemplate(template);
 
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
             this._parse();
@@ -665,7 +665,7 @@ export class Composer {
         opts.params    = opts.params    ?? null;
 
         if (opts.template !== null) {
-            opts.template = await this._uniqueCopy(opts.template, { functions: opts.functions, params: opts.params });
+            opts.template = await this._uniqueCopyTemplate(opts.template, { functions: opts.functions, params: opts.params });
         }
 
         switch (command) {
@@ -750,6 +750,7 @@ export class Composer {
         opts.limit     = opts.limit     ?? null;
         opts.offset    = opts.offset    ?? 0;
         opts.count     = opts.count     ?? 0;
+        opts.stats     = opts.stats     ?? { attempts: 0, successes: 0, indeces: [ ] };
 
         const index = this._getModuleIndex();
 
@@ -757,6 +758,8 @@ export class Composer {
         if (matched === true) {
             opts.count++;
         }
+
+        opts.stats.attempts++;
 
         if (((level.max === null) || (level.current < level.max)) && ((opts.limit === null) || (opts.count < opts.limit))) {
             const target = this._target.peek();
@@ -771,16 +774,23 @@ export class Composer {
             });
         }
 
-        const params = {
-            index: index,
-            random: {
-                global: this._random.seeds,
-                query:  random
+        const operate = {
+            template:  opts.template,
+            functions: opts.functions,
+            params: {
+                index: index,
+                random: {
+                    global: this._random.seeds,
+                    query:  random
+                }
             }
         };
 
         if (matched && (opts.count > opts.offset)) {
-            await this._operateModule(command, { template: opts.template, functions: opts.functions, params: params });
+            await this._operateModule(command, operate);
+
+            opts.stats.successes++;
+            opts.stats.indeces.push(index.real.join(','));
         }
 
         return matched;
@@ -839,6 +849,25 @@ export class Composer {
         return lvl;
     }
 
+    _postOperation(command, stats) {
+        switch (command) {
+            case '_load':
+                this._saved = [ ];
+                break;
+            case 'nop':
+                this._output.push(stats);
+                break;
+            default:
+                switch (common.global.log_level) {
+                    case 'verbose':
+                    case 'debug':
+                    case 'silly':
+                        this._output.push(stats);
+                }
+                break;
+        }
+    }
+
     async _parseStatement() {
         const context    = this._astree.enterGetAndLeave('context');
         let   expression = context ? context.expression     : { };
@@ -869,14 +898,28 @@ export class Composer {
             case 'nop':
                 break;
             default:
-                template = this._createModule();
+                template = this._createModuleTemplate();
         }
 
         const start_lvl = this._getStartingLevel();
         const max_depth = this._getMaximumDepth(expression);
         const level     = { start: start_lvl, current: start_lvl, max: start_lvl + max_depth };
 
-        const traverse = { template: template, functions: functions, limit: limit, offset: offset, count: 0 };
+        const stats = {
+            attempts:  0,
+            successes: 0,
+            indeces:   [ ]
+        };
+
+        const traverse = {
+            count:     0,
+            limit:     limit,
+            offset:    offset,
+            template:  template,
+            functions: functions,
+            stats:     stats
+        };
+
         for (let i = 0; i <= repeat; i++) {
             await this._traverseModule(expression, command, level, this._random.prng(), traverse);
             if ((limit !== null) && (traverse.count >= limit)) {
@@ -884,9 +927,7 @@ export class Composer {
             }
         }
 
-        if (command === '_load') {
-            this._saved = [ ];
-        }
+        this._postOperation(command, stats);
     }
 
     async _parse() {
