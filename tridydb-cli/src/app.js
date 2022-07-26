@@ -156,7 +156,7 @@ program
         logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         
         if (!isNullish(opts.randomSeed)) {
-            db.setRandomSeed(opts.randomSeed[0]);
+            db.setRandomSeeds(opts.randomSeed);
         }
 
         if (opts.command) {

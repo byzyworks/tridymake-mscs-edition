@@ -170,10 +170,6 @@ export class StateTree {
         }
     }
 
-    copyPosValue(target) {
-        target.setPosValue(this.getPosValue());
-    }
-
     deletePosValue() {
         this._updatePtrs();
 
@@ -220,20 +216,6 @@ export class StateTree {
         this.putPosValue(value);
         for (let i = 0; i < pos.length; i++) {
             this.leavePos();
-        }
-    }
-
-    enterCopyAndLeave(target, pos) {
-        pos = common.isArray(pos) ? pos : [ pos ];
-
-        for (const part of pos) {
-            this.enterPos(part);
-            target.enterPos(part);
-        }
-        this.copyPosValue(target);
-        for (let i = 0; i < pos.length; i++) {
-            this.leavePos();
-            target.leavePos();
         }
     }
 
@@ -325,6 +307,24 @@ export class StateTree {
             this.enterPos(0);
             while (!this.isPosUndefined()) {
                 const act = callback();
+                if (act === 'break') {
+                    break;
+                } else if (act === 'continue') {
+                    continue;
+                }
+                this.nextItem();
+            }
+            this.leavePos();
+        }
+        this.leavePos();
+    }
+
+    async traverseAsync(callback) {
+        this.enterPos(this._alias.nested);
+        if (!this.isPosEmpty()) {
+            this.enterPos(0);
+            while (!this.isPosUndefined()) {
+                const act = await callback();
                 if (act === 'break') {
                     break;
                 } else if (act === 'continue') {

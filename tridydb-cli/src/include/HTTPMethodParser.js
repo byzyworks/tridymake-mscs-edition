@@ -97,4 +97,21 @@ export class HTTPMethodParser {
     
         return methods;
     }
+
+    static getLowestPermission(input) {
+        const methods = this.parse(input);
+
+        if (methods.get === true) {
+            return 'get';
+        }
+        if (methods.post === true) {
+            return 'post';
+        }
+        if (methods.delete === true) {
+            return 'delete';
+        }
+        if (methods.put === true) {
+            return 'put';
+        }
+    }
 }

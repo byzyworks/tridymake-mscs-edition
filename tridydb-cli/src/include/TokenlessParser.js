@@ -79,16 +79,6 @@ export class TokenlessParser {
                 }
             }
         }
-
-        if (!common.isNullish(input[common.global.defaults.alias.nested])) {
-            if (!common.isArray(input[common.global.defaults.alias.nested])) {
-                this._handleUnexpected();
-            }
-
-            for (const stmt of input[common.global.defaults.alias.nested]) {
-                this._handleStatement(stmt);
-            }
-        }
     }
 
     static _handleOutput(input) {
@@ -139,6 +129,20 @@ export class TokenlessParser {
         }
     }
 
+    static _handleFunctions(input) {
+        if (!common.isNullish(input.module)) {
+            if (!common.isArray(input.module)) {
+                this._handleUnexpected();
+            }
+        }
+
+        if (!common.isNullish(input[common.global.defaults.alias.free])) {
+            if (!common.isArray(input[common.global.defaults.alias.free])) {
+                this._handleUnexpected();
+            }
+        }
+    }
+
     static _handleStatement(input) {
         if (!common.isNullish(input.context)) {
             if (!common.isDictionary(input.context)) {
@@ -162,12 +166,30 @@ export class TokenlessParser {
             this._handleDefinition(input.definition);
         }
 
+        if (!common.isNullish(input[common.global.defaults.alias.nested])) {
+            if (!common.isArray(input[common.global.defaults.alias.nested])) {
+                this._handleUnexpected();
+            }
+
+            for (const stmt of input[common.global.defaults.alias.nested]) {
+                this._handleStatement(stmt);
+            }
+        }
+
         if (!common.isNullish(input.output)) {
             if (!common.isDictionary(input.output)) {
                 this._handleUnexpected();
             }
 
             this._handleOutput(input.output);
+        }
+
+        if (!common.isNullish(input.functions)) {
+            if (!common.isDictionary(input.functions)) {
+                this._handleUnexpected();
+            }
+
+            this._handleFunctions(input.functions);
         }
     }
 

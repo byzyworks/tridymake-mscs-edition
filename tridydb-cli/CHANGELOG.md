@@ -99,6 +99,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Fixed bug where a custom tree key would lead to an infinite loop when using `@get` with `@typeless`, `@tagless`, or `@trimmed`.
 * Fixed comments being dysfunctional in console mode.
 * Improved behavior of server mode when receiving incorrectly-formatted abstract syntax trees.
+* Fixed bug where different forms of raw input could be intermixed in some situations, with unexpected behavior.
 
 <br>
 
@@ -115,8 +116,8 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@copy` operation clause.
 * Added `@after` meta-operation clause. (PENDING)
 * Added `@before` meta-operation clause. (PENDING)
-* Added "functions" for user-generated input in place of literal input (requires user-placed JavaScript code). (PENDING)
-* Added `@function` input clause with string arguments. (PENDING)
+* Added "functions" for user-generated input in place of literal input (requires user-placed JavaScript code).
+* Added `@function` raw input clause with string arguments.
 * Removed `@end` raw input end delimiter clause.
 * Re-added `%` as new raw input delimiter (for non-strings).
 * Added `@indent` `@get` parameter clause with integer argument.

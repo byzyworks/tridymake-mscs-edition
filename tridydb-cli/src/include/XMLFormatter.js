@@ -12,9 +12,9 @@ export class XMLFormatter {
             elements: output
         };
 
-        // "_xml" is added by the Syntax Parser to symbolize everything under "elements" for the object is pre-parsed.
-        if (input._xml === true) {
-            delete input._xml;
+        // "_format = xml" is added by the Syntax Parser to symbolize everything under "elements" for the object is pre-parsed.
+        if (input._format === 'xml') {
+            delete input._format;
 
             if (common.isArray(input.elements)) {
                 /**

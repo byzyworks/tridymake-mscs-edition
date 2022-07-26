@@ -330,19 +330,33 @@ export class Token {
         ;
     }
 
-    isRawInputStringStartToken() {
+    isRawInputSimpleStringToken() {
         return false ||
             this.is('lpart') ||
-            this.is('mlpart') ||
+            this.is('mlpart')
+        ;
+    }
+
+    isRawInputPrimitiveStringToken() {
+        return false ||
+            this.isRawInputSimpleStringToken() ||
             this.is('dynpart')
         ;
     }
 
+    isRawInputStringStartToken() {
+        return this.isRawInputPrimitiveStringToken();
+    }
+
     isRawInputStringToken() {
         return false ||
-            this.isRawInputStringStartToken() ||
+            this.isRawInputPrimitiveStringToken() ||
             this.is('datapart')
         ;
+    }
+
+    isRawInputMultilineStringToken() {
+        return this.isRawInputStringToken();
     }
 
     isRawInputStartToken() {

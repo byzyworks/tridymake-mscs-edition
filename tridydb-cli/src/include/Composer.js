@@ -1,3 +1,5 @@
+import { createRequire } from 'module';
+
 import seedrandom from 'seedrandom';
 import shuffle    from 'knuth-shuffle-seeded';
 import uuid       from 'uuid-random';
@@ -11,21 +13,25 @@ import { Stack }       from '../utility/Stack.js';
 import { StateTree }   from '../utility/StateTree.js';
 import { Tag }         from '../utility/Tag.js';
 
+import { error_handler, FunctionError } from '../utility/error.js';
+
+const require = createRequire(import.meta.url);
+
 export class Composer {
     constructor() {
         this._target = new Stack();
 
-        this.setRandomSeed();
+        this.setRandomSeeds();
     }
 
-    getRandomSeed() {
-        return this._random.seed;
+    getRandomSeeds() {
+        return this._random.seeds;
     }
 
-    setRandomSeed(seed) {
+    setRandomSeeds(seeds) {
         this._random       = { };
-        this._random.seed  = seed ?? seedrandom().int32();
-        this._random.prng  = new seedrandom(''.concat(this._random.seed), { entropy: false });
+        this._random.seeds = seeds ?? [ seedrandom().int32() ];
+        this._random.prng  = new seedrandom(''.concat(this._random.seeds[0]), { entropy: false });
     }
 
     _getModuleShuffledIndex(lvl, index, random) {
@@ -391,48 +397,52 @@ export class Composer {
             module = new StateTree(module, this._alias);
         }
 
-        this._astree.enterPos('raw');
-        if (!this._astree.isPosUndefined()) {
-            module.setPosValue(this._astree.getPosValue());
-        }
-        this._astree.leavePos();
-
         this._astree.enterPos('definition');
         if (!this._astree.isPosUndefined()) {
-            // The order of assignment below affects the final output.
-            // Don't switch it up unless you're prepared to change the expected test case outputs, too.
-
-            this._astree.enterPos(common.global.defaults.alias.type);
-            if (!this._astree.isPosUndefined()) {
-                module.enterPos(this._alias.type);
-                this._astree.copyPosValue(module);
-                module.leavePos();
-            }
-            this._astree.leavePos();
-
-            this._astree.enterPos(common.global.defaults.alias.tags);
-            if (!this._astree.isPosUndefined()) {
-                module.enterPos(this._alias.tags);
-                this._astree.copyPosValue(module);
-                module.leavePos();
-            }
-            this._astree.leavePos();
-
-            this._astree.enterPos(common.global.defaults.alias.state);
-            if (!this._astree.isPosUndefined()) {
-                module.enterPos(this._alias.state);
-                this._astree.copyPosValue(module);
-                module.leavePos();
-            }
-            this._astree.leavePos();
+            module.setPosValue(this._astree.getPosValue());
         }
         this._astree.leavePos();
 
         return module.getRaw();
     }
 
-    _uniqueCopy(template) {
+    async _functionCall(name, params) {
+        name = name.replace(/(?:\.\.[\/\\])+/g, '');
+        name = '../../functions/' + name + '.js';
+
+        let result;
+        try {
+            const mod = await import(name);
+
+            result = mod.default(params);
+        } catch (err) {
+            error_handler.handle(new FunctionError(err.message));
+        }
+
+        return result;
+    }
+
+    async _uniqueCopy(template, opts = { }) {
+        opts.functions = opts.functions ?? null;
+        opts.params    = opts.params    ?? null;
+
         const copy = common.deepCopy(template);
+
+        if (opts.functions !== null) {
+            if (common.isArray(opts.functions[common.global.defaults.alias.state]) && !common.isEmpty(opts.functions[common.global.defaults.alias.state])) {
+                opts.params.custom = opts.functions[common.global.defaults.alias.state];
+
+                const result = await this._functionCall(opts.functions[common.global.defaults.alias.state][0], opts.params);
+
+                copy[common.global.defaults.alias.state] = result;
+            } else if (common.isArray(opts.functions.module) && !common.isEmpty(opts.functions.module)) {
+                opts.params.custom = opts.functions.module;
+
+                const result = await this._functionCall(opts.functions.module[0], opts.params);
+
+                copy = result;
+            }
+        }
 
         // A UUID needs to be unique for every copy of a module, even if generated in the same statement.
         if (common.isDictionary(template)) {
@@ -454,11 +464,9 @@ export class Composer {
 
         target.setPosValue(template);
 
-        this._astree.enterPos('definition');
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
             this._parse();
         }
-        this._astree.leavePos();
     }
 
     _composeModule(template) {
@@ -471,11 +479,9 @@ export class Composer {
         target.enterPos(this._alias.nested);
         target.enterPos(target.putPosValue(template) - 1);
 
-        this._astree.enterPos('definition');
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
             this._parse();
         }
-        this._astree.leavePos();
 
         target.leavePos();
         target.leavePos();
@@ -537,8 +543,6 @@ export class Composer {
             throw new SyntaxError(`Tried to edit an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        this._astree.enterPos('definition');
-
         const nulled = this._astree.enterGetAndLeave('nulled');
 
         this._editModulePart(target, template, nulled, 'type');
@@ -551,8 +555,6 @@ export class Composer {
         } else if (common.isDictionary(nulled) && (nulled[common.global.defaults.alias.nested] === true)) {
             target.enterDeleteAndLeave(this._alias.nested);
         }
-
-        this._astree.leavePos();
     }
 
     _tagModule(template) {
@@ -637,15 +639,7 @@ export class Composer {
         this._saved.push(target.getPosValue());
     }
 
-    _deleteLoadedModule() {
-        this._cut_in_progress = true;
-    }
-
     _loadModule() {
-        if (this._cut_in_progress === true) {
-
-        }
-
         for (const module of this._saved) {
             this._composeModule(common.deepCopy(module));
         }
@@ -658,19 +652,20 @@ export class Composer {
         template = new StateTree(target.getPosValue(), this._alias);
         template = this._createModule(template);
 
-        this._astree.enterPos('definition');
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
             this._parse();
         }
-        this._astree.leavePos();
 
         target.setPosValue(template);
     }
 
-    _operateModule(command, opts = { }) {
-        opts.template = opts.template ?? null;
+    async _operateModule(command, opts = { }) {
+        opts.template  = opts.template  ?? null;
+        opts.functions = opts.functions ?? null;
+        opts.params    = opts.params    ?? null;
+
         if (opts.template !== null) {
-            opts.template = this._uniqueCopy(opts.template);
+            opts.template = await this._uniqueCopy(opts.template, { functions: opts.functions, params: opts.params });
         }
 
         switch (command) {
@@ -749,11 +744,12 @@ export class Composer {
         return index;
     }
 
-    _traverseModule(test, command, level, random, opts = { }) {
-        opts.template = opts.template ?? null;
-        opts.limit    = opts.limit    ?? null;
-        opts.offset   = opts.offset   ?? 0;
-        opts.count    = opts.count    ?? 0;
+    async _traverseModule(test, command, level, random, opts = { }) {
+        opts.template  = opts.template  ?? null;
+        opts.functions = opts.functions ?? null;
+        opts.limit     = opts.limit     ?? null;
+        opts.offset    = opts.offset    ?? 0;
+        opts.count     = opts.count     ?? 0;
 
         const index = this._getModuleIndex();
 
@@ -765,18 +761,26 @@ export class Composer {
         if (((level.max === null) || (level.current < level.max)) && ((opts.limit === null) || (opts.count < opts.limit))) {
             const target = this._target.peek();
 
-            target.traverse(() => {
+            await target.traverseAsync(async () => {
                 const new_level = { start: level.start, current: level.current + 1, max: level.max };
 
-                this._traverseModule(test, command, new_level, random, opts);
+                await this._traverseModule(test, command, new_level, random, opts);
                 if ((opts.limit !== null) && (opts.count >= opts.limit)) {
                     return 'break';
                 }
             });
         }
 
+        const params = {
+            index: index,
+            random: {
+                global: this._random.seeds,
+                query:  random
+            }
+        };
+
         if (matched && (opts.count > opts.offset)) {
-            this._operateModule(command, { template: opts.template });
+            await this._operateModule(command, { template: opts.template, functions: opts.functions, params: params });
         }
 
         return matched;
@@ -835,7 +839,7 @@ export class Composer {
         return lvl;
     }
 
-    _parseStatement() {
+    async _parseStatement() {
         const context    = this._astree.enterGetAndLeave('context');
         let   expression = context ? context.expression     : { };
         let   limit      = context ? context.limit  ?? null : null;
@@ -849,6 +853,8 @@ export class Composer {
         limit = (limit === null) ? null : limit + offset;
 
         const command = this._astree.enterGetAndLeave('operation');
+
+        const functions = this._astree.enterGetAndLeave('functions');
 
         let template = null;
         switch (command) {
@@ -870,9 +876,9 @@ export class Composer {
         const max_depth = this._getMaximumDepth(expression);
         const level     = { start: start_lvl, current: start_lvl, max: start_lvl + max_depth };
 
-        const traverse = { template: template, limit: limit, offset: offset, count: 0 };
+        const traverse = { template: template, functions: functions, limit: limit, offset: offset, count: 0 };
         for (let i = 0; i <= repeat; i++) {
-            this._traverseModule(expression, command, level, this._random.prng(), traverse);
+            await this._traverseModule(expression, command, level, this._random.prng(), traverse);
             if ((limit !== null) && (traverse.count >= limit)) {
                 break;
             }
@@ -883,11 +889,11 @@ export class Composer {
         }
     }
 
-    _parse() {
-        this._astree.traverse(this._parseStatement.bind(this));
+    async _parse() {
+        await this._astree.traverseAsync(this._parseStatement.bind(this));
     }
 
-    compose(input, alias, opts = { }) {
+    async compose(input, alias, opts = { }) {
         this._astree = new StateTree(input);
 
         this._alias = alias;
@@ -898,7 +904,7 @@ export class Composer {
         
         this._output = [ ];
 
-        this._parse();
+        await this._parse();
 
         return this._output;
     }

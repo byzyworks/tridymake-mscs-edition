@@ -303,12 +303,13 @@ export class SyntaxParser {
     }
 
     _readWhileRaw(opts = { }) {
+        opts.type      = opts.type      ?? 'mlpart';
         opts.multiline = opts.multiline ?? false;
 
         let line = 0;
         let data = '';
 
-        if (!this._tokens.peek().isRawInputStringToken()) {
+        if (!this._tokens.peek().is(opts.type)) {
             return null;
         }
 
@@ -326,15 +327,38 @@ export class SyntaxParser {
             data += this._tokens.next().val;
 
             line++;
-        } while (this._tokens.peek().isRawInputStringToken());
+        } while (this._tokens.peek().is(opts.type));
     
         return data;
     }
 
+    _readString(opts = { }) {
+        opts.allow_dynamic = opts.allow_dynamic ?? false;
+
+        const current = this._tokens.peek();
+        if (current.isRawInputSimpleStringToken()) {
+            this._tokens.next();
+
+            return current.val;
+        }
+        if (opts.allow_dynamic) {
+            if (current.isRawInputPrimitiveStringToken()) {
+                this._tokens.next();
+
+                return common.parseDynamic(current.val);
+            }
+            
+            // The value of a dynamic string can be a literal null. It can't be a literal undefined, however.
+            return undefined;
+        }
+        
+        return null;
+    }
+
     async _readFileImport() {
-        const link = await this._readWhileRawAndParse({ string_only: true });
-        if (link === undefined) {
-            this._handleUnexpected();
+        const link = await this._readString({ allow_dynamic: false });
+        if (link === null) {
+            return null;
         }
 
         let content;
@@ -350,8 +374,29 @@ export class SyntaxParser {
         };
     }
 
+    _readFunctionCall() {
+        const call = [ ];
+
+        const func = this._readString({ allow_dynamic: false });
+        if (func === undefined) {
+            this._handleUnexpected();
+        }
+
+        call.push(func);
+
+        let arg = this._readString({ allow_dynamic: true });
+        while (arg !== undefined) {
+            call.push(arg);
+
+            arg = this._readString({ allow_dynamic: true });
+        }
+
+        return call;
+    }
+
     async _readWhileRawAndParse(opts = { }) {
-        opts.string_only = opts.string_only ?? false;
+        opts.primitive_only = opts.primitive_only ?? false;
+
         /**
          * Note to return undefined when the raw input stream is empty or its value cannot be determined, and avoid returning null under such circumstances.
          * A literal null value can be entered as user input via. dynamic typing, and thus additionally be returned as a non-error output.
@@ -362,13 +407,13 @@ export class SyntaxParser {
         let type;
         let data;
 
-        current = this._tokens.peek();
-        if (!current.isRawInputStartToken()) {
+        if (!this._tokens.peek().isRawInputStartToken()) {
             return undefined;
         }
 
+        current = this._tokens.peek();
         if (current.is('key')) {
-            if (opts.string_only) {
+            if (opts.primitive_only) {
                 return undefined;
             }
 
@@ -376,29 +421,25 @@ export class SyntaxParser {
 
             type = current.val;
 
-            current = this._tokens.peek();
-            if (current.is('key', 'file')) {
+            if (this._tokens.peek().is('key', 'file')) {
                 this._tokens.next();
 
                 data = (await this._readFileImport()).content;
             } else {
-                data = this._readWhileRaw({ multiline: true });
+                data = this._readWhileRaw({ type: 'datapart', multiline: true });
             }
         } else if (current.is('lpart')) {
             type = 'line';
-            data = this._readWhileRaw({ multiline: false });
+            data = this._readWhileRaw({ type: 'lpart', multiline: false });
         } else if (current.is('mlpart')) {
             type = 'multiline';
-            data = this._readWhileRaw({ multiline: true });
+            data = this._readWhileRaw({ type: 'mlpart', multiline: true });
         } else if (current.is('dynpart')) {
-            if (opts.string_only) {
-                throw new SyntaxError(Token.getPosString(current.debug) + `: Using a dynamic (grave accent-marked) string is not allowed here.`);
-            }
-
             type = 'dynamic';
-            data = this._readWhileRaw({ multiline: true });
+            data = this._readWhileRaw({ type: 'dynpart', multiline: true });
         }
 
+        // At this point, even dynamic strings should still just be "strings".
         if (common.isNullish(data)) {
             return undefined;
         }
@@ -442,9 +483,9 @@ export class SyntaxParser {
                      * Remember that what's being provided as raw input is likely only part of a document, not a full document.
                      * Tridy already provides its own "root elements", like the free data structure's key.
                      */
-                    data      = '<root>' + data + '</root>';
-                    data      = xml.xml2js(data, { compact: false });
-                    data._xml = true;
+                    data         = '<root>' + data + '</root>';
+                    data         = xml.xml2js(data, { compact: false });
+                    data._format = 'xml';
                     break;
             }
         } catch (err) {
@@ -455,16 +496,20 @@ export class SyntaxParser {
     }
 
     async _handleRawDefinition() {
-        this._astree.enterPos('definition');
+        if (this._tokens.peek().is('key', 'function')) {
+            this._tokens.next();
 
-        const raw = await this._readWhileRawAndParse({ string_only: false });
-        if (raw === undefined) {
-            this._handleUnexpected();
+            const call = this._readFunctionCall();
+
+            this._astree.enterSetAndLeave(['functions', 'module'], call);
+        } else {
+            const raw = await this._readWhileRawAndParse({ primitive_only: false });
+            if (raw === undefined) {
+                this._handleUnexpected();
+            }
+    
+            this._astree.enterSetAndLeave('raw', raw);
         }
-
-        this._astree.setPosValue(raw);
-
-        this._astree.leavePos();
     }
 
     _readWhileTag() {
@@ -527,33 +572,47 @@ export class SyntaxParser {
 
         const tags = this._readWhileTag();
         if (!common.isEmpty(tags)) {
-            this._astree.enterSetAndLeave(common.global.defaults.alias.tags, tags);
+            this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.tags], tags);
         } else if (opts.require) {
             this._handleUnexpected();
         }
     }
 
     _handleTypeDefinitionImplicit() {
+        this._astree.enterPos('definition');
+
         const tags = this._astree.enterGetAndLeave(common.global.defaults.alias.tags);
         if (!common.isEmpty(tags)) {
             this._astree.enterSetAndLeave(common.global.defaults.alias.type, Tag.getIdentifier(tags[tags.length - 1]));
         }
+
+        this._astree.leavePos();
     }
 
     async _handleTypeDefinitionExplicit() {
-        const type = await this._readWhileRawAndParse({ string_only: true });
+        const type = await this._readWhileRawAndParse({ primitive_only: true });
         if (type === undefined) {
             this._handleUnexpected();
         }
-        this._astree.enterSetAndLeave(common.global.defaults.alias.type, type);
+
+        this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.type], type);
     }
 
     async _handleStateDefinition() {
-        const free = await this._readWhileRawAndParse({ string_only: false });
-        if (free === undefined) {
-            this._handleUnexpected();
+        if (this._tokens.peek().is('key', 'function')) {
+            this._tokens.next();
+
+            const call = this._readFunctionCall();
+
+            this._astree.enterSetAndLeave(['functions', common.global.defaults.alias.state], call);
+        } else {
+            const free = await this._readWhileRawAndParse({ primitive_only: false });
+            if (free === undefined) {
+                this._handleUnexpected();
+            }
+    
+            this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.state], free);
         }
-        this._astree.enterSetAndLeave(common.global.defaults.alias.state, free);
     }
 
     async _handleNestedDefinition() {
@@ -576,8 +635,6 @@ export class SyntaxParser {
     }
 
     async _handleDefinition() {
-        this._astree.enterPos('definition');
-
         // As usual, the grammar of the language is meant to appeal to different styles by offering different options with the same outcome.
         // Here, the user has three possible ways to enter tags: "@tridy @as <tags>", "@as <tags>", or just "<tags>".
         // The first option, for instance, is just an optional way to distinguish it from the raw input (e.g. "@json % ... %") options that specify a format first.
@@ -659,12 +716,9 @@ export class SyntaxParser {
             }
         }
 
-        this._astree.leavePos();
     }
 
     async _handleEditDefinition() {
-        this._astree.enterPos('definition');
-
         if (this._tokens.peek().is('key', 'of')) {
             this._tokens.next();
     
@@ -712,8 +766,6 @@ export class SyntaxParser {
                 await this._handleNestedDefinition();
             }
         }
-
-        this._astree.leavePos();
     }
 
     _handleCopyOperation() {
@@ -883,7 +935,7 @@ export class SyntaxParser {
             if (current.is('key', 'file')) {
                 this._tokens.next();
 
-                const link = await this._readWhileRawAndParse({ string_only: true });
+                const link = await this._readString({ allow_dynamic: false });
                 if (link === undefined) {
                     this._handleUnexpected();
                 }
@@ -914,7 +966,7 @@ export class SyntaxParser {
         });
         
         if (!common.isEmpty(output)) {
-            this._astree.enterSetAndLeave('definition', output);
+            this._astree.enterSetAndLeave(common.global.defaults.alias.nested, output);
         }
     }
 
@@ -976,9 +1028,7 @@ export class SyntaxParser {
                     this._tokens.next();
                 }
 
-                this._astree.enterPos('definition');
                 this._handleTagsDefinition({ require: false });
-                this._astree.leavePos();
             }
         } else if (operation_token.isCopyOpToken()) {
             this._handleCopyOperation();
@@ -1025,14 +1075,12 @@ export class SyntaxParser {
                 this._astree.enterSetAndLeave('operation', 'multi');
                 
                 this._tokens.next();
-                this._astree.enterPos('definition');
                 this._astree.enterNested();
                 while (!this._tokens.peek().is('sym', '}')) {
                     this._handleStatement();
                     this._bracket_end = true;
                 }
                 this._astree.leaveNested();
-                this._astree.leavePos();
                 this._tokens.next();
             } else {
                 await this._handleOperation();

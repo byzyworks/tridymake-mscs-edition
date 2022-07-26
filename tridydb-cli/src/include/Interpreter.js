@@ -8,25 +8,27 @@ import fs from 'fs';
 
 import axios from 'axios';
 
-import { Composer }       from './Composer.js';
-import { Formatter }      from './Formatter.js';
-import { SyntaxParser }   from './SyntaxParser.js';
-import { StatementLexer } from './StatementLexer.js';
+import { Composer }         from './Composer.js';
+import { Formatter }        from './Formatter.js';
+import { HTTPMethodParser } from './HTTPMethodParser.js';
+import { SyntaxParser }     from './SyntaxParser.js';
+import { StatementLexer }   from './StatementLexer.js';
 
 import * as common from '../utility/common.js';
 import * as error  from '../utility/error.js';
 
 const sendTridyRequest = async (data, remote) => {
     try {
-        const out = await axios({
+        const method = HTTPMethodParser.getLowestPermission(data);
+        const out    = await axios({
             headers: {
                 'User-Agent': 'Axios 0.26.1',
                 'Content-Type': 'application/json'
             },
-            method: 'put',
+            method: method,
             url:    'http://' + remote.host + ':' + remote.port,
             params: {
-                format: 'astree',
+                format: 'tree',
                 data:   data
             },
             timeout: remote.timeout
@@ -107,8 +109,8 @@ export class Tridy {
      * @method
      * @returns {any} The current random seed.
      */
-    getRandomSeed() {
-        return this._composer.getRandomSeed();
+    getRandomSeeds() {
+        return this._composer.getRandomSeeds();
     }
 
     /**
@@ -120,8 +122,8 @@ export class Tridy {
      * @method
      * @param {any} seed Random seed to use with @random or @shuffled.
      */
-    setRandomSeed(seed) {
-        this._composer.setRandomSeed(seed);
+    setRandomSeeds(seeds) {
+        this._composer.setRandomSeeds(seeds);
     }
 
     /**
@@ -195,7 +197,7 @@ export class Tridy {
             if (remote.enable) {
                 results = await sendTridyRequest(astree, remote);
             } else {
-                results = this._composer.compose(astree, alias);
+                results = await this._composer.compose(astree, alias);
             }
     
             for (const part of results) {
@@ -245,7 +247,7 @@ export class Tridy {
                     if (remote.enable) {
                         results = await sendTridyRequest(astree, remote);
                     } else {
-                        results = this._composer.compose(astree, alias);
+                        results = await this._composer.compose(astree, alias);
                     }
 
                     for (const part of results) {

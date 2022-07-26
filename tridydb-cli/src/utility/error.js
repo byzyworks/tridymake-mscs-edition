@@ -16,6 +16,17 @@ export class FileError extends ClientError {
     }
 }
 
+export class FunctionError extends ClientError {
+    constructor(description) {
+        description = 'Function Error: ' + description;
+
+        super(description);
+        Object.setPrototypeOf(this, new.target.prototype);
+
+        Error.captureStackTrace(this);
+    }
+}
+
 export class SyntaxError extends ClientError {
     constructor(description) {
         description = 'Syntax Error: ' + description;

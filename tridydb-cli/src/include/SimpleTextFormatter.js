@@ -40,12 +40,10 @@ export class SimpleTextFormatter {
             this._convertModule(new StateTree(input), strings, 0, opts.indent);
         }
 
-        // skips the last newline, if it exists.
         let length = strings.length;
         if (opts.indent >= 0) {
-            length--;
+            length--; // skips the last newline, if it exists.
         }
-
         for (let i = 0; i < length; i++) {
             output += strings[i];
         }
