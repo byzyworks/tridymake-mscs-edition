@@ -11,10 +11,9 @@ export class Formatter {
     constructor() { }
 
     static format(input, opts = { }) {
-        opts.format       = opts.format       ?? common.global.output.format ?? common.global.defaults.output.format;
-        opts.indent       = opts.indent       ?? common.global.output.indent ?? common.global.defaults.output.indent;
-        opts.xml_list_key = opts.xml_list_key ?? common.global.alias.list    ?? common.global.defaults.alias.list;
-        opts.xml_item_key = opts.xml_item_key ?? common.global.alias.nested  ?? common.global.defaults.alias.nested;
+        opts.format = opts.format ?? common.global.output.format ?? common.global.defaults.output.format;
+        opts.indent = opts.indent ?? common.global.output.indent ?? common.global.defaults.output.indent;
+        opts.alias  = opts.alias  ?? common.global.alias         ?? common.global.defaults.alias;
 
         switch (opts.format) {
             case 'js':
@@ -40,7 +39,7 @@ export class Formatter {
                 return "---\n" + yaml.dump(input, { indent: opts.indent }).slice(0, -1);
             case 'xml':
                 opts.indent = opts.indent ?? 4;
-                const converted = XMLFormatter.convert(input, opts.xml_list_key, opts.xml_item_key);
+                const converted = XMLFormatter.convert(input, opts.alias.list, opts.alias.nested);
                 if (Number.isInteger(opts.indent)) {
                     if (opts.indent > 0) {
                         return xml.js2xml(converted, { compact: false, spaces: opts.indent });
@@ -51,9 +50,9 @@ export class Formatter {
                 return xml.js2xml(converted, { compact: false });
             case 'simple-text':
                 opts.indent = opts.indent ?? -1;
-                return SimpleTextFormatter.convert(input, { indent: opts.indent });
+                return SimpleTextFormatter.convert(input, alias, { indent: opts.indent });
             case 'nested-text':
-                return NestedTextFormatter.convert(input);
+                return NestedTextFormatter.convert(input, alias);
             default:
                 throw new SyntaxError(`Invalid format "${opts.format}".`);
         }

@@ -340,12 +340,16 @@ export class Token {
     isRawInputPrimitiveStringToken() {
         return false ||
             this.isRawInputSimpleStringToken() ||
-            this.is('dynpart')
+            this.is('dynpart') ||
+            this.is('tag')
         ;
     }
 
     isRawInputStringStartToken() {
-        return this.isRawInputPrimitiveStringToken();
+        return false ||
+            this.isRawInputSimpleStringToken() ||
+            this.is('dynpart')
+        ;
     }
 
     isRawInputStringToken() {

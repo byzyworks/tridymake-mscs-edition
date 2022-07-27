@@ -108,43 +108,52 @@ Remember also to set the version number inside package.json and utility/common.
 
 * Added `@offset` clause to complement `@limit` and ignore the first *n* *successfully* tested modules.
 * Added `@repeat` clause to complement `@limit` and retry every module again for the same statement *n* times.
+* Added `@stat` operation clause for counting modules.
 * Added statistic output for non-`@get` operations when log level >= verbose.
-* Added `@stat` operation clause.
-* Added `@import` operation clause.
-* Added `@file` raw input clause.
+* Added `@import` operation clause for importing Tridy scripts (client-side by default).
+* Added `@file` raw input clause for importing non-Tridy markdown data from files.
+* Added `@text` raw input clause as placeholder for literal strings and file imports. (PENDING)
 * Added `@cut` operation clause.
 * Added `@copy` operation clause.
-* Added `@after` meta-operation clause. (PENDING)
-* Added `@before` meta-operation clause. (PENDING)
-* Added "functions" for user-generated input in place of literal input (requires user-placed JavaScript code).
-* Added `@function` raw input clause with string arguments.
+* Added "functions" for (server-side) user-generated input in place of literal input (requires user-placed JavaScript code).
+* Added `@function` raw input clause with string or primitive arguments.
+* Added functions as possible raw module input.
+* Added functions as possible free data structure input.
+* Tags now accept primitive values of any type, including strings. (PENDING)
+* Added functions as possible tag value input (coerced to string). (PENDING)
+* Added functions as possible type key input (coerced to string). (PENDING)
+* Added functions as possible context tag terminal (coerced to boolean). (PENDING)
+* Added functions as possible context variable (coerced to primitive). (PENDING)
+* Added multi-seed input for `--seed` (for passing to functions).
+* Added "helloWorld" default function.
+* Added "getParams" default function.
+* Added "timestamp" default function. (PENDING)
+* Added "dictionary" default function. (PENDING)
+* Added "randomString" default function. (PENDING)
+* Added "uuid" default function. (PENDING)
+* Removed `@uuid` tag input clause.
+* Added "tagValueConcat" default function. (PENDING)
+* Added "tagValueSum" default function. (PENDING)
+* Added "tagValueProduct" default function. (PENDING)
 * Removed `@end` raw input end delimiter clause.
 * Re-added `%` as new raw input delimiter (for non-strings).
 * Added `@indent` `@get` parameter clause with integer argument.
-* Added `@json` `@get` parameter clause.
-* Added `@yaml` `@get` parameter clause.
-* Added `@xml` `@get` parameter clause.
-* Added `@simple` `@get` parameter clause.
-* Added `@nested` `@get` parameter clause.
-* Added `@text` `@get` parameter clause.
-* Added `@binary` `@get` parameter clause. (PENDING)
-* Added `@list` `@get` parameter clause.
-* Added `@items` `@get` parameter clause.
-* Added `@create` `@get` parameter clause.
-* Added `@append` `@get` parameter clause.
-* Added `@replace` `@get` parameter clause.
-* Added `@file` `@get` parameter clause.
-* Added `@quiet` `@get` parameter clause.
+* Added `@json` `@get` parameter output format clause.
+* Added `@yaml` `@get` parameter output format clause.
+* Added `@xml` `@get` parameter output format clause.
+* Added `@simple` `@get` parameter output format clause (for arbitrary simple text output).
+* Added `@nested` `@get` parameter output format clause (for arbitrary nested text output).
+* Added `@text` `@get` parameter output format clause for simple or nested arbitrary text output.
+* Added `@list` `@get` parameter and list-controlling clause ().
+* Added `@items` `@get` parameter and list-controlling clause.
+* Added `@create` `@get` parameter and file export clause (tries to write to a new file or fails).
+* Added `@append` `@get` parameter and file export clause (tries to create or append a file).
+* Added `@replace` `@get` parameter and file export clause (tries to create or overwrite a file).
+* Added `@file` `@get` parameter clause for exporting markdown data to files.
+* Added `@quiet` `@get` parameter clause for stopping file export from throwing errors if it can't export.
 * Added `@split` (list-controlling) control clause.
-* Reworked output behavior.
-* Tags now accept string values. (PENDING)
-* Added compound value expression additive/concatenation modifier `+`. (PENDING)
-* Added compound value expression multiplicative modifier `*`. (PENDING)
-* Added compound value expression exponential modifier `^`. (PENDING)
 * Removed context-locking.
-* Added multi-seed input for `--seed` (for passing to functions).
 * Removed `--pretty` program option (this is now the default).
-* Fixed non-functional `offset` and `repeat` parameters in REST mode.
 * Removed need for semicolon after ending brackets with `@has` or multi-statements.
 * Fixed bug where line number (displayed debugging information) wouldn't increment in multi-line console mode input.
 * Added file path to displayed debugging information.
@@ -156,13 +165,19 @@ Remember also to set the version number inside package.json and utility/common.
 * Removed the RESTful server sub-mode.
 * Changed syntax tree and verbatim server sub-modes to no longer force use of PUT method.
 * Redesigned syntax and verbatim server sub-modes to set acceptable method calls based on query contents.
+* Changed ternary operator (`?` + `:`) precedence to be below the nested operators.
+* Reworked output behavior.
 
 <br>
 
 ### Release Date TBD
 ##  Version 0.5.0: TBD
 
-* Experimenting with `@`-less clauses / "simplified" syntax.
+* Experimenting with `@`-less clauses / "simplified" syntax. (PENDING)
+* Root module access restricted; context expressions made a requirement for most operations (there are some good reasons for this like the operations below). (PENDING)
+* Added `@head` operation clause for placing new modules before another in the same tree. (PENDING)
+* Added `@tail` operation clause for placing new modules after another in the same tree. (PENDING)
+* Added `@binary` `@get` parameter output format clause (similar to arbitrary text output, but for hexadecimal-encoded bytes). (PENDING)
 
 <br>
 

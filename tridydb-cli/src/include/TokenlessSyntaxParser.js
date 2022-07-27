@@ -2,7 +2,7 @@ import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
 import { Token }       from '../utility/Token.js';
 
-export class TokenlessParser {
+export class TokenlessSyntaxParser {
     constructor() { }
 
     static _handleUnexpected() {

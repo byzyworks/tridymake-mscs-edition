@@ -162,8 +162,8 @@ program
         if (opts.command) {
             preset = await db.query(opts.command, { accept_carry: false });
         } else if (opts.file) {
-            preset = [ ];
-        
+            preset = { modules: [ ] };
+
             let input;
             for (const filepath of opts.file) {
                 try {
@@ -182,8 +182,11 @@ program
                     }
                 }
                 
-                for (const part of input) {
-                    preset.push(part);
+                if (preset.alias === undefined) {
+                    preset.alias = input.modules.alias ?? global.alias ?? global.defaults.alias;
+                }
+                for (const module of input.modules) {
+                    preset.modules.push(module);
                 }
             }
         }

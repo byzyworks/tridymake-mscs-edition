@@ -4,10 +4,10 @@ import { StateTree } from '../utility/StateTree.js';
 export class NestedTextFormatter {
     constructor() { }
 
-    static _convertModule(input) {
+    static _convertModule(input, alias) {
         let output = '';
 
-        let outer = input.enterGetAndLeave(common.global.alias.state);
+        let outer = input.enterGetAndLeave(alias.state);
         if (common.isObject(outer)) {
             outer = undefined;
         } else if (outer !== undefined) {
@@ -25,7 +25,7 @@ export class NestedTextFormatter {
             if (outer === undefined) {
                 output += inner;
             } else {
-                const key = input.enterGetAndLeave(common.global.alias.type);
+                const key = input.enterGetAndLeave(alias.type);
                 if ((key !== undefined) && !common.isObject(key)) {
                     outer = outer.replace(String(key), inner);
                 }
@@ -38,15 +38,15 @@ export class NestedTextFormatter {
         return output;
     }
 
-    static convert(input) {
+    static convert(input, alias) {
         let output = '';
 
         if (common.isArray(input)) {
             for (const module of input) {
-                output += this._convertModule(new StateTree(module));
+                output += this._convertModule(new StateTree(module), alias);
             }
         } else if (common.isDictionary(input)) {
-            output = this._convertModule(new StateTree(input));
+            output = this._convertModule(new StateTree(input), alias);
         }
 
         return output;

@@ -11,11 +11,14 @@ export class SimpleTextFormatter {
         return ' '.repeat(lvl * indent) + input;
     }
 
-    static _convertModule(input, output, lvl, indent) {
+    static _convertModule(input, alias, output, lvl, indent) {
         input.traverse(() => {
-            const value = input.enterGetAndLeave(common.global.alias.state);
+            const type  = input.enterGetAndLeave(alias.type);
+            const value = input.enterGetAndLeave(alias.state);
+            const mod   = type + value;
+
             if (!common.isObject(value)) {
-                output.push(this._indent(String(value), lvl, indent));
+                output.push(this._indent(String(mod), lvl, indent));
                 if (indent >= 0) {
                     output.push("\n");
                 }
@@ -25,7 +28,7 @@ export class SimpleTextFormatter {
         });
     }
 
-    static convert(input, opts = { }) {
+    static convert(input, alias, opts = { }) {
         opts.indent = opts.indent ?? -1;
 
         let output = '';
@@ -34,10 +37,10 @@ export class SimpleTextFormatter {
 
         if (common.isArray(input)) {
             for (const module of input) {
-                this._convertModule(new StateTree(module), strings, 0, opts.indent);
+                this._convertModule(new StateTree(module), alias, strings, 0, opts.indent);
             }
         } else if (common.isDictionary(input)) {
-            this._convertModule(new StateTree(input), strings, 0, opts.indent);
+            this._convertModule(new StateTree(input), alias, strings, 0, opts.indent);
         }
 
         let length = strings.length;

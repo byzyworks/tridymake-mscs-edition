@@ -1,9 +1,9 @@
 import express         from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { HTTPMethodParser } from '../include/HTTPMethodParser.js';
-import { Tridy }            from '../include/Interpreter.js';
-import { TokenlessParser }  from '../include/TokenlessParser.js';
+import { HTTPMethodParser }     from '../include/HTTPMethodParser.js';
+import { Tridy }                from '../include/Interpreter.js';
+import { TokenlessSyntaxParser } from '../include/TokenlessSyntaxParser.js';
 
 import { global, deepCopy, isEmpty }          from '../utility/common.js';
 import { SyntaxError, ServerSideServerError } from '../utility/error.js';
@@ -34,7 +34,7 @@ const handleRoute = async (method, req, res, next) => {
         if (opts.format === 'tree') {
             logger.debug(`Received Tridy syntax: ${opts.data}`);
 
-            command = TokenlessParser.parse(opts.data);
+            command = TokenlessSyntaxParser.parse(opts.data);
         } else if (opts.format === 'verb') {
             logger.debug(`Received Tridy statements: ${opts.data}`);
 

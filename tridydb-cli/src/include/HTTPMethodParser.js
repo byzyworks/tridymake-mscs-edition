@@ -31,7 +31,7 @@ export class HTTPMethodParser {
             default:
                 /**
                  * No security reason why it's methods.put and not methods.get.
-                 * However, anything "else" (an unknown operations) suggests an badly-formatted tree.
+                 * However, anything "else" (an unknown operation) suggests an badly-formatted tree.
                  * In other words, it's probably better not to waste CPU cycles on it, if it can be avoided.
                  */
                 methods.put = true;

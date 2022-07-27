@@ -16,8 +16,31 @@ import { StatementLexer }   from './StatementLexer.js';
 
 import * as common from '../utility/common.js';
 import * as error  from '../utility/error.js';
+import { logger }  from '../utility/logger.js';
+
+const parseTridyResponse = (response) => {
+    let bad_response = false;
+
+    if (!common.isDictionary(response) || !common.isArray(response.modules) || (!common.isNullish(response.alias) && !common.isDictionary(response.alias))) {
+        bad_response = true;
+    }
+    if (!bad_response) {
+        for (const module of response.modules) {
+            if (!common.isDictionary(module) || !common.isObject(module.content) || (!common.isNullish(module.params) && !common.isDictionary(module.params))) {
+                bad_response = true;
+                break;
+            }
+        }
+    }
+
+    if (bad_response) {
+        throw new error.SyntaxError(`This client received an badly-formatted response from the server that has been discarded.`);
+    }
+}
 
 const sendTridyRequest = async (data, remote) => {
+    let output;
+
     try {
         const method = HTTPMethodParser.getLowestPermission(data);
         const out    = await axios({
@@ -34,21 +57,17 @@ const sendTridyRequest = async (data, remote) => {
             timeout: remote.timeout
         });
 
-        if (common.isEmpty(out.data)) {
-            return [ ];
-        }
-
-        if (!common.isArray(out.data)) {
-            return [ out.data ];
-        }
-
-        return out.data;
+        output = out.data;
     } catch (err) {
         if (err.response) {
             throw new error.ClientSideServerError(err.response.data);
         }
         throw new error.ClientSideServerError();
     }
+
+    parseTridyResponse(output);
+
+    return output;
 }
 
 const exportToFile = async (data, filepath, mode, quiet) => {
@@ -146,6 +165,7 @@ export class Tridy {
      * @param   {String}          opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
      * @param   {String}          opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
      * @param   {String}          opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @param   {String}          opts.root_key     The name given to the XML list tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
      * @returns {Array<Object>}                     The output of the statement(s), including presentation metadata.
      * @throws  {SyntaxError}                       Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}             Thrown if the server host (optional) sends back an error response.
@@ -157,12 +177,14 @@ export class Tridy {
         opts.filepath     = opts.filepath     ?? null;
         opts.astree_only  = opts.astree_only  ?? false;
 
-        const alias = {
+        const input_alias = {
             type:   opts.type_key ?? common.global.alias.type   ?? common.global.defaults.alias.type,
             tags:   opts.tags_key ?? common.global.alias.tags   ?? common.global.defaults.alias.tags,
             state:  opts.free_key ?? common.global.alias.state  ?? common.global.defaults.alias.state,
-            nested: opts.tree_key ?? common.global.alias.nested ?? common.global.defaults.alias.nested
+            nested: opts.tree_key ?? common.global.alias.nested ?? common.global.defaults.alias.nested,
+            list:   opts.list_key ?? common.global.alias.list   ?? common.global.defaults.alias.list
         };
+        let output_alias;
 
         const remote = {
             enable:  opts.client_mode ?? common.global.remote.enable  ?? common.global.defaults.remote.enable,
@@ -197,11 +219,11 @@ export class Tridy {
             if (remote.enable) {
                 results = await sendTridyRequest(astree, remote);
             } else {
-                results = await this._composer.compose(astree, alias);
+                results = await this._composer.compose(astree, input_alias);
             }
     
-            for (const part of results) {
-                output.push(part);
+            for (const module of results.modules) {
+                output.push(module);
             }
         } else {
             this._lexer.load(input, { filepath: opts.filepath });
@@ -247,11 +269,12 @@ export class Tridy {
                     if (remote.enable) {
                         results = await sendTridyRequest(astree, remote);
                     } else {
-                        results = await this._composer.compose(astree, alias);
+                        results = await this._composer.compose(astree, input_alias);
                     }
 
-                    for (const part of results) {
-                        output.push(part);
+                    output_alias = output_alias ?? results.alias ?? common.global.alias ?? common.global.defaults.alias;
+                    for (const module of results.modules) {
+                        output.push(module);
                     }
                 }
             }
@@ -263,6 +286,8 @@ export class Tridy {
 
             return wrapper;
         }
+
+        output = { alias: output_alias, modules: output };
 
         return output;
     }
@@ -295,44 +320,41 @@ export class Tridy {
      * @public
      * @static
      * @method
-     * @param   {Array<Object>} input             Tridy query() JSON output
-     * @param   {String}        opts.format       Default format to export the JSON output in. Options are 'json', 'yaml', or 'xml'. Default is 'json'.
-     * @param   {Number}        opts.indent       Default indent increment size in spaces to output with. Default is null, which auto-generates 4 spaces except for YAML, where it is 2 spaces, and none for text output. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 1 space is a minimum).
-     * @param   {String}        opts.list_mode    Default way to display output where there is one or multiple modules returned. By default, this is set to 'auto' where single modules are returned alone and multiple module are returned in an array, but there's also 'list_only' and 'items_only' modes.
-     * @param   {String}        opts.file         Default file to export to. If null, then this is standard output / the console. Default is null. 
-     * @param   {String}        opts.file_mode    Default behavior when the file exported to already exists. Options are 'create' (where nothing is done), 'append', and 'replace'. Default is 'create'.
-     * @param   {Boolean}       opts.file_quiet   Default behavior on whether to throw an error when a file exported to already exists. Default is false (will throw an error).
-     * @param   {String}        opts.xml_list_key The name given to the XML list tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
-     * @param   {String}        opts.xml_item_key The name given to the XML individual item tags. Relevant only when the output format is 'xml'. Default is 'tree'.
-     * @param   {Boolean}       opts.no_export    Whether to export file-directed output or not. Default is false.
-     * @returns {String | null}                   Input object as a formatted string, or null if it can't be converted to one.
-     * @throws  {SyntaxError}                     Thrown if some parameters are received incorrectly, either from the method caller or from the server, if there is one.
+     * @param   {Object}        input           Tridy query() JSON output (presumably).
+     * @param   {String}        opts.format     Default format to export the JSON output in. Options are 'json', 'yaml', or 'xml'. Default is 'json'.
+     * @param   {Number}        opts.indent     Default indent increment size in spaces to output with. Default is null, which auto-generates 4 spaces except for YAML, where it is 2 spaces, and none for text output. Passing a non-positive number disables indentation as well as newlines in the output (except for YAML, where 1 space is a minimum).
+     * @param   {String}        opts.list_mode  Default way to display output where there is one or multiple modules returned. By default, this is set to 'auto' where single modules are returned alone and multiple module are returned in an array, but there's also 'list_only' and 'items_only' modes.
+     * @param   {String}        opts.file       Default file to export to. If null, then this is standard output / the console. Default is null. 
+     * @param   {String}        opts.file_mode  Default behavior when the file exported to already exists. Options are 'create' (where nothing is done), 'append', and 'replace'. Default is 'create'.
+     * @param   {Boolean}       opts.file_quiet Default behavior on whether to throw an error when a file exported to already exists. Default is false (will throw an error).
+     * @param   {Boolean}       opts.no_export  Whether to export file-directed output or not. Default is false.
+     * @returns {String | null}                 Input object as a formatted string, or null if it can't be converted to one.
+     * @throws  {SyntaxError}                   Thrown if some parameters are received incorrectly, either from the method caller or from the server, if there is one.
      */
     static async stringify(input, opts = { }) {
-        opts.format       = opts.format       ?? common.global.output.format     ?? common.global.defaults.output.format;
-        opts.indent       = opts.indent       ?? common.global.output.indent     ?? common.global.defaults.output.indent;
-        opts.list_mode    = opts.list_mode    ?? common.global.output.list_mode  ?? common.global.defaults.output.list_mode;
-        opts.file         = opts.file         ?? common.global.output.file.path  ?? common.global.defaults.output.file.path;
-        opts.file_mode    = opts.file_mode    ?? common.global.output.file.mode  ?? common.global.defaults.output.file.mode;
-        opts.file_quiet   = opts.file_quiet   ?? common.global.output.file.quiet ?? common.global.defaults.output.file.quiet;
-        opts.xml_list_key = opts.xml_list_key ?? common.global.alias.list        ?? common.global.defaults.alias.list;
-        opts.xml_item_key = opts.xml_item_key ?? common.global.alias.nested      ?? common.global.defaults.alias.nested;
-        opts.no_export    = opts.no_export    ?? false;
+        opts.format     = opts.format     ?? common.global.output.format     ?? common.global.defaults.output.format;
+        opts.indent     = opts.indent     ?? common.global.output.indent     ?? common.global.defaults.output.indent;
+        opts.list_mode  = opts.list_mode  ?? common.global.output.list_mode  ?? common.global.defaults.output.list_mode;
+        opts.file       = opts.file       ?? common.global.output.file.path  ?? common.global.defaults.output.file.path;
+        opts.file_mode  = opts.file_mode  ?? common.global.output.file.mode  ?? common.global.defaults.output.file.mode;
+        opts.file_quiet = opts.file_quiet ?? common.global.output.file.quiet ?? common.global.defaults.output.file.quiet;
+        opts.no_export  = opts.no_export  ?? false;
 
         // 'js' returns an object from Formatter, 'json' returns a string.
         opts.format = (opts.format === 'js') ? 'json' : opts.format;
         
         let stdout = '';
 
-        let collect = [ ];
-        let list    = [ ];
-        let current = null;
-        
-        for (let i = 0; i < input.length; i++) {
-            if (!common.isDictionary(input[i]) || common.isNullish(input[i].output)) {
-                input[i] = { output: input[i], params: { } };
-            }
+        if (common.isNullish(input.alias)) {
+            logger.warn(`Aliases were not provided with the input to Tridy.stringify(...). The output of this function may not be correct if the input is from a separate server with different aliases.`);
         }
+        input.alias = {
+            type:   input.alias.type   ?? common.global.alias.type   ?? common.global.defaults.alias.type,
+            tags:   input.alias.tags   ?? common.global.alias.tags   ?? common.global.defaults.alias.tags,
+            state:  input.alias.state  ?? common.global.alias.state  ?? common.global.defaults.alias.state,
+            nested: input.alias.nested ?? common.global.alias.nested ?? common.global.defaults.alias.nested,
+            list:   input.alias.list   ?? common.global.alias.list   ?? common.global.defaults.alias.list
+        };
 
         /**
          * The order files have relative to each other doesn't matter, while it matters for every other parameter.
@@ -340,7 +362,10 @@ export class Tridy {
          * The sorting prevents
          * Hence, commands affecting the same file should be grouped together, while the original order of commands should be maintained otherwise.
          */
-        input.sort((a, b) => {
+        input.modules.sort((a, b) => {
+            a.params = a.params ?? { };
+            b.params = b.params ?? { };
+
             a = a.params.file;
             b = b.params.file;
 
@@ -368,25 +393,28 @@ export class Tridy {
             return 0;
         });
 
-        for (let i = 0; i < input.length; i++) {
-            const module = input[i].output;
+        let collect = [ ];
+        let list    = [ ];
+        let current = null;
+
+        for (let i = 0; i < input.modules.length; i++) {
+            const module = input.modules[i].content;
 
             let last = null;
             if (i > 0) {
-                last = input[i - 1].params;
+                last = input.modules[i - 1].params;
             }
 
-            current              = input[i].params;
-            current.format       = (current.format === 'js') ? 'json' : (current.format ?? opts.format);
-            current.indent       = current.indent     ?? opts.indent;
-            current.list_mode    = current.list_mode  ?? opts.list_mode;
-            current.file         = current.file       ?? opts.file;
-            current.file_mode    = current.file_mode  ?? opts.file_mode;
-            current.file_quiet   = current.file_quiet ?? opts.file_quiet;
-            current.list_nonce   = current.list_nonce ?? -1; // The nonces all begin at 0. Defaulting to -1 separates out the 'null' nonces in the output.
-            current.stmt_nonce   = current.stmt_nonce ?? -1;
-            current.xml_list_key = opts.xml_list_key;
-            current.xml_item_key = opts.xml_item_key;
+            current            = input.modules[i].params ?? { };
+            current.format     = (current.format === 'js') ? 'json' : (current.format ?? opts.format);
+            current.indent     = current.indent     ?? opts.indent;
+            current.list_mode  = current.list_mode  ?? opts.list_mode;
+            current.file       = current.file       ?? opts.file;
+            current.file_mode  = current.file_mode  ?? opts.file_mode;
+            current.file_quiet = current.file_quiet ?? opts.file_quiet;
+            current.list_nonce = current.list_nonce ?? -1; // The nonces all begin at 0. Defaulting to -1 separates out the 'null' nonces in the output.
+            current.stmt_nonce = current.stmt_nonce ?? -1;
+            current.alias      = opts.alias;
 
             if ((current.indent !== null) && ((typeof current.indent !== 'number') || !Number.isInteger(current.indent))) {
                 throw new error.SyntaxError(`Invalid indent mode "${indent}".`);

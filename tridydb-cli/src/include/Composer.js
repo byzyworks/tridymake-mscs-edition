@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import path              from 'path';
 
 import seedrandom from 'seedrandom';
 import shuffle    from 'knuth-shuffle-seeded';
@@ -407,8 +408,11 @@ export class Composer {
     }
 
     async _functionCall(name, params) {
-        name = name.replace(/(?:\.\.[\/\\])+/g, '');
-        name = '../../functions/' + name + '.js';
+        const dir = path.resolve('../../functions/');
+        name      = path.resolve('../../functions/' + name + '.js');
+        if (!name.startsWith(dir)) {
+            error_handler.handle(new FunctionError(`Directory traversal outside the function sub-directory is not allowed.`));
+        }
 
         let result;
         try {
@@ -499,7 +503,7 @@ export class Composer {
             copy = { };
         }
 
-        copy = { output: copy, params: this._astree.getPosValue() };
+        copy = { content: copy, params: this._astree.getPosValue() };
 
         this._output.push(copy);
 
@@ -855,14 +859,14 @@ export class Composer {
                 this._saved = [ ];
                 break;
             case 'nop':
-                this._output.push(stats);
+                this._output.push({ content: stats });
                 break;
             default:
                 switch (common.global.log_level) {
                     case 'verbose':
                     case 'debug':
                     case 'silly':
-                        this._output.push(stats);
+                        this._output.push({ content: stats });
                 }
                 break;
         }
@@ -902,8 +906,10 @@ export class Composer {
         }
 
         const start_lvl = this._getStartingLevel();
+        const level     = { start: start_lvl, current: start_lvl };
+
         const max_depth = this._getMaximumDepth(expression);
-        const level     = { start: start_lvl, current: start_lvl, max: start_lvl + max_depth };
+        level.max       = (max_depth === null) ? null : start_lvl + max_depth;
 
         const stats = {
             attempts:  0,
@@ -946,6 +952,8 @@ export class Composer {
         this._output = [ ];
 
         await this._parse();
+
+        this._output = { alias: this._alias, modules: this._output };
 
         return this._output;
     }
