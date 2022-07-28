@@ -55,7 +55,7 @@ export class SyntaxParser {
         return new Token('ctxt_op', '&');
     }
 
-    _handleContextNumberExpression(context) {
+    _handleContextValueExpression(context) {
         let current;
 
         current = this._tokens.peek().toContextToken();
@@ -65,31 +65,47 @@ export class SyntaxParser {
         context.push(current);
         this._tokens.next();
         
-        current = this._tokens.peek().toContextToken();
-        if (!current.is('ctxt_term') || current.isIdentifierOnlyTerminalContextToken()) {
-            this._handleUnexpected();
+        current = this._tokens.peek();
+        if (current.is('key', 'function')) {
+            this._tokens.next();
+
+            const call = this._readFunctionCall();
+
+            context.push(current.to('ctxt_func', call));
+        } else {
+            current = this._tokens.peek().toContextToken();
+            if (!current.is('ctxt_term') || current.isIdentifierOnlyTerminalContextToken()) {
+                this._handleUnexpected();
+            }
+            context.push(current);
+            this._tokens.next();
         }
-        context.push(current);
-        this._tokens.next();
 
         current = this._tokens.peek();
         if (current.is('sym')) {
             current.val = '$' + current.val; // The '$' prevents confusion with @parent (>) or @child (<).
         }
         current = current.toContextToken();
-        if (!current.isBinaryNumberOpContextToken()) {
+        if (!current.isBinaryValueOpContextToken()) {
             this._handleUnexpected();
         }
         context.push(current);
         this._tokens.next();
 
-        current     = this._tokens.peek().toContextToken();
-        current.val = current.val.toLowerCase();
-        if (!current.is('ctxt_term') || (isNaN(current.val) && !current.is('ctxt_term', 'null'))) {
-            this._handleUnexpected();
+        // The RHS of a value expression is exceptional as a context terminal.
+        current = this._tokens.peek();
+        if (current.is('key', 'none')) {
+            context.push(current.to('ctxt_term', undefined));
+
+            this._tokens.next();
+        } else {
+            const value = this._readString({ allow_dynamic: true });
+            if (value === undefined) {
+                this._handleUnexpected();
+            }
+
+            context.push(current.to('ctxt_term', value));
         }
-        context.push(current);
-        this._tokens.next();
 
         current = this._tokens.peek().toContextToken();
         if (!current.is('ctxt_misc', ')')) {
@@ -110,7 +126,7 @@ export class SyntaxParser {
             } else if (current.is('ctxt_misc', '$')) {
                 this._tokens.next();
 
-                this._handleContextNumberExpression(context);
+                this._handleContextValueExpression(context);
             }
 
             current = this._tokens.peek().toContextToken();
@@ -125,7 +141,7 @@ export class SyntaxParser {
                 } else if (current.is('ctxt_misc', '$')) {
                     this._tokens.next();
     
-                    this._handleContextNumberExpression(context);
+                    this._handleContextValueExpression(context);
                 }
     
                 current = this._tokens.peek().toContextToken();
@@ -336,7 +352,7 @@ export class SyntaxParser {
         opts.allow_dynamic = opts.allow_dynamic ?? false;
 
         const current = this._tokens.peek();
-        if (current.isRawInputSimpleStringToken()) {
+        if ((!opts.allow_dynamic && current.is('tag')) || current.isRawInputSimpleStringToken()) {
             this._tokens.next();
 
             return current.val;
@@ -469,6 +485,7 @@ export class SyntaxParser {
                 case 'line':
                 case 'multiline':
                 case 'dynamic':
+                case 'text':
                     break;
                 case 'json':
                     data = JSON.parse(data);
@@ -508,18 +525,17 @@ export class SyntaxParser {
                 this._handleUnexpected();
             }
     
-            this._astree.enterSetAndLeave('raw', raw);
+            this._astree.enterSetAndLeave('definition', raw);
         }
     }
 
     _readWhileTag() {
         const tags = [ ];
 
-        let new_tag;
-
         let current = this._tokens.peek();
         while (current.isTagsetToken()) {
-            new_tag = current.val;
+            let new_tag  = Tag.getTag(current.val);
+            let func_tag = false;
 
             // When a clause token is produced, the @ at the beginning of it is lost.
             // To continue distinguishing it from regular tags here, it is added back.
@@ -540,21 +556,33 @@ export class SyntaxParser {
                     this._tokens.next();
 
                     current = this._tokens.peek();
-                    if (!current.is('tag') || isNaN(current.val)) {
-                        this._handleUnexpected();
+                    if (current.is('key', 'function')) {
+                        this._tokens.next();
+
+                        const call = this._readFunctionCall();
+
+                        this._astree.enterSetAndLeave(['functions', common.global.defaults.alias.tags, new_tag], call);
+                        func_tag = true;
+                    } else if (current.is('key', 'none')) {
+                        this._tokens.next();
+                    } else {
+                        const value = this._readString({ allow_dynamic: true });
+                        if (value === undefined) {
+                            this._handleUnexpected();
+                        }
+                        
+                        new_tag = Tag.getTag(new_tag, value);
                     }
-
-                    new_tag += ':' + current.val;
-
-                    this._tokens.next();
                 }
             } else if (current.is('key')) {
-                new_tag = '@' + current.val;
+                new_tag = Tag.getTag('@' + current.val);
 
                 this._tokens.next();
             }
 
-            tags.push(new_tag);
+            if (!func_tag) {
+                tags.push(new_tag);
+            }
 
             current = this._tokens.peek();
             if (current.is('sym', ',')) {
@@ -590,12 +618,20 @@ export class SyntaxParser {
     }
 
     async _handleTypeDefinitionExplicit() {
-        const type = await this._readWhileRawAndParse({ primitive_only: true });
-        if (type === undefined) {
-            this._handleUnexpected();
-        }
+        if (this._tokens.peek().is('key', 'function')) {
+            this._tokens.next();
 
-        this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.type], type);
+            const call = this._readFunctionCall();
+
+            this._astree.enterSetAndLeave(['functions', common.global.defaults.alias.type], call);
+        } else {
+            const type = await this._readWhileRawAndParse({ primitive_only: true });
+            if (type === undefined) {
+                this._handleUnexpected();
+            }
+
+            this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.type], type);
+        }
     }
 
     async _handleStateDefinition() {
@@ -641,6 +677,16 @@ export class SyntaxParser {
         if (this._tokens.peek().is('key', 'tridy')) {
             this._tokens.next();
 
+            if (this._tokens.peek().is('key', 'as')) {
+                this._tokens.next();
+
+                if (this._tokens.peek().is('key', 'none')) {
+                    this._tokens.next();
+                } else {
+                    this._handleTagsDefinition({ require: true });
+                }
+            }
+
             if (this._tokens.peek().is('key', 'of')) {
                 this._tokens.next();
 
@@ -650,6 +696,8 @@ export class SyntaxParser {
                     await this._handleTypeDefinitionExplicit();
                 }
             }
+        } else if (this._tokens.peek().is('key', 'of')) {
+            this._tokens.next();
 
             if (this._tokens.peek().is('key', 'as')) {
                 this._tokens.next();
@@ -660,23 +708,11 @@ export class SyntaxParser {
                     this._handleTagsDefinition({ require: true });
                 }
             }
-        } else if (this._tokens.peek().is('key', 'of')) {
-            this._tokens.next();
     
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
             } else {
                 await this._handleTypeDefinitionExplicit();
-            }
-
-            if (this._tokens.peek().is('key', 'as')) {
-                this._tokens.next();
-
-                if (this._tokens.peek().is('key', 'none')) {
-                    this._tokens.next();
-                } else {
-                    this._handleTagsDefinition({ require: true });
-                }
             }
         } else if (this._tokens.peek().is('key', 'as')) {
             this._tokens.next();
@@ -719,18 +755,6 @@ export class SyntaxParser {
     }
 
     async _handleEditDefinition() {
-        if (this._tokens.peek().is('key', 'of')) {
-            this._tokens.next();
-    
-            if (this._tokens.peek().is('key', 'none')) {
-                this._tokens.next();
-
-                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.type], true);
-            } else {
-                await this._handleTypeDefinitionExplicit();
-            }
-        }
-        
         if (this._tokens.peek().is('key', 'as')) {
             this._tokens.next();
 
@@ -740,6 +764,18 @@ export class SyntaxParser {
                 this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.tags], true);
             } else {
                 this._handleTagsDefinition({ require: true });
+            }
+        }
+
+        if (this._tokens.peek().is('key', 'of')) {
+            this._tokens.next();
+    
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+
+                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.type], true);
+            } else {
+                await this._handleTypeDefinitionExplicit();
             }
         }
 

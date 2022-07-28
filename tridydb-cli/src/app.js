@@ -155,6 +155,7 @@ program
         transports.console.level = opts.logLevel;
         logger.verbose(`Console log level set to '${opts.logLevel}'.`);
         
+        db.setAliases(global.alias);
         if (!isNullish(opts.randomSeed)) {
             db.setRandomSeeds(opts.randomSeed);
         }
@@ -204,7 +205,7 @@ program
         }
 
         if (!isEmpty(preset)) {
-            preset = await Tridy.stringify(preset);
+            preset = await db.stringify(preset);
         }
 
         console.log(preset);

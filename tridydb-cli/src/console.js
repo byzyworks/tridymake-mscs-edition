@@ -5,7 +5,7 @@ import chalk from 'chalk';
 import { Tridy } from './include/Interpreter.js';
 
 import { global, isEmpty }                                   from './utility/common.js';
-import { error_handler, SyntaxError, ClientSideServerError } from './utility/error.js';
+import { error_handler, ClientError, ClientSideServerError } from './utility/error.js';
 
 import { db } from './database.js';
 
@@ -54,7 +54,7 @@ export const cli = async (opts = { }) => {
         try {
             out = await db.query(answers, { accept_carry: true, interactive: true, random_seed: opts.random_seed });
         } catch (err) {
-            if (err instanceof SyntaxError) {
+            if (err instanceof ClientError) {
                 db.clearCarry();
             } else if (!(err instanceof ClientSideServerError)) {
                 throw err;
@@ -64,7 +64,7 @@ export const cli = async (opts = { }) => {
         }
 
         if (!retry && !isEmpty(out)) {
-            out = await Tridy.stringify(out);
+            out = await db.stringify(out);
 
             if (!isEmpty(out)) {
                 console.log(out);

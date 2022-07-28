@@ -21,6 +21,41 @@ export class TokenlessSyntaxParser {
         }
     }
 
+    static _handleContextValueLHS(input) {
+        if (typeof input === 'string') {
+            return;
+        }
+
+        if (!common.isDictionary(input)) {
+            this._handleUnexpected();
+        }
+        
+        if (common.isNullish(input.function)) {
+            this._handleUnexpected();
+        }
+        if (!common.isArray(input.function)) {
+            this._handleUnexpected();
+        }
+        if (common.isEmpty(input.function)) {
+            this._handleUnexpected();
+        }
+    }
+
+    static _handleContextValueRHS(input) {
+        if (common.isObject(input)) {
+            this._handleUnexpected();
+        }
+    }
+
+    static _handleContextValue(input) {
+        if (!common.isDictionary(input)) {
+            this._handleUnexpected();
+        }
+
+        this._handleContextValueLHS(input.a);
+        this._handleContextValueRHS(input.b);
+    }
+
     static _handleContext(input) {
         if (typeof input === 'string') {
             return;
@@ -37,6 +72,8 @@ export class TokenlessSyntaxParser {
         const tested = new Token('ctxt_op', input.op);
         if (tested.isUnaryOpContextToken()) {
             this._handleContext(input.a);
+        } else if (tested.isBinaryValueOpContextToken()) {
+            this._handleContextValue(input);
         } else if (tested.isBinaryOpContextToken()) {
             this._handleContext(input.a);
             this._handleContext(input.b);
@@ -134,10 +171,39 @@ export class TokenlessSyntaxParser {
             if (!common.isArray(input.module)) {
                 this._handleUnexpected();
             }
+            if (common.isEmpty(input.module)) {
+                this._handleUnexpected();
+            }
+        }
+
+        if (!common.isNullish(input[common.global.defaults.alias.tags])) {
+            if (!common.isDictionary(input[common.global.defaults.alias.tags])) {
+                this._handleUnexpected();
+            }
+            for (const tag of input[common.global.defaults.alias.tags]) {
+                if (!common.isArray(tag)) {
+                    this._handleUnexpected();
+                }
+                if (common.isEmpty(tag)) {
+                    this._handleUnexpected();
+                }
+            }
+        }
+
+        if (!common.isNullish(input[common.global.defaults.alias.type])) {
+            if (!common.isArray(input[common.global.defaults.alias.type])) {
+                this._handleUnexpected();
+            }
+            if (common.isEmpty(input[common.global.defaults.alias.type])) {
+                this._handleUnexpected();
+            }
         }
 
         if (!common.isNullish(input[common.global.defaults.alias.free])) {
             if (!common.isArray(input[common.global.defaults.alias.free])) {
+                this._handleUnexpected();
+            }
+            if (common.isEmpty(input[common.global.defaults.alias.free])) {
                 this._handleUnexpected();
             }
         }

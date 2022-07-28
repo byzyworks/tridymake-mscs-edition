@@ -71,7 +71,7 @@ export class Compressor {
                 continue;
             }
 
-            if (target.enterGetAndLeave('_xml') === true) {
+            if (target.enterGetAndLeave('_format') === 'xml') {
                 target.enterPos('unparsed');
             }
             
@@ -109,7 +109,7 @@ export class Compressor {
                 target.leavePos();
             }
 
-            if (target.enterGetAndLeave('_xml') === true) {
+            if (target.enterGetAndLeave('_format') === 'xml') {
                 target.leavePos();
             }
         }

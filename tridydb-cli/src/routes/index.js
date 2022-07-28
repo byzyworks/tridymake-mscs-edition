@@ -76,7 +76,7 @@ const handleRoute = async (method, req, res, next) => {
     const preformat = global.server.preformat ?? global.defaults.server.preformat;
     if (preformat) {
         if (!isEmpty(output)) {
-            output = await Tridy.stringify(output);
+            output = await db.stringify(output);
         }
     
         switch (opts.format) {

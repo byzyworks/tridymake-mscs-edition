@@ -3,7 +3,7 @@ import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 import { isNullish } from './common.js';
 import { logger }    from './logger.js';
 
-class ClientError extends Error { }
+export class ClientError extends Error { }
 
 export class FileError extends ClientError {
     constructor(description) {

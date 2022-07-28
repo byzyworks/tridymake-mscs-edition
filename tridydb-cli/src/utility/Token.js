@@ -122,7 +122,7 @@ export class Token {
         ;
     }
 
-    isBinaryNumberOpContextToken() {
+    isBinaryValueOpContextToken() {
         return false ||
             this.is('ctxt_op', '$==') ||
             this.is('ctxt_op', '$!=') ||
@@ -136,7 +136,7 @@ export class Token {
     isBinaryOpContextToken() {
         return false ||
             this.isBinaryTagOpContextToken() ||
-            this.isBinaryNumberOpContextToken()
+            this.isBinaryValueOpContextToken()
         ;
     }
 
@@ -368,6 +368,7 @@ export class Token {
             this.is('key', 'json') ||
             this.is('key', 'yaml') ||
             this.is('key', 'xml') ||
+            this.is('key', 'text') ||
             this.isRawInputStringStartToken()
         ;
     }

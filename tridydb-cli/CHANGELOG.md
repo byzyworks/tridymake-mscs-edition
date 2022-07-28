@@ -112,18 +112,19 @@ Remember also to set the version number inside package.json and utility/common.
 * Added statistic output for non-`@get` operations when log level >= verbose.
 * Added `@import` operation clause for importing Tridy scripts (client-side by default).
 * Added `@file` raw input clause for importing non-Tridy markdown data from files.
-* Added `@text` raw input clause as placeholder for literal strings and file imports. (PENDING)
+* Added `@text` raw input clause as placeholder for literal strings and file imports.
 * Added `@cut` operation clause.
 * Added `@copy` operation clause.
 * Added "functions" for (server-side) user-generated input in place of literal input (requires user-placed JavaScript code).
 * Added `@function` raw input clause with string or primitive arguments.
 * Added functions as possible raw module input.
 * Added functions as possible free data structure input.
-* Tags now accept primitive values of any type, including strings. (PENDING)
-* Added functions as possible tag value input (coerced to string). (PENDING)
-* Added functions as possible type key input (coerced to string). (PENDING)
-* Added functions as possible context tag terminal (coerced to boolean). (PENDING)
-* Added functions as possible context variable (coerced to primitive). (PENDING)
+* Changed tags to now accept primitive values of any type, including strings.
+* Changed tags with values to now be internally-represented by single-key objects rather than colon-delimited strings.
+* Changed no-value tags to be matched with `$(<tag> <operator> @none)` since `null` actually maps to JavaScript's `null` now.
+* Added functions as possible tag value input (coerced to primitive).
+* Added functions as possible type key input (coerced to primitive).
+* Added functions as possible context variable (coerced to primitive).
 * Added multi-seed input for `--seed` (for passing to functions).
 * Added "helloWorld" default function.
 * Added "getParams" default function.
@@ -144,8 +145,8 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `@simple` `@get` parameter output format clause (for arbitrary simple text output).
 * Added `@nested` `@get` parameter output format clause (for arbitrary nested text output).
 * Added `@text` `@get` parameter output format clause for simple or nested arbitrary text output.
-* Added `@list` `@get` parameter and list-controlling clause ().
-* Added `@items` `@get` parameter and list-controlling clause.
+* Added `@list` `@get` parameter and list-controlling clause (forces a list/array to be output, even when there's only one module).
+* Added `@items` `@get` parameter and list-controlling clause (forces modules to output individually, even when there are more than one).
 * Added `@create` `@get` parameter and file export clause (tries to write to a new file or fails).
 * Added `@append` `@get` parameter and file export clause (tries to create or append a file).
 * Added `@replace` `@get` parameter and file export clause (tries to create or overwrite a file).
@@ -166,18 +167,38 @@ Remember also to set the version number inside package.json and utility/common.
 * Changed syntax tree and verbatim server sub-modes to no longer force use of PUT method.
 * Redesigned syntax and verbatim server sub-modes to set acceptable method calls based on query contents.
 * Changed ternary operator (`?` + `:`) precedence to be below the nested operators.
-* Reworked output behavior.
+* Added client-side validation of server output.
+* Reworked output behavior around aliases; server now forwards its aliases used with output.
+* `@of` re-placed to be required after `@as`.
+* Added `@with` definition clause for specifying XML attributes. (PENDING)
+* Added `@attr` clause for promoting tags additionally as XML attributes. (PENDING)
+* Changed `@final` with XML output to replace the root element with its contents if the root contains only one element. (PENDING)
+* Added `@noattr` compression clause. (PENDING)
+* Removed `@trimmed` compression clause. (PENDING)
+* Added `@nofree` compression clause. (PENDING)
+* Added `@notree` compression clause. (PENDING)
+* Renamed `@typeless` to `@notype`. (PENDING)
+* Renamed `@typeless` to `@notags`. (PENDING)
+* Changed `@typeless`, `@tagless` to be non-mutually-exclusive. (PENDING)
+* Added `@attr` operation clause. (PENDING)
+* Added `@unattr` operation clause. (PENDING)
+* Restricted root module accesses to just `@get`, `@new`, and `@del`; context expressions made a requirement for most operations. (PENDING)
 
 <br>
 
 ### Release Date TBD
 ##  Version 0.5.0: TBD
 
-* Experimenting with `@`-less clauses / "simplified" syntax. (PENDING)
-* Root module access restricted; context expressions made a requirement for most operations (there are some good reasons for this like the operations below). (PENDING)
-* Added `@head` operation clause for placing new modules before another in the same tree. (PENDING)
-* Added `@tail` operation clause for placing new modules after another in the same tree. (PENDING)
-* Added `@binary` `@get` parameter output format clause (similar to arbitrary text output, but for hexadecimal-encoded bytes). (PENDING)
+* Experimenting with `@`-less clauses / "simplified" syntax, since the overall complexity of the language has grown a lot and the constant `@`'s are simply annoying. (PENDING)
+  (General syntax will be similar to: `(context) <- operation [ tag1 = "value1", tag2, ... ] "type" { "attr1" = "value1", "attr2", ... }: freeformat % freedata % <- { nested1, nested2, ... };`)
+* Added `head` operation clause for placing new modules before another in the same tree. (PENDING)
+* Added `tail` operation clause for placing new modules after another in the same tree. (PENDING)
+* Added `binary` `get` parameter output format clause (similar to arbitrary text output, but for hexadecimal-encoded bytes). (PENDING)
+* Renamed `del` to `delete`. (PENDING)
+* Renamed `put` to `edit`. (PENDING)
+* Renamed `new` to `add`. (PENDING)
+* Added reverse transitive operators `\` / `from` and `\\` / `backward`. (PENDING)
+* Renamed `toward` to `forward`. (PENDING)
 
 <br>
 

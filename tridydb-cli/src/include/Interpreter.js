@@ -115,10 +115,49 @@ const exportToFile = async (data, filepath, mode, quiet) => {
  * @property {Composer}        _composer Maintains and appends an object database using instructions received from the parser.
  */
 export class Tridy {
+    /**
+     * Constructor for the Tridy class.
+     * 
+     * @param {String} opts.type_key The key used to classify modules when printing compressed output using @merged or @final. Default is 'type'.
+     * @param {String} opts.tags_key The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
+     * @param {String} opts.free_key The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
+     * @param {String} opts.tree_key The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
+     * @param {String} opts.root_key The name given to the XML list tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
+     */
     constructor(opts = { }) {
+        const alias = {
+            type:   opts.type_key ?? common.global.alias.type   ?? common.global.defaults.alias.type,
+            tags:   opts.tags_key ?? common.global.alias.tags   ?? common.global.defaults.alias.tags,
+            state:  opts.free_key ?? common.global.alias.state  ?? common.global.defaults.alias.state,
+            nested: opts.tree_key ?? common.global.alias.nested ?? common.global.defaults.alias.nested,
+            list:   opts.list_key ?? common.global.alias.list   ?? common.global.defaults.alias.list
+        };
+
         this._lexer    = new StatementLexer();
         this._parser   = new SyntaxParser();
-        this._composer = new Composer();
+        this._composer = new Composer(alias);
+    }
+
+    /**
+     * Returns the database's set of aliases.
+     * 
+     * @public
+     * @method
+     * @returns {Object} A data structure with each alias mapped to an internal constant.
+     */
+    getAliases() {
+        return this._composer.getAliases();
+    }
+
+    /**
+     * Sets (or resets) the aliases used by the database.
+     * 
+     * @public
+     * @method
+     * @param {Object} aliases A data structure with each alias mapped to an internal constant.
+     */
+    setAliases(aliases) {
+        this._composer.setAliases(aliases);
     }
 
     /**
@@ -161,11 +200,6 @@ export class Tridy {
      * @param   {String}          opts.host         Server to connect to (only applies if standalone is false). Default is localhost.
      * @param   {Number}          opts.port         Port to connect to (only applies if standalone is false). Default is 21780.
      * @param   {Number}          opts.timeout      Timeout period (in milliseconds) to wait for responses (only applies if standalone is false). Default is 3000.
-     * @param   {String}          opts.type_key     The key used to classify modules when printing compressed output using @merged or @final. Default is 'type'.
-     * @param   {String}          opts.tags_key     The key under which tags are imported and exported as. Has no effect if client_mode is enabled. Default is 'tags'.
-     * @param   {String}          opts.free_key     The key under which the free data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'free'.
-     * @param   {String}          opts.tree_key     The key under which the tree data structure is imported and exported as. Has no effect if client_mode is enabled. Default is 'tree'.
-     * @param   {String}          opts.root_key     The name given to the XML list tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is 'xml'. Default is 'root'.
      * @returns {Array<Object>}                     The output of the statement(s), including presentation metadata.
      * @throws  {SyntaxError}                       Thrown if the input isn't valid Tridy code.
      * @throws  {ClientSideServerError}             Thrown if the server host (optional) sends back an error response.
@@ -177,15 +211,6 @@ export class Tridy {
         opts.filepath     = opts.filepath     ?? null;
         opts.astree_only  = opts.astree_only  ?? false;
 
-        const input_alias = {
-            type:   opts.type_key ?? common.global.alias.type   ?? common.global.defaults.alias.type,
-            tags:   opts.tags_key ?? common.global.alias.tags   ?? common.global.defaults.alias.tags,
-            state:  opts.free_key ?? common.global.alias.state  ?? common.global.defaults.alias.state,
-            nested: opts.tree_key ?? common.global.alias.nested ?? common.global.defaults.alias.nested,
-            list:   opts.list_key ?? common.global.alias.list   ?? common.global.defaults.alias.list
-        };
-        let output_alias;
-
         const remote = {
             enable:  opts.client_mode ?? common.global.remote.enable  ?? common.global.defaults.remote.enable,
             host:    opts.host        ?? common.global.remote.host    ?? common.global.defaults.remote.host,
@@ -194,6 +219,7 @@ export class Tridy {
         };
 
         let astree;
+        let alias;
         let output = [ ];
 
         if (opts.tokenless) {
@@ -219,9 +245,10 @@ export class Tridy {
             if (remote.enable) {
                 results = await sendTridyRequest(astree, remote);
             } else {
-                results = await this._composer.compose(astree, input_alias);
+                results = await this._composer.compose(astree);
             }
     
+            alias = alias ?? results.alias ?? common.global.alias ?? common.global.defaults.alias;
             for (const module of results.modules) {
                 output.push(module);
             }
@@ -269,10 +296,10 @@ export class Tridy {
                     if (remote.enable) {
                         results = await sendTridyRequest(astree, remote);
                     } else {
-                        results = await this._composer.compose(astree, input_alias);
+                        results = await this._composer.compose(astree);
                     }
 
-                    output_alias = output_alias ?? results.alias ?? common.global.alias ?? common.global.defaults.alias;
+                    alias = alias ?? results.alias ?? common.global.alias ?? common.global.defaults.alias;
                     for (const module of results.modules) {
                         output.push(module);
                     }
@@ -287,7 +314,7 @@ export class Tridy {
             return wrapper;
         }
 
-        output = { alias: output_alias, modules: output };
+        output = { alias: alias, modules: output };
 
         return output;
     }
@@ -318,7 +345,6 @@ export class Tridy {
      * If there are exported files, this will also output them to the appropriate places.
      * 
      * @public
-     * @static
      * @method
      * @param   {Object}        input           Tridy query() JSON output (presumably).
      * @param   {String}        opts.format     Default format to export the JSON output in. Options are 'json', 'yaml', or 'xml'. Default is 'json'.
@@ -331,7 +357,7 @@ export class Tridy {
      * @returns {String | null}                 Input object as a formatted string, or null if it can't be converted to one.
      * @throws  {SyntaxError}                   Thrown if some parameters are received incorrectly, either from the method caller or from the server, if there is one.
      */
-    static async stringify(input, opts = { }) {
+    async stringify(input, opts = { }) {
         opts.format     = opts.format     ?? common.global.output.format     ?? common.global.defaults.output.format;
         opts.indent     = opts.indent     ?? common.global.output.indent     ?? common.global.defaults.output.indent;
         opts.list_mode  = opts.list_mode  ?? common.global.output.list_mode  ?? common.global.defaults.output.list_mode;
@@ -347,13 +373,16 @@ export class Tridy {
 
         if (common.isNullish(input.alias)) {
             logger.warn(`Aliases were not provided with the input to Tridy.stringify(...). The output of this function may not be correct if the input is from a separate server with different aliases.`);
+            
+            input.alias = { };
         }
+        const local_alias = this.getAliases();
         input.alias = {
-            type:   input.alias.type   ?? common.global.alias.type   ?? common.global.defaults.alias.type,
-            tags:   input.alias.tags   ?? common.global.alias.tags   ?? common.global.defaults.alias.tags,
-            state:  input.alias.state  ?? common.global.alias.state  ?? common.global.defaults.alias.state,
-            nested: input.alias.nested ?? common.global.alias.nested ?? common.global.defaults.alias.nested,
-            list:   input.alias.list   ?? common.global.alias.list   ?? common.global.defaults.alias.list
+            type:   input.alias.type   ?? local_alias.type,
+            tags:   input.alias.tags   ?? local_alias.tags,
+            state:  input.alias.state  ?? local_alias.state,
+            nested: input.alias.nested ?? local_alias.nested,
+            list:   input.alias.list   ?? local_alias.list
         };
 
         /**

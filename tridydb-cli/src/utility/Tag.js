@@ -1,15 +1,30 @@
+import { isDictionary } from './common.js';
+
 export class Tag {
     constructor() { }
 
     static getIdentifier(tag) {
-        return tag.split(':')[0];
+        if (isDictionary(tag)) {
+            return Object.keys(tag)[0];
+        }
+        return tag;
     }
 
     static getValue(tag) {
-        tag = tag.split(':');
-        if ((tag.length !== 2) || (isNaN(tag[1]))) {
-            return null;
+        if (isDictionary(tag)) {
+            return Object.values(tag)[0];
         }
-        return Number(tag[1]);
+        return undefined;
+    }
+
+    static getTag(key, value = undefined) {
+        if (value === undefined) {
+            return key;
+        }
+
+        const tag = { };
+        tag[key]  = value;
+
+        return tag;
     }
 }

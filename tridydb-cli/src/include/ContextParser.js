@@ -37,7 +37,7 @@ export class ContextParser {
         const ops = new Stack();
 
         for (const token of input) {
-            if (token.type === 'ctxt_term') {
+            if ((token.type === 'ctxt_term') || (token.type === 'ctxt_func')) {
                 out.enqueue(token);
             } else if (token.val === '(') {
                 ops.push(token);
@@ -73,11 +73,12 @@ export class ContextParser {
     static _toTree(postfix) {
         const out = new Stack();
 
-        let current;
         while (!postfix.isEmpty()) {
-            current = postfix.dequeue();
+            let current = postfix.dequeue();
             if (current.type === 'ctxt_term') {
                 out.push(current.val);
+            } else if (current.type === 'ctxt_func') {
+                out.push({ function: current.val });
             } else if (current.isUnaryOpContextToken()) {
                 const a = out.pop();
 

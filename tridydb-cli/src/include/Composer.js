@@ -1,5 +1,5 @@
-import { createRequire } from 'module';
 import path              from 'path';
+import { fileURLToPath } from 'url';
 
 import seedrandom from 'seedrandom';
 import shuffle    from 'knuth-shuffle-seeded';
@@ -10,19 +10,28 @@ import { ContextParser } from './ContextParser.js';
 
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
-import { Stack }       from '../utility/Stack.js';
 import { StateTree }   from '../utility/StateTree.js';
 import { Tag }         from '../utility/Tag.js';
 
-import { error_handler, FunctionError } from '../utility/error.js';
+import { FunctionError } from '../utility/error.js';
 
-const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 export class Composer {
-    constructor() {
-        this._target = new Stack();
-
+    constructor(aliases) {
+        this._alias  = aliases;
+        this._target = new StateTree(null, this._alias);
         this.setRandomSeeds();
+    }
+
+    getAliases() {
+        return this._alias;
+    }
+
+    setAliases(aliases) {
+        this._alias  = aliases;
+        this._target = new StateTree(this._target.getRaw(), aliases);
     }
 
     getRandomSeeds() {
@@ -30,6 +39,7 @@ export class Composer {
     }
 
     setRandomSeeds(seeds) {
+        // Do not unflatten this; "prng" references "seeds".
         this._random       = { };
         this._random.seeds = seeds ?? [ seedrandom().int32() ];
         this._random.prng  = new seedrandom(''.concat(this._random.seeds[0]), { entropy: false });
@@ -51,8 +61,22 @@ export class Composer {
         return shuffled[last_index];
     }
 
-    _matchingTagValue(test, b, lvl, index, random) {
-        let requested;
+    async _matchingTagValue(test, b, lvl, index, random) {
+        if (!common.isNullish(test.function)) {
+            const func   = test.function[0];
+            const params = {
+                index: index,
+                random: {
+                    global: this._random.seeds,
+                    query:  random
+                },
+                args: test.function
+            };
+
+            const result = await this._functionCall(func, params, { primitive_only: true });
+
+            return result;
+        }
 
         // Note the variables below all have a minimum value of 0 (inclusive).
         // This does not include tags, which can store negative values.
@@ -62,8 +86,7 @@ export class Composer {
             case '$C':
                 return index.extent[lvl + 1];
             case '$I':
-                requested = Number(b.val);
-                if (requested < 0) {
+                if (!isNaN(b.val) && (Number(b.val) < 0)) {
                     return (index.extent[lvl] - index.real[lvl]) * -1;
                 }
                 return index.real[lvl];
@@ -72,8 +95,7 @@ export class Composer {
             case '$Q':
                 return random;
             case '$S':
-                requested = Number(b.val);
-                if (requested < 0) {
+                if (!isNaN(b.val) && (Number(b.val) < 0)) {
                     return (index.extent[lvl] - this._getModuleShuffledIndex(lvl, index, random)) * -1;
                 }
                 return this._getModuleShuffledIndex(lvl, index, random);
@@ -85,7 +107,15 @@ export class Composer {
                         return Tag.getValue(tag);
                     }
                 }
-                return undefined;
+
+                /**
+                 * Literal null can be a tag value, and undefined is returned if the tag is present, but doesn't have a value.
+                 * Returning undefined on a tag not present causes problems where $(special_tag == @none) will match tags that aren't special_tag.
+                 * @none (undefined) should only match if special_tag is present in the module *and* doesn't have a value.
+                 * A tag value, though, can't be anything other than a primitive.
+                 * Hence, an empty object can signal that the required tag identifier for comparison is lacking.
+                 */
+                return { };
         }
     }
 
@@ -143,131 +173,85 @@ export class Composer {
         return this._verifyMatching(answer, test, lvl, index, opts);
     }
 
-    _matchingNumberExpression(a, b, op, lvl, index, random, opts = { }) {
-        let answer = this._matchingTagValue(a, b, lvl, index, random);
+    async _matchingValueExpression(a, b, op, lvl, index, random, opts = { }) {
+        let answer = await this._matchingTagValue(a, b, lvl, index, random);
 
-        switch (answer) {
-            case undefined:
-                switch (op) {
-                    case '$==':
-                        answer = false;
-                        break;
-                    case '$!=':
-                        answer = true;
-                        break;
-                    case '$<':
-                        answer = false;
-                        break;
-                    case '$<=':
-                        answer = false;
-                        break;
-                    case '$>':
-                        answer = false;
-                        break;
-                    case '$>=':
-                        answer = false;
-                        break;
-                }
-                break;
-            case null:
-                switch (op) {
-                    case '$==':
-                        answer = (b.val === 'null');
-                        break;
-                    case '$!=':
-                        answer = (b.val !== 'null');
-                        break;
-                    case '$<':
-                        answer = false;
-                        break;
-                    case '$<=':
-                        answer = (b.val === 'null');
-                        break;
-                    case '$>':
-                        answer = false;
-                        break;
-                    case '$>=':
-                        answer = (b.val === 'null');
-                        break;
-                }
-                break;
-            default:
-                switch (op) {
-                    case '$==':
-                        answer = (answer === (isNaN(b.val) ? b.val : Number(b.val)));
-                        break;
-                    case '$!=':
-                        answer = (answer !== (isNaN(b.val) ? b.val : Number(b.val)));
-                        break;
-                    case '$<':
-                        answer = (answer < Number(b.val));
-                        break;
-                    case '$<=':
-                        answer = (answer <= Number(b.val));
-                        break;
-                    case '$>':
-                        answer = (answer > Number(b.val));
-                        break;
-                    case '$>=':
-                        answer = (answer >= Number(b.val));
-                        break;
-                }
-                break;
+        if (common.isDictionary(answer)) {
+            answer = false;
+        } else {
+            switch (op) {
+                case '$==':
+                    answer = answer === b.val;
+                    break;
+                case '$!=':
+                    answer = answer !== b.val;
+                    break;
+                case '$<':
+                    answer = answer < b.val;
+                    break;
+                case '$<=':
+                    answer = answer <= b.val;
+                    break;
+                case '$>':
+                    answer = answer > b.val;
+                    break;
+                case '$>=':
+                    answer = answer >= b.val;
+                    break;
+            }
         }
 
         return this._verifyMatching(answer, a, lvl, index, opts);
     }
 
-    _testLookaheadRecursive(b, lvl, index, random, recursive, opts = { }) {
-        const target = this._target.peek();
-
+    async _testLookaheadRecursive(b, lvl, index, random, recursive, opts = { }) {
         const child_subcontext = [ ];
         
         // Needed if @parent/@ascend is used with @to/@toward and is in the LHS of the @to/@toward expression.
         // The target's context needs to be aligned with that of the parent that's supposed to be evaluated.
         const parent_diff = index.context.length - lvl;
         for (let i = 0; i < parent_diff; i++) {
-            child_subcontext.push(target.leavePos());
-            child_subcontext.push(target.leavePos());
+            child_subcontext.push(this._target.leavePos());
+            child_subcontext.push(this._target.leavePos());
         }
 
         let b_index;
 
         let answer = false;
 
-        target.enterPos(this._alias.nested);
-        if (!target.isPosEmpty()) {
-            target.enterPos(0);
-            while (!target.isPosUndefined()) {
+        this._target.enterPos(this._alias.nested);
+        if (!this._target.isPosEmpty()) {
+            this._target.enterPos(0);
+            while (!this._target.isPosUndefined()) {
                 b_index = this._getModuleIndex();
 
-                answer = this._matchingExpression(b, lvl, b_index, random, opts);
+                answer = await this._matchingExpression(b, lvl, b_index, random, opts);
 
                 if (recursive && (answer === false)) {
                     lvl++;
 
-                    answer = this._testLookaheadRecursive(b, lvl, b_index, random, recursive, opts);
+                    answer = await this._testLookaheadRecursive(b, lvl, b_index, random, recursive, opts);
                 }
                 if (answer === true) {
                     break;
                 }
 
-                target.nextItem();
+                this._target.nextItem();
             }
-            target.leavePos();
+            this._target.leavePos();
         }
-        target.leavePos();
+        this._target.leavePos();
 
         while (child_subcontext.length > 0) {
-            target.enterPos(child_subcontext.pop());
+            this._target.enterPos(child_subcontext.pop());
         }
 
         return answer;
     }
 
-    _testLookahead(a, b, lvl, index, random, recursive, opts = { }) {
+    async _testLookahead(a, b, lvl, index, random, recursive, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
+        const a_answer = await this._matchingExpression(a, lvl, index, random, a_opts);
 
         const b_opts        = { recurse: true, tracked: new Set() };
         let   b_answer_part = false;
@@ -276,7 +260,7 @@ export class Composer {
             for (let cand_lvl of a_opts.tracked) {
                 lvl = cand_lvl + 1;
 
-                b_answer_part = this._testLookaheadRecursive(b, lvl, index, random, recursive, b_opts);
+                b_answer_part = await this._testLookaheadRecursive(b, lvl, index, random, recursive, b_opts);
 
                 if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
                     opts.tracked.add(cand_lvl);
@@ -289,9 +273,9 @@ export class Composer {
         return a_answer && b_answer;
     }
 
-    _testLookbehind(a, b, lvl, index, random, recursive, opts = { }) {
+    async _testLookbehind(a, b, lvl, index, random, recursive, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
+        const a_answer = await this._matchingExpression(a, lvl, index, random, a_opts);
 
         const b_opts        = { tracked: new Set() };
         let   b_answer_part = false;
@@ -302,12 +286,12 @@ export class Composer {
 
                 if (recursive) {
                     while ((b_answer_part === false) && (lvl >= 0)) {
-                        b_answer_part = this._matchingExpression(b, lvl, index, random, b_opts);
+                        b_answer_part = await this._matchingExpression(b, lvl, index, random, b_opts);
     
                         lvl--;
                     }
                 } else {
-                    b_answer_part = this._matchingExpression(b, lvl, index, random, b_opts);
+                    b_answer_part = await this._matchingExpression(b, lvl, index, random, b_opts);
                 }
                 
                 if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
@@ -321,9 +305,9 @@ export class Composer {
         return a_answer && b_answer;
     }
 
-    _testTransitive(a, b, lvl, index, random, recursive, opts = { }) {
+    async _testTransitive(a, b, lvl, index, random, recursive, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = this._matchingExpression(a, lvl, index, random, a_opts);
+        const a_answer = await this._matchingExpression(a, lvl, index, random, a_opts);
 
         let b_answer_part = false;
         let b_answer      = false;
@@ -333,13 +317,13 @@ export class Composer {
 
                 if (recursive) {
                     while ((b_answer_part === false) && (lvl < index.context.length)) {
-                        b_answer_part = this._matchingExpression(b, lvl, index, random, opts);
+                        b_answer_part = await this._matchingExpression(b, lvl, index, random, opts);
 
                         lvl++;
                     }
                     b_answer ||= b_answer_part;
                 } else {
-                    b_answer ||= this._matchingExpression(b, lvl, index, random, opts);
+                    b_answer ||= await this._matchingExpression(b, lvl, index, random, opts);
                 }
             }
         }
@@ -351,7 +335,7 @@ export class Composer {
         return common.isDictionary(obj) && (obj.val !== undefined);
     }
 
-    _matchingExpression(test, lvl, index, random, opts = { }) {
+    async _matchingExpression(test, lvl, index, random, opts = { }) {
         if (common.isEmpty(test)) {
             return index.context.length === lvl;
         } else if (common.isEmpty(index.context) || (lvl < 0) || (lvl >= index.context.length)) {
@@ -359,36 +343,36 @@ export class Composer {
         } else if (this._isExpressionTreeLeaf(test)) {
             return this._matchingTag(test, lvl, index, random, opts);
         } else if (test.op[0] === '$') {
-            return this._matchingNumberExpression(test.a, test.b, test.op, lvl, index, random, opts);
+            return await this._matchingValueExpression(test.a, test.b, test.op, lvl, index, random, opts);
         } else {
             switch (test.op) {
                 case '!':
-                    return !this._matchingExpression(test.a, lvl, index, random, opts);
+                    return !(await this._matchingExpression(test.a, lvl, index, random, opts));
                 case '&':
-                    return this._matchingExpression(test.a, lvl, index, random, opts) && this._matchingExpression(test.b, lvl, index, random, opts);
+                    return await this._matchingExpression(test.a, lvl, index, random, opts) && await this._matchingExpression(test.b, lvl, index, random, opts);
                 case '^':
-                    const a = this._matchingExpression(test.a, lvl, index, random, opts);
-                    const b = this._matchingExpression(test.b, lvl, index, random, opts);
+                    const a = await this._matchingExpression(test.a, lvl, index, random, opts);
+                    const b = await this._matchingExpression(test.b, lvl, index, random, opts);
                     return (a & !b) || (b & !a);
                 case '|':
-                    return this._matchingExpression(test.a, lvl, index, random, opts) || this._matchingExpression(test.b, lvl, index, random, opts);
+                    return await this._matchingExpression(test.a, lvl, index, random, opts) || await this._matchingExpression(test.b, lvl, index, random, opts);
                 case '>':
-                    return this._testLookahead(test.a, test.b, lvl, index, random, false, opts);
+                    return await this._testLookahead(test.a, test.b, lvl, index, random, false, opts);
                 case '>>':
-                    return this._testLookahead(test.a, test.b, lvl, index, random, true, opts);
+                    return await this._testLookahead(test.a, test.b, lvl, index, random, true, opts);
                 case '<':
-                    return this._testLookbehind(test.a, test.b, lvl, index, random, false, opts);
+                    return await this._testLookbehind(test.a, test.b, lvl, index, random, false, opts);
                 case '<<':
-                    return this._testLookbehind(test.a, test.b, lvl, index, random, true, opts);
+                    return await this._testLookbehind(test.a, test.b, lvl, index, random, true, opts);
                 case '/':
-                    return this._testTransitive(test.a, test.b, lvl, index, random, false, opts);
+                    return await this._testTransitive(test.a, test.b, lvl, index, random, false, opts);
                 case '//':
-                    return this._testTransitive(test.a, test.b, lvl, index, random, true, opts);
+                    return await this._testTransitive(test.a, test.b, lvl, index, random, true, opts);
                 case '?':
-                    if (this._matchingExpression(test.a, lvl, index, random, opts)) {
-                        return this._matchingExpression(test.b, lvl, index, random, opts);
+                    if (await this._matchingExpression(test.a, lvl, index, random, opts)) {
+                        return await this._matchingExpression(test.b, lvl, index, random, opts);
                     }
-                    return this._matchingExpression(test.c, lvl, index, random, opts);
+                    return await this._matchingExpression(test.c, lvl, index, random, opts);
             }
         }
     }
@@ -407,20 +391,33 @@ export class Composer {
         return module.getRaw();
     }
 
-    async _functionCall(name, params) {
-        const dir = path.resolve('../../functions/');
-        name      = path.resolve('../../functions/' + name + '.js');
-        if (!name.startsWith(dir)) {
-            error_handler.handle(new FunctionError(`Directory traversal outside the function sub-directory is not allowed.`));
-        }
+    async _functionCall(func, params, opts = { }) {
+        opts.primitive_only = opts.primitive_only ?? false;
 
         let result;
+
+        const funcdir  = path.join(__dirname, '../../functions/');
+        let   funcpath = path.join(__dirname, '../../functions/', func + '.js');
+        if (!funcpath.startsWith(funcdir)) {
+            throw new FunctionError(`Directory traversal outside the function sub-directory is not allowed.`);
+        }
+
+        // Because import() doesn't like paths on Windows.
+        funcpath = path.relative(__dirname, funcpath);
+        funcpath = funcpath.replace('\\', '/');
+
         try {
-            const mod = await import(name);
+            const mod = await import(funcpath);
 
             result = mod.default(params);
         } catch (err) {
-            error_handler.handle(new FunctionError(err.message));
+            throw new FunctionError(err.message);
+        }
+
+        if (opts.primitive_only) {
+            if (common.isObject(result)) {
+                result = JSON.stringify(result, null, 0);
+            }
         }
 
         return result;
@@ -433,18 +430,39 @@ export class Composer {
         const copy = common.deepCopy(template);
 
         if (opts.functions !== null) {
-            if (common.isArray(opts.functions[common.global.defaults.alias.state]) && !common.isEmpty(opts.functions[common.global.defaults.alias.state])) {
-                opts.params.custom = opts.functions[common.global.defaults.alias.state];
+            if (!common.isNullish(opts.functions.module)) {
+                opts.params.args = opts.functions.module;
 
-                const result = await this._functionCall(opts.functions[common.global.defaults.alias.state][0], opts.params);
-
-                copy[common.global.defaults.alias.state] = result;
-            } else if (common.isArray(opts.functions.module) && !common.isEmpty(opts.functions.module)) {
-                opts.params.custom = opts.functions.module;
-
-                const result = await this._functionCall(opts.functions.module[0], opts.params);
+                const result = await this._functionCall(opts.functions.module[0], opts.params, { primitive_only: false });
 
                 copy = result;
+            } else {
+                if (!common.isNullish(opts.functions[common.global.defaults.alias.tags])) {
+                    for (let tag in opts.functions[common.global.defaults.alias.tags]) {
+                        opts.params.args = opts.functions[common.global.defaults.alias.tags][tag];
+
+                        const result = await this._functionCall(opts.functions[common.global.defaults.alias.tags][tag][0], opts.params, { primitive_only: true });
+
+                        tag = Tag.getTag(tag, result);
+
+                        copy[common.global.defaults.alias.tags] = copy[common.global.defaults.alias.tags] ?? [ ];
+                        copy[common.global.defaults.alias.tags].push(tag);
+                    }
+                }
+                if (!common.isNullish(opts.functions[common.global.defaults.alias.type])) {
+                    opts.params.args = opts.functions[common.global.defaults.alias.type];
+
+                    const result = await this._functionCall(opts.functions[common.global.defaults.alias.type][0], opts.params, { primitive_only: true });
+
+                    copy[common.global.defaults.alias.type] = result;
+                }
+                if (!common.isNullish(opts.functions[common.global.defaults.alias.state])) {
+                    opts.params.args = opts.functions[common.global.defaults.alias.state];
+
+                    const result = await this._functionCall(opts.functions[common.global.defaults.alias.state][0], opts.params, { primitive_only: false });
+
+                    copy[common.global.defaults.alias.state] = result;
+                }
             }
         }
 
@@ -464,9 +482,7 @@ export class Composer {
     }
 
     _overwriteModule(template) {
-        const target = this._target.peek();
-
-        target.setPosValue(template);
+        this._target.setPosValue(template);
 
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
             this._parse();
@@ -474,29 +490,25 @@ export class Composer {
     }
 
     _composeModule(template) {
-        const target = this._target.peek();
-
-        if (!common.isDictionary(target.getPosValue())) {
+        if (!common.isDictionary(this._target.getPosValue())) {
             throw new SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        target.enterPos(this._alias.nested);
-        target.enterPos(target.putPosValue(template) - 1);
+        this._target.enterPos(this._alias.nested);
+        this._target.enterPos(this._target.putPosValue(template) - 1);
 
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
             this._parse();
         }
 
-        target.leavePos();
-        target.leavePos();
+        this._target.leavePos();
+        this._target.leavePos();
     }
 
     _printModule() {
         this._astree.enterPos('output');
 
-        const target = this._target.peek();
-
-        let copy = target.getPosValue();
+        let copy = this._target.getPosValue();
 
         copy = Compressor.compressModule(copy, this._alias, this._astree.enterGetAndLeave('compression'));
         if (copy === undefined) {
@@ -505,24 +517,22 @@ export class Composer {
 
         copy = { content: copy, params: this._astree.getPosValue() };
 
-        this._output.push(copy);
+        this._output.modules.push(copy);
 
         this._astree.leavePos();
     }
 
     _deleteModule() {
-        const target = this._target.peek();
-
-        const spliced = target.getTopPos();
+        const spliced = this._target.getTopPos();
         if (spliced === null) {
             // then this module is the root module.
-            target.setPosValue({ });
+            this._target.setPosValue({ });
         } else {
-            target.leavePos();
-            target.getPosValue().splice(spliced, 1);
+            this._target.leavePos();
+            this._target.getPosValue().splice(spliced, 1);
             
-            if ((spliced === 0) && target.isPosEmpty()) {
-                target.setPosValue(undefined);
+            if ((spliced === 0) && this._target.isPosEmpty()) {
+                this._target.setPosValue(undefined);
             }
 
             /**
@@ -530,7 +540,7 @@ export class Composer {
              * The negative index is used so the composer knows to retry 0 after the array has shifted.
              * This is the easiest way to tell that the tree array has already shifted back because of a @del statement.
              */
-            target.enterPos(spliced - 1);
+            this._target.enterPos(spliced - 1);
         }
     }
 
@@ -541,44 +551,40 @@ export class Composer {
     }
 
     _editModule(template) {
-        const target = this._target.peek();
-
-        if (!common.isDictionary(target.getPosValue())) {
+        if (!common.isDictionary(this._target.getPosValue())) {
             throw new SyntaxError(`Tried to edit an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
         const nulled = this._astree.enterGetAndLeave('nulled');
 
-        this._editModulePart(target, template, nulled, 'type');
-        this._editModulePart(target, template, nulled, 'tags');
-        this._editModulePart(target, template, nulled, 'state');
+        this._editModulePart(this._target, template, nulled, 'type');
+        this._editModulePart(this._target, template, nulled, 'tags');
+        this._editModulePart(this._target, template, nulled, 'state');
 
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
-            target.enterDeleteAndLeave(this._alias.nested);
+            this._target.enterDeleteAndLeave(this._alias.nested);
             this._parse();
         } else if (common.isDictionary(nulled) && (nulled[common.global.defaults.alias.nested] === true)) {
-            target.enterDeleteAndLeave(this._alias.nested);
+            this._target.enterDeleteAndLeave(this._alias.nested);
         }
     }
 
     _tagModule(template) {
-        const target = this._target.peek();
-
-        if (!common.isDictionary(target.getPosValue())) {
+        if (!common.isDictionary(this._target.getPosValue())) {
             throw new SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        target.enterPos(this._alias.tags);
+        this._target.enterPos(this._alias.tags);
 
-        let tags = target.getPosValue();
+        let tags = this._target.getPosValue();
 
         if (!common.isArray(tags)) {
             if (tags !== undefined) {
-                target.leavePos();
+                this._target.leavePos();
                 throw new SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
             }
             tags = [ ];
-            target.setPosValue(tags);
+            this._target.setPosValue(tags);
         }
 
         if (common.isArray(template[this._alias.tags])) {
@@ -595,27 +601,25 @@ export class Composer {
                 }
     
                 if (!duplicate) {
-                    target.putPosValue(added);
+                    this._target.putPosValue(added);
                 }
             }
         }
 
-        target.leavePos();
+        this._target.leavePos();
     }
 
     _untagModule(template) {
-        const target = this._target.peek();
-
-        if (!common.isDictionary(target.getPosValue())) {
+        if (!common.isDictionary(this._target.getPosValue())) {
             throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        target.enterPos(this._alias.tags);
+        this._target.enterPos(this._alias.tags);
 
-        const tags = target.getPosValue();
+        const tags = this._target.getPosValue();
 
         if (!common.isArray(tags)) {
-            target.leavePos();
+            this._target.leavePos();
             throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
@@ -630,17 +634,15 @@ export class Composer {
             }
         }
 
-        if (target.isPosEmpty()) {
-            target.setPosValue(undefined);
+        if (this._target.isPosEmpty()) {
+            this._target.setPosValue(undefined);
         }
 
-        target.leavePos();
+        this._target.leavePos();
     }
 
     _saveModule() {
-        const target = this._target.peek();
-
-        this._saved.push(target.getPosValue());
+        this._saved.push(this._target.getPosValue());
     }
 
     _loadModule() {
@@ -650,17 +652,15 @@ export class Composer {
     }
 
     _multiModule() {
-        let target = this._target.peek();
-
         let template;
-        template = new StateTree(target.getPosValue(), this._alias);
+        template = new StateTree(this._target.getPosValue(), this._alias);
         template = this._createModuleTemplate(template);
 
         if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
             this._parse();
         }
 
-        target.setPosValue(template);
+        this._target.setPosValue(template);
     }
 
     async _operateModule(command, opts = { }) {
@@ -716,9 +716,8 @@ export class Composer {
             context: [ ]
         }
 
-        const target = this._target.peek();
-        const raw    = target.getFullPos();
-        let   ptr    = target.getRaw();
+        const raw = this._target.getFullPos();
+        let   ptr = this._target.getRaw();
 
         /**
          * Note: the indices are how the JSON database is structured at a low level.
@@ -758,7 +757,7 @@ export class Composer {
 
         const index = this._getModuleIndex();
 
-        const matched = this._matchingExpression(test, level.start, index, random);
+        const matched = await this._matchingExpression(test, level.start, index, random);
         if (matched === true) {
             opts.count++;
         }
@@ -766,9 +765,7 @@ export class Composer {
         opts.stats.attempts++;
 
         if (((level.max === null) || (level.current < level.max)) && ((opts.limit === null) || (opts.count < opts.limit))) {
-            const target = this._target.peek();
-
-            await target.traverseAsync(async () => {
+            await this._target.traverseAsync(async () => {
                 const new_level = { start: level.start, current: level.current + 1, max: level.max };
 
                 await this._traverseModule(test, command, new_level, random, opts);
@@ -803,7 +800,7 @@ export class Composer {
     _getStartingLevel() {
         // The 2 is determined from the number of (looping) indices required for one level of nesting.
         // Level 0 has the position ['tree'][#], level 1 is at ['tree'][#]['tree'][#], and so on.
-        return this._target.peek().getFullPos().length / 2;
+        return this._target.getFullPos().length / 2;
     }
 
     /**
@@ -859,14 +856,14 @@ export class Composer {
                 this._saved = [ ];
                 break;
             case 'nop':
-                this._output.push({ content: stats });
+                this._output.modules.push({ content: stats });
                 break;
             default:
                 switch (common.global.log_level) {
                     case 'verbose':
                     case 'debug':
                     case 'silly':
-                        this._output.push({ content: stats });
+                        this._output.modules.push({ content: stats });
                 }
                 break;
         }
@@ -940,20 +937,12 @@ export class Composer {
         await this._astree.traverseAsync(this._parseStatement.bind(this));
     }
 
-    async compose(input, alias, opts = { }) {
+    async compose(input, opts = { }) {
         this._astree = new StateTree(input);
 
-        this._alias = alias;
-
-        if (this._target.isEmpty()) {
-            this._target.push(new StateTree(null, this._alias));
-        }
-        
-        this._output = [ ];
+        this._output = { alias: this._alias, modules: [ ] };
 
         await this._parse();
-
-        this._output = { alias: this._alias, modules: this._output };
 
         return this._output;
     }
