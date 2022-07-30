@@ -6,14 +6,15 @@ import { SimpleTextFormatter } from './SimpleTextFormatter.js';
 import { XMLFormatter }        from './XMLFormatter.js';
 
 import * as common from '../utility/common.js';
+import { global }  from '../utility/mapped.js';
 
 export class Formatter {
     constructor() { }
 
     static format(input, opts = { }) {
-        opts.format = opts.format ?? common.global.output.format ?? common.global.defaults.output.format;
-        opts.indent = opts.indent ?? common.global.output.indent ?? common.global.defaults.output.indent;
-        opts.alias  = opts.alias  ?? common.global.alias         ?? common.global.defaults.alias;
+        opts.format = opts.format ?? global.output.format ?? global.defaults.output.format;
+        opts.indent = opts.indent ?? global.output.indent ?? global.defaults.output.indent;
+        opts.alias  = opts.alias  ?? global.alias         ?? global.defaults.alias;
 
         switch (opts.format) {
             case 'js':

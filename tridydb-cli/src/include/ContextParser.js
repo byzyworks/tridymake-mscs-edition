@@ -1,4 +1,5 @@
 import { isDictionary, isEmpty } from '../utility/common.js';
+import { CONTEXT_MAP }           from '../utility/mapped.js';
 import { Stack }                 from '../utility/Stack.js';
 import { Queue }                 from '../utility/Queue.js';
 import { Token }                 from '../utility/Token.js';
@@ -12,26 +13,30 @@ export class ContextParser {
      * (In other words, no need for parentheses).
      */
     static _toPostfix(input) {
-        const prec = {
-            '$==': 0,
-            '$!=': 0,
-            '$<':  0,
-            '$<=': 0,
-            '$>':  0,
-            '$>=': 0,
-            '!':   1,
-            '&':   2,
-            '^':   3,
-            '|':   4,
-            '?':   5,
-            ':':   5,
-            '<':   6,
-            '<<':  6,
-            '>':   6,
-            '>>':  6,
-            '/':   7,
-            '//':  7
-        }
+        const prec                                       = { };
+        prec[CONTEXT_MAP.EQUAL_TO]                       = 0;
+        prec[CONTEXT_MAP.NOT_EQUAL_TO]                   = 0;
+        prec[CONTEXT_MAP.LESS_THAN]                      = 0;
+        prec[CONTEXT_MAP.LESS_THAN_OR_EQUAL_TO]          = 0;
+        prec[CONTEXT_MAP.GREATER_THAN]                   = 0;
+        prec[CONTEXT_MAP.GREATER_THAN_OR_EQUAL_TO]       = 0;
+        prec[CONTEXT_MAP.NOT]                            = 1;
+        prec[CONTEXT_MAP.AND]                            = 2;
+        prec[CONTEXT_MAP.XOR]                            = 3;
+        prec[CONTEXT_MAP.OR]                             = 4;
+        prec[CONTEXT_MAP.TERNARY_1]                      = 5;
+        prec[CONTEXT_MAP.TERNARY_2]                      = 5;
+        prec[CONTEXT_MAP.LOOKAHEAD]                      = 6;
+        prec[CONTEXT_MAP.RECURSIVE_LOOKAHEAD]            = 6;
+        prec[CONTEXT_MAP.LOOKBEHIND]                     = 6;
+        prec[CONTEXT_MAP.RECURSIVE_LOOKBEHIND]           = 6;
+        prec[CONTEXT_MAP.INVERSE_LOOKAHEAD]              = 6;
+        prec[CONTEXT_MAP.INVERSE_RECURSIVE_LOOKAHEAD]    = 6;
+        prec[CONTEXT_MAP.INVERSE_LOOKBEHIND]             = 6;
+        prec[CONTEXT_MAP.INVERSE_RECURSIVE_LOOKBEHIND]   = 6;
+        prec[CONTEXT_MAP.TRANSITION]                     = 7;
+        prec[CONTEXT_MAP.RECURSIVE_TRANSITION]           = 7;
+        prec[CONTEXT_MAP.INCLUSIVE_RECURSIVE_TRANSITION] = 7;
 
         const out = new Queue();
         const ops = new Stack();

@@ -1,5 +1,6 @@
 import * as common     from '../utility/common.js';
 import { SyntaxError } from '../utility/error.js';
+import { global }      from '../utility/mapped.js';
 import { Token }       from '../utility/Token.js';
 
 export class TokenlessSyntaxParser {
@@ -99,18 +100,18 @@ export class TokenlessSyntaxParser {
     }
 
     static _handleDefinition(input) {
-        if (!common.isNullish(input[common.global.defaults.alias.type])) {
-            if (typeof input[common.global.defaults.alias.type] !== 'string') {
+        if (!common.isNullish(input[global.defaults.alias.type])) {
+            if (typeof input[global.defaults.alias.type] !== 'string') {
                 this._handleUnexpected();
             }
         }
         
-        if (!common.isNullish(input[common.global.defaults.alias.tags])) {
-            if (!common.isArray(input[common.global.defaults.alias.tags])) {
+        if (!common.isNullish(input[global.defaults.alias.tags])) {
+            if (!common.isArray(input[global.defaults.alias.tags])) {
                 this._handleUnexpected();
             }
 
-            for (const tag of input[common.global.defaults.alias.tags]) {
+            for (const tag of input[global.defaults.alias.tags]) {
                 if (typeof tag !== 'string') {
                     this._handleUnexpected();
                 }
@@ -176,11 +177,11 @@ export class TokenlessSyntaxParser {
             }
         }
 
-        if (!common.isNullish(input[common.global.defaults.alias.tags])) {
-            if (!common.isDictionary(input[common.global.defaults.alias.tags])) {
+        if (!common.isNullish(input[global.defaults.alias.tags])) {
+            if (!common.isDictionary(input[global.defaults.alias.tags])) {
                 this._handleUnexpected();
             }
-            for (const tag of input[common.global.defaults.alias.tags]) {
+            for (const tag of input[global.defaults.alias.tags]) {
                 if (!common.isArray(tag)) {
                     this._handleUnexpected();
                 }
@@ -190,20 +191,20 @@ export class TokenlessSyntaxParser {
             }
         }
 
-        if (!common.isNullish(input[common.global.defaults.alias.type])) {
-            if (!common.isArray(input[common.global.defaults.alias.type])) {
+        if (!common.isNullish(input[global.defaults.alias.type])) {
+            if (!common.isArray(input[global.defaults.alias.type])) {
                 this._handleUnexpected();
             }
-            if (common.isEmpty(input[common.global.defaults.alias.type])) {
+            if (common.isEmpty(input[global.defaults.alias.type])) {
                 this._handleUnexpected();
             }
         }
 
-        if (!common.isNullish(input[common.global.defaults.alias.free])) {
-            if (!common.isArray(input[common.global.defaults.alias.free])) {
+        if (!common.isNullish(input[global.defaults.alias.free])) {
+            if (!common.isArray(input[global.defaults.alias.free])) {
                 this._handleUnexpected();
             }
-            if (common.isEmpty(input[common.global.defaults.alias.free])) {
+            if (common.isEmpty(input[global.defaults.alias.free])) {
                 this._handleUnexpected();
             }
         }
@@ -232,12 +233,12 @@ export class TokenlessSyntaxParser {
             this._handleDefinition(input.definition);
         }
 
-        if (!common.isNullish(input[common.global.defaults.alias.nested])) {
-            if (!common.isArray(input[common.global.defaults.alias.nested])) {
+        if (!common.isNullish(input[global.defaults.alias.nested])) {
+            if (!common.isArray(input[global.defaults.alias.nested])) {
                 this._handleUnexpected();
             }
 
-            for (const stmt of input[common.global.defaults.alias.nested]) {
+            for (const stmt of input[global.defaults.alias.nested]) {
                 this._handleStatement(stmt);
             }
         }
@@ -270,11 +271,11 @@ export class TokenlessSyntaxParser {
             this._handleUnexpected();
         }
 
-        if (!common.isArray(input[common.global.defaults.alias.nested])) {
+        if (!common.isArray(input[global.defaults.alias.nested])) {
             this._handleUnexpected();
         }
 
-        for (const stmt of input[common.global.defaults.alias.nested]) {
+        for (const stmt of input[global.defaults.alias.nested]) {
             this._handleStatement(stmt);
         }
 

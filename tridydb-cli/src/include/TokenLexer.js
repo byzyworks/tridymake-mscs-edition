@@ -162,12 +162,46 @@ export class TokenLexer {
         let ch  = this._lexer.peek();
         let pre;
         switch (ch) {
+            case '*':
+                sym += this._lexer.next();
+                pre =  ch;
+                ch  =  this._lexer.peek();
+                if (ch === pre) {
+                    sym += this._lexer.next();
+                }
+                break;
             case '!':
+                sym += this._lexer.next();
+                ch  =  this._lexer.peek();
+                if (ch === '=') {
+                    sym += this._lexer.next();
+                } else if ((ch === '<') || (ch === '>')) {
+                    sym += this._lexer.next();
+                    pre =  ch;
+                    ch  =  this._lexer.peek();
+                    if (ch === pre) {
+                        sym += this._lexer.next();
+                    }
+                }
+                break;
             case '=':
                 sym += this._lexer.next();
                 ch  =  this._lexer.peek();
                 if (ch === '=') {
                     sym += this._lexer.next();
+                }
+                break;
+            case '&':
+                sym += this._lexer.next();
+                pre =  ch;
+                ch  =  this._lexer.peek();
+                if (ch === '/') {
+                    sym += this._lexer.next();
+                    pre =  ch;
+                    ch  =  this._lexer.peek();
+                    if (ch === pre) {
+                        sym += this._lexer.next();
+                    }
                 }
                 break;
             case '<':

@@ -12,6 +12,7 @@ import { List }                   from '../utility/List.js';
 import { StateTree }              from '../utility/StateTree.js';
 import { Tag }                    from '../utility/Tag.js';
 import { Token }                  from '../utility/Token.js';
+import { global, CONTEXT_MAP }    from '../utility/mapped.js';
 
 export class SyntaxParser {
     constructor() {
@@ -39,11 +40,11 @@ export class SyntaxParser {
             
             this._tokens.next();
         } else if (current.is('key', 'clear')) {
-            common.global.flags.clear = true;
+            global.flags.clear = true;
 
             this._tokens.next();
         } else if (current.is('key', 'exit')) {
-            common.global.flags.exit = true;
+            global.flags.exit = true;
 
             this._tokens.next();
         }
@@ -52,7 +53,7 @@ export class SyntaxParser {
     // The operator given below is what the parser assumes the user means when two operands are separated by no operand other than a whitespace.
     // Why is this chosen? Semantically, the assumption is that if a module is described with two words (tags) alone, then it should match both.
     _getContextImplicitBinaryOp () {
-        return new Token('ctxt_op', '&');
+        return new Token('ctxt_op', CONTEXT_MAP.AND);
     }
 
     _handleContextValueExpression(context) {
@@ -83,7 +84,7 @@ export class SyntaxParser {
 
         current = this._tokens.peek();
         if (current.is('sym')) {
-            current.val = '$' + current.val; // The '$' prevents confusion with @parent (>) or @child (<).
+            current.val = CONTEXT_MAP.VALUE_SYMBOL + current.val; // The '$' prevents confusion with @parent (>) or @child (<).
         }
         current = current.toContextToken();
         if (!current.isBinaryValueOpContextToken()) {
@@ -118,12 +119,20 @@ export class SyntaxParser {
     _handleWhileContextTerminal(context) {
         let current = this._tokens.peek().toContextToken();
 
-        if (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', '$')) {
-            if (current.is('ctxt_term')) {
+        if (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
+            if (current.is('ctxt_term', CONTEXT_MAP.RECURSIVE_WILDCARD)) {
+                context.push(current.to('ctxt_misc', CONTEXT_MAP.LEFT_PARENTHESES));
+                context.push(current.to('ctxt_term', CONTEXT_MAP.WILDCARD));
+                context.push(current.to('ctxt_op',   CONTEXT_MAP.INCLUSIVE_RECURSIVE_TRANSITION));
+                context.push(current.to('ctxt_term', CONTEXT_MAP.WILDCARD));
+                context.push(current.to('ctxt_misc', CONTEXT_MAP.RIGHT_PARENTHESES));
+
+                this._tokens.next();
+            } else if (current.is('ctxt_term')) {
                 context.push(current);
 
                 this._tokens.next();
-            } else if (current.is('ctxt_misc', '$')) {
+            } else if (current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
                 this._tokens.next();
 
                 this._handleContextValueExpression(context);
@@ -131,14 +140,14 @@ export class SyntaxParser {
 
             current = this._tokens.peek().toContextToken();
 
-            while (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', '$')) {
+            while (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
                 context.push(this._getContextImplicitBinaryOp());
                 
                 if (current.is('ctxt_term')) {
                     context.push(current);
     
                     this._tokens.next();
-                } else if (current.is('ctxt_misc', '$')) {
+                } else if (current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
                     this._tokens.next();
     
                     this._handleContextValueExpression(context);
@@ -183,7 +192,7 @@ export class SyntaxParser {
                     context.push(this._getContextImplicitBinaryOp());
                 }
 
-                if (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', '$')) {
+                if (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
                     this._handleWhileContextTerminal(context);
                 } else {
                     this._handleContextExpressionOuter(context);
@@ -534,7 +543,7 @@ export class SyntaxParser {
 
         let current = this._tokens.peek();
         while (current.isTagsetToken()) {
-            let new_tag  = Tag.getTag(current.val);
+            let new_tag  = current.val;
             let func_tag = false;
 
             // When a clause token is produced, the @ at the beginning of it is lost.
@@ -561,7 +570,7 @@ export class SyntaxParser {
 
                         const call = this._readFunctionCall();
 
-                        this._astree.enterSetAndLeave(['functions', common.global.defaults.alias.tags, new_tag], call);
+                        this._astree.enterSetAndLeave(['functions', global.defaults.alias.tags, new_tag], call);
                         func_tag = true;
                     } else if (current.is('key', 'none')) {
                         this._tokens.next();
@@ -595,12 +604,48 @@ export class SyntaxParser {
         return tags;
     }
 
+    _readWhileUntag() {
+        const tags = [ ];
+
+        let current = this._tokens.peek();
+        while (current.isTagsetToken()) {
+            let new_tag = current.val;
+
+            if (current.is('tag')) {
+                // There is no reason one would want to post duplicate tags in the same module.
+                // Allowing it would only lead to wasted CPU cycles when evaluating tags inside context expressions against the modules.
+                for (const current_tag of tags) {
+                    if (new_tag === Tag.getIdentifier(current_tag)) {
+                        this._handleUnexpected();
+                    }
+                }
+
+                this._tokens.next();
+            }
+
+            current = this._tokens.peek();
+            if (current.is('sym', ',')) {
+                this._tokens.next();
+            }
+
+            current = this._tokens.peek();
+        }
+    
+        return tags;
+    }
+
     _handleTagsDefinition(opts = { }) {
         opts.require = opts.require ?? false;
+        opts.untag   = opts.untag   ?? false;
 
-        const tags = this._readWhileTag();
+        let tags;
+        if (opts.untag) {
+            tags = this._readWhileUntag();
+        } else {
+            tags = this._readWhileTag();
+        }
         if (!common.isEmpty(tags)) {
-            this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.tags], tags);
+            this._astree.enterSetAndLeave(['definition', global.defaults.alias.tags], tags);
         } else if (opts.require) {
             this._handleUnexpected();
         }
@@ -609,9 +654,9 @@ export class SyntaxParser {
     _handleTypeDefinitionImplicit() {
         this._astree.enterPos('definition');
 
-        const tags = this._astree.enterGetAndLeave(common.global.defaults.alias.tags);
+        const tags = this._astree.enterGetAndLeave(global.defaults.alias.tags);
         if (!common.isEmpty(tags)) {
-            this._astree.enterSetAndLeave(common.global.defaults.alias.type, Tag.getIdentifier(tags[tags.length - 1]));
+            this._astree.enterSetAndLeave(global.defaults.alias.type, Tag.getIdentifier(tags[tags.length - 1]));
         }
 
         this._astree.leavePos();
@@ -623,14 +668,14 @@ export class SyntaxParser {
 
             const call = this._readFunctionCall();
 
-            this._astree.enterSetAndLeave(['functions', common.global.defaults.alias.type], call);
+            this._astree.enterSetAndLeave(['functions', global.defaults.alias.type], call);
         } else {
             const type = await this._readWhileRawAndParse({ primitive_only: true });
             if (type === undefined) {
                 this._handleUnexpected();
             }
 
-            this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.type], type);
+            this._astree.enterSetAndLeave(['definition', global.defaults.alias.type], type);
         }
     }
 
@@ -640,14 +685,14 @@ export class SyntaxParser {
 
             const call = this._readFunctionCall();
 
-            this._astree.enterSetAndLeave(['functions', common.global.defaults.alias.state], call);
+            this._astree.enterSetAndLeave(['functions', global.defaults.alias.state], call);
         } else {
             const free = await this._readWhileRawAndParse({ primitive_only: false });
             if (free === undefined) {
                 this._handleUnexpected();
             }
     
-            this._astree.enterSetAndLeave(['definition', common.global.defaults.alias.state], free);
+            this._astree.enterSetAndLeave(['definition', global.defaults.alias.state], free);
         }
     }
 
@@ -761,7 +806,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.tags], true);
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.tags], true);
             } else {
                 this._handleTagsDefinition({ require: true });
             }
@@ -773,7 +818,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.type], true);
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.type], true);
             } else {
                 await this._handleTypeDefinitionExplicit();
             }
@@ -785,7 +830,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.state], true);
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.state], true);
             } else {
                 await this._handleStateDefinition();
             }
@@ -797,7 +842,7 @@ export class SyntaxParser {
             if (this._tokens.peek().is('key', 'none')) {
                 this._tokens.next();
 
-                this._astree.enterSetAndLeave(['nulled', common.global.defaults.alias.nested], true);
+                this._astree.enterSetAndLeave(['nulled', global.defaults.alias.nested], true);
             } else {
                 await this._handleNestedDefinition();
             }
@@ -1002,7 +1047,7 @@ export class SyntaxParser {
         });
         
         if (!common.isEmpty(output)) {
-            this._astree.enterSetAndLeave(common.global.defaults.alias.nested, output);
+            this._astree.enterSetAndLeave(global.defaults.alias.nested, output);
         }
     }
 
@@ -1064,7 +1109,11 @@ export class SyntaxParser {
                     this._tokens.next();
                 }
 
-                this._handleTagsDefinition({ require: false });
+                if (operation_token.is('key', 'tag')) {
+                    this._handleTagsDefinition({ require: false, untag: false });
+                } else if (operation_token.is('key', 'untag')) {
+                    this._handleTagsDefinition({ require: false, untag: true });
+                }
             }
         } else if (operation_token.isCopyOpToken()) {
             this._handleCopyOperation();
@@ -1144,7 +1193,7 @@ export class SyntaxParser {
         this._astree = new StateTree();
 
         this._astree.enterNested();
-        while (!this._tokens.isEnd() && (common.global.flags.exit !== true)) {
+        while (!this._tokens.isEnd() && (global.flags.exit !== true)) {
             await this._handleStatement();
         }
         this._astree.leaveNested();

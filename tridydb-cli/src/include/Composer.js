@@ -8,12 +8,11 @@ import uuid       from 'uuid-random';
 import { Compressor }    from './Compressor.js';
 import { ContextParser } from './ContextParser.js';
 
-import * as common     from '../utility/common.js';
-import { SyntaxError } from '../utility/error.js';
-import { StateTree }   from '../utility/StateTree.js';
-import { Tag }         from '../utility/Tag.js';
-
-import { FunctionError } from '../utility/error.js';
+import * as common             from '../utility/common.js';
+import * as error              from '../utility/error.js';
+import { global, CONTEXT_MAP } from '../utility/mapped.js';
+import { StateTree }           from '../utility/StateTree.js';
+import { Tag }                 from '../utility/Tag.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -38,14 +37,28 @@ export class Composer {
         return this._random.seeds;
     }
 
-    setRandomSeeds(seeds) {
+    setRandomSeeds(seeds = undefined) {
+        /**
+         * About random seeds, the program by default should use at least two.
+         * The first one is the one that Tridy uses for its random number generation.
+         * The second (and any more if there are) is specifically for functions to use.
+         * Why? The first seed can be used to control the structure of the output using the built in variables like @random and @shuffle.
+         * The second seed can be used to control string values returned by functions, which Tridy by default has functions that do.
+         * The reasoning is for Tridy's intended purpose, which is to generate (gamified) cybersecurity configuration data.
+         * While the first seed can force the same infrastructure and sequence of Tridy statements,
+         * the separation of concerns allows different random values (like passwords) to be generated and managed separately (with ultimately the same setup).
+         */
+
         // Do not unflatten this; "prng" references "seeds".
-        this._random       = { };
-        this._random.seeds = seeds ?? [ seedrandom().int32() ];
-        this._random.prng  = new seedrandom(''.concat(this._random.seeds[0]), { entropy: false });
+        this._random       = { }; 
+        this._random.seeds = seeds ?? [ ];
+        while (this._random.seeds.length < 1) {
+            this._random.seeds.push(seedrandom().quick());
+        }
+        this._random.prngs = this._random.seeds.map((seed) => new seedrandom(seed, { entropy: false }));
     }
 
-    _getModuleShuffledIndex(lvl, index, random) {
+    _getModuleShuffledIndex(lvl, index, main_query_random) {
         const last_index  = index.real[lvl];
         const last_extent = index.extent[lvl];
 
@@ -54,24 +67,28 @@ export class Composer {
         if (!common.isEmpty(suffix)) {
             suffix = ':' + suffix;
         }
-        const seed = random + suffix;
+        const seed = main_query_random + suffix;
 
         const shuffled = shuffle([...Array(last_extent).keys()], seed);
 
         return shuffled[last_index];
     }
 
-    async _matchingTagValue(test, b, lvl, index, random) {
+    async _matchingTagValue(test, b, lvl, index, query_randoms) {
         if (!common.isNullish(test.function)) {
             const func   = test.function[0];
             const params = {
-                index: index,
-                random: {
-                    global: this._random.seeds,
-                    query:  random
-                },
-                args: test.function
+                index:  common.deepCopy(index),
+                random: [ ],
+                args:   test.function
             };
+            for (let i = 0; i < this._random.seeds.length; i++) {
+                operate.params.random.push({
+                    global: this._random.seeds[i],
+                    query:  query_randoms[i],
+                    call:   this._random.prngs[i]()
+                })
+            }
 
             const result = await this._functionCall(func, params, { primitive_only: true });
 
@@ -81,26 +98,26 @@ export class Composer {
         // Note the variables below all have a minimum value of 0 (inclusive).
         // This does not include tags, which can store negative values.
         switch (test.val) {
-            case '$D':
+            case CONTEXT_MAP.VARIABLE_DEPTH:
                 return lvl;
-            case '$C':
+            case CONTEXT_MAP.VARIABLE_CHILDREN:
                 return index.extent[lvl + 1];
-            case '$I':
+            case CONTEXT_MAP.VARIABLE_INDEX:
                 if (!isNaN(b.val) && (Number(b.val) < 0)) {
                     return (index.extent[lvl] - index.real[lvl]) * -1;
                 }
                 return index.real[lvl];
-            case '$N':
+            case CONTEXT_MAP.VARIABLE_SIBLINGS:
                 return index.extent[lvl] - 1;
-            case '$Q':
-                return random;
-            case '$S':
+            case CONTEXT_MAP.VARIABLE_QUERY_RANDOM:
+                return query_randoms[0];
+            case CONTEXT_MAP.VARIABLE_SHUFFLED_INDEX:
                 if (!isNaN(b.val) && (Number(b.val) < 0)) {
-                    return (index.extent[lvl] - this._getModuleShuffledIndex(lvl, index, random)) * -1;
+                    return (index.extent[lvl] - this._getModuleShuffledIndex(lvl, index, query_randoms[0])) * -1;
                 }
-                return this._getModuleShuffledIndex(lvl, index, random);
-            case '$R':
-                return this._random.prng();
+                return this._getModuleShuffledIndex(lvl, index, query_randoms[0]);
+            case CONTEXT_MAP.VARIABLE_NEW_RANDOM:
+                return this._random.prngs[0]();
             default:
                 for (const tag of index.context[lvl]) {
                     if (test.val === Tag.getIdentifier(tag)) {
@@ -152,11 +169,11 @@ export class Composer {
         return answer;
     }
 
-    _matchingTag(test, lvl, index, random, opts = { }) {
+    _matchingTag(test, lvl, index, query_randoms, opts = { }) {
         let answer;
 
         switch (test.val) {
-            case '*':
+            case CONTEXT_MAP.WILDCARD:
                 answer = true;
                 break;
             default:
@@ -173,29 +190,29 @@ export class Composer {
         return this._verifyMatching(answer, test, lvl, index, opts);
     }
 
-    async _matchingValueExpression(a, b, op, lvl, index, random, opts = { }) {
-        let answer = await this._matchingTagValue(a, b, lvl, index, random);
+    async _matchingValueExpression(a, b, op, lvl, index, query_randoms, opts = { }) {
+        let answer = await this._matchingTagValue(a, b, lvl, index, query_randoms);
 
         if (common.isDictionary(answer)) {
             answer = false;
         } else {
             switch (op) {
-                case '$==':
+                case CONTEXT_MAP.EQUAL_TO:
                     answer = answer === b.val;
                     break;
-                case '$!=':
+                case CONTEXT_MAP.NOT_EQUAL_TO:
                     answer = answer !== b.val;
                     break;
-                case '$<':
+                case CONTEXT_MAP.LESS_THAN:
                     answer = answer < b.val;
                     break;
-                case '$<=':
+                case CONTEXT_MAP.LESS_THAN_OR_EQUAL_TO:
                     answer = answer <= b.val;
                     break;
-                case '$>':
+                case CONTEXT_MAP.GREATER_THAN:
                     answer = answer > b.val;
                     break;
-                case '$>=':
+                case CONTEXT_MAP.GREATER_THAN_OR_EQUAL_TO:
                     answer = answer >= b.val;
                     break;
             }
@@ -204,7 +221,7 @@ export class Composer {
         return this._verifyMatching(answer, a, lvl, index, opts);
     }
 
-    async _testLookaheadRecursive(b, lvl, index, random, recursive, opts = { }) {
+    async _testLookaheadRecursive(b, lvl, index, query_randoms, recursive, opts = { }) {
         const child_subcontext = [ ];
         
         // Needed if @parent/@ascend is used with @to/@toward and is in the LHS of the @to/@toward expression.
@@ -225,12 +242,12 @@ export class Composer {
             while (!this._target.isPosUndefined()) {
                 b_index = this._getModuleIndex();
 
-                answer = await this._matchingExpression(b, lvl, b_index, random, opts);
+                answer = await this._matchingExpression(b, lvl, b_index, query_randoms, opts);
 
                 if (recursive && (answer === false)) {
                     lvl++;
 
-                    answer = await this._testLookaheadRecursive(b, lvl, b_index, random, recursive, opts);
+                    answer = await this._testLookaheadRecursive(b, lvl, b_index, query_randoms, recursive, opts);
                 }
                 if (answer === true) {
                     break;
@@ -249,18 +266,18 @@ export class Composer {
         return answer;
     }
 
-    async _testLookahead(a, b, lvl, index, random, recursive, opts = { }) {
+    async _testLookahead(a, b, lvl, index, query_randoms, recursive, inverted, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = await this._matchingExpression(a, lvl, index, random, a_opts);
+        const a_answer = await this._matchingExpression(a, lvl, index, query_randoms, a_opts);
 
-        const b_opts        = { recurse: true, tracked: new Set() };
+        const b_opts        = { tracked: new Set() };
         let   b_answer_part = false;
         let   b_answer      = false;
         if (a_answer === true) {
             for (let cand_lvl of a_opts.tracked) {
                 lvl = cand_lvl + 1;
 
-                b_answer_part = await this._testLookaheadRecursive(b, lvl, index, random, recursive, b_opts);
+                b_answer_part = await this._testLookaheadRecursive(b, lvl, index, query_randoms, recursive, b_opts);
 
                 if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
                     opts.tracked.add(cand_lvl);
@@ -270,12 +287,16 @@ export class Composer {
             }
         }
 
+        if (inverted) {
+            b_answer = !b_answer;
+        }
+
         return a_answer && b_answer;
     }
 
-    async _testLookbehind(a, b, lvl, index, random, recursive, opts = { }) {
+    async _testLookbehind(a, b, lvl, index, query_randoms, recursive, inverted, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = await this._matchingExpression(a, lvl, index, random, a_opts);
+        const a_answer = await this._matchingExpression(a, lvl, index, query_randoms, a_opts);
 
         const b_opts        = { tracked: new Set() };
         let   b_answer_part = false;
@@ -286,12 +307,12 @@ export class Composer {
 
                 if (recursive) {
                     while ((b_answer_part === false) && (lvl >= 0)) {
-                        b_answer_part = await this._matchingExpression(b, lvl, index, random, b_opts);
+                        b_answer_part = await this._matchingExpression(b, lvl, index, query_randoms, b_opts);
     
                         lvl--;
                     }
                 } else {
-                    b_answer_part = await this._matchingExpression(b, lvl, index, random, b_opts);
+                    b_answer_part = await this._matchingExpression(b, lvl, index, query_randoms, b_opts);
                 }
                 
                 if ((b_answer_part === true) && (opts.tracked instanceof Set)) {
@@ -302,28 +323,35 @@ export class Composer {
             }
         }
 
+        if (inverted) {
+            b_answer = !b_answer;
+        }
+
         return a_answer && b_answer;
     }
 
-    async _testTransitive(a, b, lvl, index, random, recursive, opts = { }) {
+    async _testTransitive(a, b, lvl, index, query_randoms, recursive, inclusive, opts = { }) {
         const a_opts   = { tracked: new Set() };
-        const a_answer = await this._matchingExpression(a, lvl, index, random, a_opts);
+        const a_answer = await this._matchingExpression(a, lvl, index, query_randoms, a_opts);
 
         let b_answer_part = false;
         let b_answer      = false;
         if (a_answer === true) {
             for (let cand_lvl of a_opts.tracked) {
-                lvl = cand_lvl + 1;
+                lvl = cand_lvl;
+                if (!inclusive) {
+                    lvl++;
+                }
 
                 if (recursive) {
                     while ((b_answer_part === false) && (lvl < index.context.length)) {
-                        b_answer_part = await this._matchingExpression(b, lvl, index, random, opts);
+                        b_answer_part = await this._matchingExpression(b, lvl, index, query_randoms, opts);
 
                         lvl++;
                     }
                     b_answer ||= b_answer_part;
                 } else {
-                    b_answer ||= await this._matchingExpression(b, lvl, index, random, opts);
+                    b_answer ||= await this._matchingExpression(b, lvl, index, query_randoms, opts);
                 }
             }
         }
@@ -335,44 +363,54 @@ export class Composer {
         return common.isDictionary(obj) && (obj.val !== undefined);
     }
 
-    async _matchingExpression(test, lvl, index, random, opts = { }) {
+    async _matchingExpression(test, lvl, index, query_randoms, opts = { }) {
         if (common.isEmpty(test)) {
             return index.context.length === lvl;
         } else if (common.isEmpty(index.context) || (lvl < 0) || (lvl >= index.context.length)) {
             return false;
         } else if (this._isExpressionTreeLeaf(test)) {
-            return this._matchingTag(test, lvl, index, random, opts);
-        } else if (test.op[0] === '$') {
-            return await this._matchingValueExpression(test.a, test.b, test.op, lvl, index, random, opts);
+            return this._matchingTag(test, lvl, index, query_randoms, opts);
+        } else if (test.op[0] === CONTEXT_MAP.VALUE_SYMBOL) {
+            return await this._matchingValueExpression(test.a, test.b, test.op, lvl, index, query_randoms, opts);
         } else {
             switch (test.op) {
-                case '!':
-                    return !(await this._matchingExpression(test.a, lvl, index, random, opts));
-                case '&':
-                    return await this._matchingExpression(test.a, lvl, index, random, opts) && await this._matchingExpression(test.b, lvl, index, random, opts);
-                case '^':
-                    const a = await this._matchingExpression(test.a, lvl, index, random, opts);
-                    const b = await this._matchingExpression(test.b, lvl, index, random, opts);
+                case CONTEXT_MAP.NOT:
+                    return !(await this._matchingExpression(test.a, lvl, index, query_randoms, opts));
+                case CONTEXT_MAP.AND:
+                    return await this._matchingExpression(test.a, lvl, index, query_randoms, opts) && await this._matchingExpression(test.b, lvl, index, query_randoms, opts);
+                case CONTEXT_MAP.XOR:
+                    const a = await this._matchingExpression(test.a, lvl, index, query_randoms, opts);
+                    const b = await this._matchingExpression(test.b, lvl, index, query_randoms, opts);
                     return (a & !b) || (b & !a);
-                case '|':
-                    return await this._matchingExpression(test.a, lvl, index, random, opts) || await this._matchingExpression(test.b, lvl, index, random, opts);
-                case '>':
-                    return await this._testLookahead(test.a, test.b, lvl, index, random, false, opts);
-                case '>>':
-                    return await this._testLookahead(test.a, test.b, lvl, index, random, true, opts);
-                case '<':
-                    return await this._testLookbehind(test.a, test.b, lvl, index, random, false, opts);
-                case '<<':
-                    return await this._testLookbehind(test.a, test.b, lvl, index, random, true, opts);
-                case '/':
-                    return await this._testTransitive(test.a, test.b, lvl, index, random, false, opts);
-                case '//':
-                    return await this._testTransitive(test.a, test.b, lvl, index, random, true, opts);
-                case '?':
-                    if (await this._matchingExpression(test.a, lvl, index, random, opts)) {
-                        return await this._matchingExpression(test.b, lvl, index, random, opts);
+                case CONTEXT_MAP.OR:
+                    return await this._matchingExpression(test.a, lvl, index, query_randoms, opts) || await this._matchingExpression(test.b, lvl, index, query_randoms, opts);
+                case CONTEXT_MAP.LOOKAHEAD:
+                    return await this._testLookahead(test.a, test.b, lvl, index, query_randoms, false, false, opts);
+                case CONTEXT_MAP.RECURSIVE_LOOKAHEAD:
+                    return await this._testLookahead(test.a, test.b, lvl, index, query_randoms, true, false, opts);
+                case CONTEXT_MAP.LOOKBEHIND:
+                    return await this._testLookbehind(test.a, test.b, lvl, index, query_randoms, false, false, opts);
+                case CONTEXT_MAP.RECURSIVE_LOOKBEHIND:
+                    return await this._testLookbehind(test.a, test.b, lvl, index, query_randoms, true, false, opts);
+                case CONTEXT_MAP.INVERSE_LOOKAHEAD:
+                    return await this._testLookahead(test.a, test.b, lvl, index, query_randoms, false, true, opts);
+                case CONTEXT_MAP.INVERSE_RECURSIVE_LOOKAHEAD:
+                    return await this._testLookahead(test.a, test.b, lvl, index, query_randoms, true, true, opts);
+                case CONTEXT_MAP.INVERSE_LOOKBEHIND:
+                    return await this._testLookbehind(test.a, test.b, lvl, index, query_randoms, false, true, opts);
+                case CONTEXT_MAP.INVERSE_RECURSIVE_LOOKBEHIND:
+                    return await this._testLookbehind(test.a, test.b, lvl, index, query_randoms, true, true, opts);
+                case CONTEXT_MAP.TRANSITION:
+                    return await this._testTransitive(test.a, test.b, lvl, index, query_randoms, false, false, opts);
+                case CONTEXT_MAP.RECURSIVE_TRANSITION:
+                    return await this._testTransitive(test.a, test.b, lvl, index, query_randoms, true, false, opts);
+                case CONTEXT_MAP.INCLUSIVE_RECURSIVE_TRANSITION:
+                    return await this._testTransitive(test.a, test.b, lvl, index, query_randoms, true, true, opts);
+                case CONTEXT_MAP.TERNARY_1:
+                    if (await this._matchingExpression(test.a, lvl, index, query_randoms, opts)) {
+                        return await this._matchingExpression(test.b, lvl, index, query_randoms, opts);
                     }
-                    return await this._matchingExpression(test.c, lvl, index, random, opts);
+                    return await this._matchingExpression(test.c, lvl, index, query_randoms, opts);
             }
         }
     }
@@ -399,7 +437,7 @@ export class Composer {
         const funcdir  = path.join(__dirname, '../../functions/');
         let   funcpath = path.join(__dirname, '../../functions/', func + '.js');
         if (!funcpath.startsWith(funcdir)) {
-            throw new FunctionError(`Directory traversal outside the function sub-directory is not allowed.`);
+            throw new error.FunctionError(`Directory traversal outside the function sub-directory is not allowed.`);
         }
 
         // Because import() doesn't like paths on Windows.
@@ -409,9 +447,9 @@ export class Composer {
         try {
             const mod = await import(funcpath);
 
-            result = mod.default(params);
+            result = await mod.default(params);
         } catch (err) {
-            throw new FunctionError(err.message);
+            throw new error.FunctionError(err.message);
         }
 
         if (opts.primitive_only) {
@@ -437,31 +475,31 @@ export class Composer {
 
                 copy = result;
             } else {
-                if (!common.isNullish(opts.functions[common.global.defaults.alias.tags])) {
-                    for (let tag in opts.functions[common.global.defaults.alias.tags]) {
-                        opts.params.args = opts.functions[common.global.defaults.alias.tags][tag];
+                if (!common.isNullish(opts.functions[global.defaults.alias.tags])) {
+                    for (let tag in opts.functions[global.defaults.alias.tags]) {
+                        opts.params.args = opts.functions[global.defaults.alias.tags][tag];
 
-                        const result = await this._functionCall(opts.functions[common.global.defaults.alias.tags][tag][0], opts.params, { primitive_only: true });
+                        const result = await this._functionCall(opts.functions[global.defaults.alias.tags][tag][0], opts.params, { primitive_only: true });
 
                         tag = Tag.getTag(tag, result);
 
-                        copy[common.global.defaults.alias.tags] = copy[common.global.defaults.alias.tags] ?? [ ];
-                        copy[common.global.defaults.alias.tags].push(tag);
+                        copy[global.defaults.alias.tags] = copy[global.defaults.alias.tags] ?? [ ];
+                        copy[global.defaults.alias.tags].push(tag);
                     }
                 }
-                if (!common.isNullish(opts.functions[common.global.defaults.alias.type])) {
-                    opts.params.args = opts.functions[common.global.defaults.alias.type];
+                if (!common.isNullish(opts.functions[global.defaults.alias.type])) {
+                    opts.params.args = opts.functions[global.defaults.alias.type];
 
-                    const result = await this._functionCall(opts.functions[common.global.defaults.alias.type][0], opts.params, { primitive_only: true });
+                    const result = await this._functionCall(opts.functions[global.defaults.alias.type][0], opts.params, { primitive_only: true });
 
-                    copy[common.global.defaults.alias.type] = result;
+                    copy[global.defaults.alias.type] = result;
                 }
-                if (!common.isNullish(opts.functions[common.global.defaults.alias.state])) {
-                    opts.params.args = opts.functions[common.global.defaults.alias.state];
+                if (!common.isNullish(opts.functions[global.defaults.alias.state])) {
+                    opts.params.args = opts.functions[global.defaults.alias.state];
 
-                    const result = await this._functionCall(opts.functions[common.global.defaults.alias.state][0], opts.params, { primitive_only: false });
+                    const result = await this._functionCall(opts.functions[global.defaults.alias.state][0], opts.params, { primitive_only: false });
 
-                    copy[common.global.defaults.alias.state] = result;
+                    copy[global.defaults.alias.state] = result;
                 }
             }
         }
@@ -484,20 +522,20 @@ export class Composer {
     _overwriteModule(template) {
         this._target.setPosValue(template);
 
-        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
             this._parse();
         }
     }
 
     _composeModule(template) {
         if (!common.isDictionary(this._target.getPosValue())) {
-            throw new SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
+            throw new error.SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
         this._target.enterPos(this._alias.nested);
         this._target.enterPos(this._target.putPosValue(template) - 1);
 
-        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
             this._parse();
         }
 
@@ -532,7 +570,7 @@ export class Composer {
             this._target.getPosValue().splice(spliced, 1);
             
             if ((spliced === 0) && this._target.isPosEmpty()) {
-                this._target.setPosValue(undefined);
+                this._target.deletePosValue();
             }
 
             /**
@@ -545,14 +583,14 @@ export class Composer {
     }
 
     _editModulePart(target, template, nulled, key) {
-        if ((template[this._alias[key]] !== undefined) || (common.isDictionary(nulled) && (nulled[common.global.defaults.alias[key]] === true))) {
+        if ((template[this._alias[key]] !== undefined) || (common.isDictionary(nulled) && (nulled[global.defaults.alias[key]] === true))) {
             target.enterSetAndLeave(this._alias[key], template[this._alias[key]]);
         }
     }
 
     _editModule(template) {
         if (!common.isDictionary(this._target.getPosValue())) {
-            throw new SyntaxError(`Tried to edit an improperly-formatted root module (was @set with raw input used to change it?).`);
+            throw new error.SyntaxError(`Tried to edit an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
         const nulled = this._astree.enterGetAndLeave('nulled');
@@ -561,17 +599,17 @@ export class Composer {
         this._editModulePart(this._target, template, nulled, 'tags');
         this._editModulePart(this._target, template, nulled, 'state');
 
-        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
             this._target.enterDeleteAndLeave(this._alias.nested);
             this._parse();
-        } else if (common.isDictionary(nulled) && (nulled[common.global.defaults.alias.nested] === true)) {
+        } else if (common.isDictionary(nulled) && (nulled[global.defaults.alias.nested] === true)) {
             this._target.enterDeleteAndLeave(this._alias.nested);
         }
     }
 
     _tagModule(template) {
         if (!common.isDictionary(this._target.getPosValue())) {
-            throw new SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
+            throw new error.SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
         this._target.enterPos(this._alias.tags);
@@ -581,7 +619,7 @@ export class Composer {
         if (!common.isArray(tags)) {
             if (tags !== undefined) {
                 this._target.leavePos();
-                throw new SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
+                throw new error.SyntaxError(`Tried to tag an improperly-formatted root module (was @set with raw input used to change it?).`);
             }
             tags = [ ];
             this._target.setPosValue(tags);
@@ -590,19 +628,16 @@ export class Composer {
         if (common.isArray(template[this._alias.tags])) {
             const tagslen = tags.length; // Because the length of the tags array changes as tags are added, and the syntax parser already does a duplicate check.
 
-            let duplicate;
+            new_tags:
             for (const added of template[this._alias.tags]) {
-                duplicate = false;
                 for (let i = 0; i < tagslen; i++) {
-                    if (tags[i] === added) {
-                        duplicate = true;
-                        break;
+                    if (Tag.getIdentifier(tags[i]) === Tag.getIdentifier(added)) {
+                        tags[i] = Tag.setValue(tags[i], Tag.getValue(added));
+                        continue new_tags;
                     }
                 }
     
-                if (!duplicate) {
-                    this._target.putPosValue(added);
-                }
+                this._target.putPosValue(added);
             }
         }
 
@@ -611,7 +646,7 @@ export class Composer {
 
     _untagModule(template) {
         if (!common.isDictionary(this._target.getPosValue())) {
-            throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
+            throw new error.SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
         this._target.enterPos(this._alias.tags);
@@ -620,13 +655,13 @@ export class Composer {
 
         if (!common.isArray(tags)) {
             this._target.leavePos();
-            throw new SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
+            throw new error.SyntaxError(`Tried to untag an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
         if (common.isArray(template[this._alias.tags])) {
             for (const removed of template[this._alias.tags]) {
                 for (let i = 0; i < tags.length; i++) {
-                    if (tags[i] === removed) {
+                    if (Tag.getIdentifier(tags[i]) === Tag.getIdentifier(removed)) {
                         tags.splice(i, 1);
                         i--;
                     }
@@ -635,7 +670,7 @@ export class Composer {
         }
 
         if (this._target.isPosEmpty()) {
-            this._target.setPosValue(undefined);
+            this._target.deletePosValue();
         }
 
         this._target.leavePos();
@@ -656,7 +691,7 @@ export class Composer {
         template = new StateTree(this._target.getPosValue(), this._alias);
         template = this._createModuleTemplate(template);
 
-        if (!common.isEmpty(this._astree.enterGetAndLeave(common.global.defaults.alias.nested))) {
+        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
             this._parse();
         }
 
@@ -747,7 +782,7 @@ export class Composer {
         return index;
     }
 
-    async _traverseModule(test, command, level, random, opts = { }) {
+    async _traverseModule(test, command, level, query_randoms, opts = { }) {
         opts.template  = opts.template  ?? null;
         opts.functions = opts.functions ?? null;
         opts.limit     = opts.limit     ?? null;
@@ -757,7 +792,7 @@ export class Composer {
 
         const index = this._getModuleIndex();
 
-        const matched = await this._matchingExpression(test, level.start, index, random);
+        const matched = await this._matchingExpression(test, level.start, index, query_randoms);
         if (matched === true) {
             opts.count++;
         }
@@ -768,7 +803,7 @@ export class Composer {
             await this._target.traverseAsync(async () => {
                 const new_level = { start: level.start, current: level.current + 1, max: level.max };
 
-                await this._traverseModule(test, command, new_level, random, opts);
+                await this._traverseModule(test, command, new_level, query_randoms, opts);
                 if ((opts.limit !== null) && (opts.count >= opts.limit)) {
                     return 'break';
                 }
@@ -779,13 +814,17 @@ export class Composer {
             template:  opts.template,
             functions: opts.functions,
             params: {
-                index: index,
-                random: {
-                    global: this._random.seeds,
-                    query:  random
-                }
+                index:  common.deepCopy(index),
+                random: [ ]
             }
         };
+        for (let i = 0; i < this._random.seeds.length; i++) {
+            operate.params.random.push({
+                global: this._random.seeds[i],
+                query:  query_randoms[i],
+                call:   this._random.prngs[i]()
+            })
+        }
 
         if (matched && (opts.count > opts.offset)) {
             await this._operateModule(command, operate);
@@ -841,10 +880,10 @@ export class Composer {
         }
 
         let lvl = Math.max(a_lvl, b_lvl, c_lvl);
-        if (test.op === '//') {
+        if ((test.op === CONTEXT_MAP.RECURSIVE_TRANSITION) || (test.op === CONTEXT_MAP.INCLUSIVE_RECURSIVE_TRANSITION)) {
             return null;
         }
-        if (test.op === '/') {
+        if (test.op === CONTEXT_MAP.TRANSITION) {
             return lvl + 1;
         }
         return lvl;
@@ -859,7 +898,7 @@ export class Composer {
                 this._output.modules.push({ content: stats });
                 break;
             default:
-                switch (common.global.log_level) {
+                switch (global.log_level) {
                     case 'verbose':
                     case 'debug':
                     case 'silly':
@@ -914,6 +953,8 @@ export class Composer {
             indeces:   [ ]
         };
 
+        const randoms = this._random.prngs.map((prng) => prng());
+
         const traverse = {
             count:     0,
             limit:     limit,
@@ -923,11 +964,22 @@ export class Composer {
             stats:     stats
         };
 
-        for (let i = 0; i <= repeat; i++) {
-            await this._traverseModule(expression, command, level, this._random.prng(), traverse);
-            if ((limit !== null) && (traverse.count >= limit)) {
-                break;
+        try {
+            for (let i = 0; i <= repeat; i++) {
+                await this._traverseModule(expression, command, level, randoms, traverse);
+                if ((limit !== null) && (traverse.count >= limit)) {
+                    break;
+                }
             }
+        } catch (err) {
+            if (err instanceof error.FunctionError) {
+                error.error_handler.handle(err);
+            } else {
+                throw err;
+            }
+        } finally {
+            this._astree.toLocalRoot();
+            this._target.toGlobalRoot();
         }
 
         this._postOperation(command, stats);

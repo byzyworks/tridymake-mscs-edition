@@ -5,11 +5,10 @@ import path from 'path';
 
 import { Option, program } from 'commander';
 
-import { Tridy } from './include/Interpreter.js';
-
-import { APP, global, isEmpty, isNullish } from './utility/common.js';
-import { error_handler, SyntaxError }      from './utility/error.js';
-import { transports, logger, log_levels }  from './utility/logger.js';
+import { isEmpty, isNullish }             from './utility/common.js';
+import { error_handler, SyntaxError }     from './utility/error.js';
+import { transports, logger, log_levels } from './utility/logger.js';
+import { APP, global }                    from './utility/mapped.js';
 
 import { db }     from './database.js';
 import { cli }    from './console.js';

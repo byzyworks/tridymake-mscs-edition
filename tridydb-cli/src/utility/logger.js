@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import winston from 'winston';
 import morgan  from 'morgan';
 
-import { APP } from './common.js';
+import { APP } from './mapped.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);

@@ -1,4 +1,5 @@
 import * as common from '../utility/common.js';
+import { global }  from '../utility/mapped.js';
 
 /**
  * A generalized class that is basically an iterable n-ary tree, used as both a skeleton for the Tridy database, and for the abstract syntax tree used to prepare it.
@@ -38,11 +39,11 @@ export class StateTree {
          * That is, where a StateTree with "alias" filled by user values is constructed.
          */
         this._alias = {
-            type:   alias.type   ?? common.global.defaults.alias.type,
-            tags:   alias.tags   ?? common.global.defaults.alias.tags,
-            state:  alias.state  ?? common.global.defaults.alias.state,
-            nested: alias.nested ?? common.global.defaults.alias.nested,
-            root:   alias.root   ?? common.global.defaults.alias.root
+            type:   alias.type   ?? global.defaults.alias.type,
+            tags:   alias.tags   ?? global.defaults.alias.tags,
+            state:  alias.state  ?? global.defaults.alias.state,
+            nested: alias.nested ?? global.defaults.alias.nested,
+            root:   alias.root   ?? global.defaults.alias.root
         };
     }
 
@@ -251,10 +252,6 @@ export class StateTree {
         return this.getPosValue() === undefined;
     }
 
-    isPosRoot() {
-        return this._pos.length === 0;
-    }
-
     enterNested(opts = { }) {
         opts.append_mode = opts.append_mode ?? true;
 
@@ -271,7 +268,27 @@ export class StateTree {
     }
 
     leaveNested() {
-        while (this.leavePos() !== this._alias.nested);
+        while ((this.leavePos() !== this._alias.nested) && !this.isPosGlobalRoot());
+    }
+
+    isPosGlobalRoot() {
+        return this._pos.length === 0;
+    }
+
+    toGlobalRoot() {
+        while (!this.isPosGlobalRoot()) {
+            this.leavePos();
+        }
+    }
+
+    isPosLocalRoot() {
+        return this.isPosGlobalRoot() || ((this._pos.length >= 2) && (typeof this._pos[this._pos.length - 1] === 'number') && (this._pos[this._pos.length - 2] === this._alias.nested));
+    }
+
+    toLocalRoot() {
+        while (!this.isPosLocalRoot()) {
+            this.leavePos();
+        }
     }
 
     nextItem(opts = { }) {

@@ -2,10 +2,9 @@ import * as readline from 'readline/promises';
 
 import chalk from 'chalk';
 
-import { Tridy } from './include/Interpreter.js';
-
-import { global, isEmpty }                                   from './utility/common.js';
+import { isEmpty }                                           from './utility/common.js';
 import { error_handler, ClientError, ClientSideServerError } from './utility/error.js';
+import { global }                                            from './utility/mapped.js';
 
 import { db } from './database.js';
 

@@ -17,6 +17,23 @@ export class Tag {
         return undefined;
     }
 
+    static setValue(tag, value = undefined) {
+        const key = this.getIdentifier(tag);
+        if (value === undefined) {
+            return key;
+        }
+
+        if (isDictionary(tag)) {
+            tag[key] = value;
+            return tag;
+        }
+
+        tag      = { };
+        tag[key] = value;
+
+        return tag;
+    }
+
     static getTag(key, value = undefined) {
         if (value === undefined) {
             return key;

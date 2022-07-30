@@ -17,6 +17,7 @@ import { StatementLexer }   from './StatementLexer.js';
 import * as common from '../utility/common.js';
 import * as error  from '../utility/error.js';
 import { logger }  from '../utility/logger.js';
+import { global }  from '../utility/mapped.js';
 
 const parseTridyResponse = (response) => {
     let bad_response = false;
@@ -126,11 +127,11 @@ export class Tridy {
      */
     constructor(opts = { }) {
         const alias = {
-            type:   opts.type_key ?? common.global.alias.type   ?? common.global.defaults.alias.type,
-            tags:   opts.tags_key ?? common.global.alias.tags   ?? common.global.defaults.alias.tags,
-            state:  opts.free_key ?? common.global.alias.state  ?? common.global.defaults.alias.state,
-            nested: opts.tree_key ?? common.global.alias.nested ?? common.global.defaults.alias.nested,
-            list:   opts.list_key ?? common.global.alias.list   ?? common.global.defaults.alias.list
+            type:   opts.type_key ?? global.alias.type   ?? global.defaults.alias.type,
+            tags:   opts.tags_key ?? global.alias.tags   ?? global.defaults.alias.tags,
+            state:  opts.free_key ?? global.alias.state  ?? global.defaults.alias.state,
+            nested: opts.tree_key ?? global.alias.nested ?? global.defaults.alias.nested,
+            list:   opts.list_key ?? global.alias.list   ?? global.defaults.alias.list
         };
 
         this._lexer    = new StatementLexer();
@@ -212,10 +213,10 @@ export class Tridy {
         opts.astree_only  = opts.astree_only  ?? false;
 
         const remote = {
-            enable:  opts.client_mode ?? common.global.remote.enable  ?? common.global.defaults.remote.enable,
-            host:    opts.host        ?? common.global.remote.host    ?? common.global.defaults.remote.host,
-            port:    opts.port        ?? common.global.remote.port    ?? common.global.defaults.remote.port,
-            timeout: opts.timeout     ?? common.global.remote.timeout ?? common.global.defaults.remote.timeout
+            enable:  opts.client_mode ?? global.remote.enable  ?? global.defaults.remote.enable,
+            host:    opts.host        ?? global.remote.host    ?? global.defaults.remote.host,
+            port:    opts.port        ?? global.remote.port    ?? global.defaults.remote.port,
+            timeout: opts.timeout     ?? global.remote.timeout ?? global.defaults.remote.timeout
         };
 
         let astree;
@@ -248,7 +249,7 @@ export class Tridy {
                 results = await this._composer.compose(astree);
             }
     
-            alias = alias ?? results.alias ?? common.global.alias ?? common.global.defaults.alias;
+            alias = alias ?? results.alias ?? global.alias ?? global.defaults.alias;
             for (const module of results.modules) {
                 output.push(module);
             }
@@ -260,9 +261,9 @@ export class Tridy {
             while (tokens = this._lexer.next({ accept_carry: opts.accept_carry })) {
                 astree = await this._parser.parse(tokens);
                 
-                if (common.global.flags.exit === true) {
+                if (global.flags.exit === true) {
                     if ((opts.filepath !== null) || !opts.interactive) {
-                        common.global.flags.exit = false;
+                        global.flags.exit = false;
 
                         throw new error.SyntaxError(`The @exit command does not work in non-interactive contexts such as scripts or inside server mode.`);
                     }
@@ -270,8 +271,8 @@ export class Tridy {
                     break;
                 }
     
-                if (common.global.flags.clear === true) {
-                    common.global.flags.clear = false;
+                if (global.flags.clear === true) {
+                    global.flags.clear = false;
 
                     if ((opts.filepath !== null) || !opts.interactive) {
                         throw new error.SyntaxError(`The @clear command does not work in non-interactive contexts such as scripts or inside server mode.`);
@@ -285,7 +286,7 @@ export class Tridy {
     
                 if (opts.astree_only) {
                     if (!common.isEmpty(astree)) {
-                        output.push(astree[common.global.defaults.alias.nested][0]);
+                        output.push(astree[global.defaults.alias.nested][0]);
                     }
                 } else {
                     if (common.isEmpty(astree)) {
@@ -299,7 +300,7 @@ export class Tridy {
                         results = await this._composer.compose(astree);
                     }
 
-                    alias = alias ?? results.alias ?? common.global.alias ?? common.global.defaults.alias;
+                    alias = alias ?? results.alias ?? global.alias ?? global.defaults.alias;
                     for (const module of results.modules) {
                         output.push(module);
                     }
@@ -309,7 +310,7 @@ export class Tridy {
 
         if (opts.astree_only) {
             const wrapper = { };
-            wrapper[common.global.defaults.alias.nested] = output;
+            wrapper[global.defaults.alias.nested] = output;
 
             return wrapper;
         }
@@ -358,12 +359,12 @@ export class Tridy {
      * @throws  {SyntaxError}                   Thrown if some parameters are received incorrectly, either from the method caller or from the server, if there is one.
      */
     async stringify(input, opts = { }) {
-        opts.format     = opts.format     ?? common.global.output.format     ?? common.global.defaults.output.format;
-        opts.indent     = opts.indent     ?? common.global.output.indent     ?? common.global.defaults.output.indent;
-        opts.list_mode  = opts.list_mode  ?? common.global.output.list_mode  ?? common.global.defaults.output.list_mode;
-        opts.file       = opts.file       ?? common.global.output.file.path  ?? common.global.defaults.output.file.path;
-        opts.file_mode  = opts.file_mode  ?? common.global.output.file.mode  ?? common.global.defaults.output.file.mode;
-        opts.file_quiet = opts.file_quiet ?? common.global.output.file.quiet ?? common.global.defaults.output.file.quiet;
+        opts.format     = opts.format     ?? global.output.format     ?? global.defaults.output.format;
+        opts.indent     = opts.indent     ?? global.output.indent     ?? global.defaults.output.indent;
+        opts.list_mode  = opts.list_mode  ?? global.output.list_mode  ?? global.defaults.output.list_mode;
+        opts.file       = opts.file       ?? global.output.file.path  ?? global.defaults.output.file.path;
+        opts.file_mode  = opts.file_mode  ?? global.output.file.mode  ?? global.defaults.output.file.mode;
+        opts.file_quiet = opts.file_quiet ?? global.output.file.quiet ?? global.defaults.output.file.quiet;
         opts.no_export  = opts.no_export  ?? false;
 
         // 'js' returns an object from Formatter, 'json' returns a string.
@@ -372,7 +373,9 @@ export class Tridy {
         let stdout = '';
 
         if (common.isNullish(input.alias)) {
-            logger.warn(`Aliases were not provided with the input to Tridy.stringify(...). The output of this function may not be correct if the input is from a separate server with different aliases.`);
+            if (!common.isEmpty(input.modules)) {
+                logger.warn(`Aliases were not provided with the input to Tridy.stringify(...). The output of this function may not be correct if the input is from a separate server with different aliases.`);
+            }
             
             input.alias = { };
         }

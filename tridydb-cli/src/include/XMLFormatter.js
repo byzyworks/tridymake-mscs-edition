@@ -105,6 +105,10 @@ export class XMLFormatter {
             output.push(mod);
         }
 
+        if (output.length === 1) {
+            wrapper.elements = output;
+        }
+
         return wrapper;
     }
 }

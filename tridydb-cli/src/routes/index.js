@@ -1,13 +1,13 @@
 import express         from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { HTTPMethodParser }     from '../include/HTTPMethodParser.js';
-import { Tridy }                from '../include/Interpreter.js';
+import { HTTPMethodParser }      from '../include/HTTPMethodParser.js';
 import { TokenlessSyntaxParser } from '../include/TokenlessSyntaxParser.js';
 
-import { global, deepCopy, isEmpty }          from '../utility/common.js';
+import { deepCopy, isEmpty }                  from '../utility/common.js';
 import { SyntaxError, ServerSideServerError } from '../utility/error.js';
 import { logger }                             from '../utility/logger.js';
+import { global }                             from '../utility/mapped.js';
 
 import { db } from '../database.js';
 
