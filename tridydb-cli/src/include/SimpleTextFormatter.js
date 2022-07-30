@@ -15,16 +15,23 @@ export class SimpleTextFormatter {
         input.traverse(() => {
             const type  = input.enterGetAndLeave(alias.type);
             const value = input.enterGetAndLeave(alias.state);
-            const mod   = type + value;
+
+            let mod = '';
+            if (type !== undefined) {
+                mod += (common.isObject(type)) ? JSON.stringify(type, null, 0) : String(type);
+            }
+            if (value !== undefined) {
+                mod += (common.isObject(value)) ? JSON.stringify(value, null, 0) : String(value);
+            }
 
             if (!common.isObject(value)) {
-                output.push(this._indent(String(mod), lvl, indent));
+                output.push(this._indent(mod, lvl, indent));
                 if (indent >= 0) {
                     output.push("\n");
                 }
             }
 
-            this._convertModule(input, output, lvl + 1, indent);
+            this._convertModule(input, alias, output, lvl + 1, indent);
         });
     }
 

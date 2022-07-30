@@ -6,13 +6,13 @@ import * as yaml from 'js-yaml';
 import { ContextParser } from './ContextParser.js';
 import { Tridy }         from './Interpreter.js';
 
-import * as common                from '../utility/common.js';
-import { SyntaxError, FileError } from '../utility/error.js';
-import { List }                   from '../utility/List.js';
-import { StateTree }              from '../utility/StateTree.js';
-import { Tag }                    from '../utility/Tag.js';
-import { Token }                  from '../utility/Token.js';
-import { global, CONTEXT_MAP }    from '../utility/mapped.js';
+import * as common                            from '../utility/common.js';
+import { SyntaxError, FileError }             from '../utility/error.js';
+import { List }                               from '../utility/List.js';
+import { StateTree }                          from '../utility/StateTree.js';
+import { Tag }                                from '../utility/Tag.js';
+import { Token }                              from '../utility/Token.js';
+import { global, CONTEXT_MAP, OPERATION_MAP } from '../utility/mapped.js';
 
 export class SyntaxParser {
     constructor() {
@@ -60,7 +60,7 @@ export class SyntaxParser {
         let current;
 
         current = this._tokens.peek().toContextToken();
-        if (!current.is('ctxt_misc', '(')) {
+        if (!current.is('ctxt_misc', CONTEXT_MAP.LEFT_PARENTHESES)) {
             this._handleUnexpected();
         }
         context.push(current);
@@ -109,29 +109,41 @@ export class SyntaxParser {
         }
 
         current = this._tokens.peek().toContextToken();
-        if (!current.is('ctxt_misc', ')')) {
+        if (!current.is('ctxt_misc', CONTEXT_MAP.RIGHT_PARENTHESES)) {
             this._handleUnexpected();
         }
         context.push(current);
         this._tokens.next();
     }
 
+    _handleMacroContextTerminal(context) {
+        let current = this._tokens.peek().toContextToken();
+
+        if (current.is('ctxt_term', CONTEXT_MAP.RECURSIVE_WILDCARD)) {
+            context.push(current.to('ctxt_misc', CONTEXT_MAP.LEFT_PARENTHESES));
+            context.push(current.to('ctxt_term', CONTEXT_MAP.WILDCARD));
+            context.push(current.to('ctxt_op',   CONTEXT_MAP.INCLUSIVE_RECURSIVE_TRANSITION));
+            context.push(current.to('ctxt_term', CONTEXT_MAP.WILDCARD));
+            context.push(current.to('ctxt_misc', CONTEXT_MAP.RIGHT_PARENTHESES));
+
+            this._tokens.next();
+        } else {
+            this._handleUnexpected();
+        }
+    }
+
     _handleWhileContextTerminal(context) {
         let current = this._tokens.peek().toContextToken();
 
         if (current.isIdentifierTerminalContextToken() || current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
-            if (current.is('ctxt_term', CONTEXT_MAP.RECURSIVE_WILDCARD)) {
-                context.push(current.to('ctxt_misc', CONTEXT_MAP.LEFT_PARENTHESES));
-                context.push(current.to('ctxt_term', CONTEXT_MAP.WILDCARD));
-                context.push(current.to('ctxt_op',   CONTEXT_MAP.INCLUSIVE_RECURSIVE_TRANSITION));
-                context.push(current.to('ctxt_term', CONTEXT_MAP.WILDCARD));
-                context.push(current.to('ctxt_misc', CONTEXT_MAP.RIGHT_PARENTHESES));
+            if (current.is('ctxt_term')) {
+                if (current.isMacroTerminalContextToken()) {
+                    this._handleMacroContextTerminal(context);
+                } else {
+                    context.push(current);
 
-                this._tokens.next();
-            } else if (current.is('ctxt_term')) {
-                context.push(current);
-
-                this._tokens.next();
+                    this._tokens.next();
+                }
             } else if (current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
                 this._tokens.next();
 
@@ -144,9 +156,13 @@ export class SyntaxParser {
                 context.push(this._getContextImplicitBinaryOp());
                 
                 if (current.is('ctxt_term')) {
-                    context.push(current);
-    
-                    this._tokens.next();
+                    if (current._isMacroTerminalContextToken()) {
+                        this._handleMacroContextTerminal(context);
+                    } else {
+                        context.push(current);
+
+                        this._tokens.next();
+                    }
                 } else if (current.is('ctxt_misc', CONTEXT_MAP.VALUE_SYMBOL)) {
                     this._tokens.next();
     
@@ -233,7 +249,7 @@ export class SyntaxParser {
         let is_enclosed = false;
 
         current = this._tokens.peek().toContextToken();
-        if (current.is('ctxt_misc', '(')) {
+        if (current.is('ctxt_misc', CONTEXT_MAP.LEFT_PARENTHESES)) {
             context.push(current);
             this._tokens.next();
             
@@ -244,7 +260,7 @@ export class SyntaxParser {
 
         if (is_enclosed) {
             current = this._tokens.peek().toContextToken();
-            if (!current.is('ctxt_misc', ')')) {
+            if (!current.is('ctxt_misc', CONTEXT_MAP.RIGHT_PARENTHESES)) {
                 this._handleUnexpected();
             }
 
@@ -708,7 +724,6 @@ export class SyntaxParser {
 
             while (!this._tokens.peek().is('sym', '}')) {
                 await this._handleStatement();
-                this._bracket_end = true;
             }
             this._astree.leaveNested();
             this._tokens.next();
@@ -741,24 +756,6 @@ export class SyntaxParser {
                     await this._handleTypeDefinitionExplicit();
                 }
             }
-        } else if (this._tokens.peek().is('key', 'of')) {
-            this._tokens.next();
-
-            if (this._tokens.peek().is('key', 'as')) {
-                this._tokens.next();
-
-                if (this._tokens.peek().is('key', 'none')) {
-                    this._tokens.next();
-                } else {
-                    this._handleTagsDefinition({ require: true });
-                }
-            }
-    
-            if (this._tokens.peek().is('key', 'none')) {
-                this._tokens.next();
-            } else {
-                await this._handleTypeDefinitionExplicit();
-            }
         } else if (this._tokens.peek().is('key', 'as')) {
             this._tokens.next();
 
@@ -766,6 +763,24 @@ export class SyntaxParser {
                 this._tokens.next();
             } else {
                 this._handleTagsDefinition({ require: true });
+            }
+
+            if (this._tokens.peek().is('key', 'of')) {
+                this._tokens.next();
+    
+                if (this._tokens.peek().is('key', 'none')) {
+                    this._tokens.next();
+                } else {
+                    await this._handleTypeDefinitionExplicit();
+                }
+            }
+        } else if (this._tokens.peek().is('key', 'of')) {
+            this._tokens.next();
+
+            if (this._tokens.peek().is('key', 'none')) {
+                this._tokens.next();
+            } else {
+                await this._handleTypeDefinitionExplicit();
             }
         } else {
             if (this._tokens.peek().is('key', 'none')) {
@@ -850,7 +865,7 @@ export class SyntaxParser {
     }
 
     _handleCopyOperation() {
-        const cut = this._tokens.next().is('key', 'cut');
+        const cut = this._tokens.next().is('key', OPERATION_MAP.TEXT.CUT);
 
         /**
          * The first sub-operation, _save, is done with respect to the context expression specified after the operation, not before.
@@ -863,17 +878,17 @@ export class SyntaxParser {
             this._handleContext();
         }
         const source = this._astree.enterGetAndLeave('context');
-        this._astree.enterSetAndLeave('operation', '_save');
+        this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.CLIPBOARD_IN);
         this._astree.nextItem();
 
         if (cut) {
             this._astree.enterSetAndLeave('context', source);
-            this._astree.enterSetAndLeave('operation', 'delete');
+            this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.DELETE);
             this._astree.nextItem();
         }
 
         this._astree.enterSetAndLeave('context', target);
-        this._astree.enterSetAndLeave('operation', '_load');
+        this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.CLIPBOARD_OUT);
     }
 
     async _handleReadParameters() {
@@ -1055,10 +1070,10 @@ export class SyntaxParser {
         const operation_token = this._tokens.peek();
 
         if (operation_token.isDefiningOpToken()) {
-            if (operation_token.is('key', 'set')) {
-                this._astree.enterSetAndLeave('operation', 'overwrite');
-            } else if (operation_token.is('key', 'new')) {
-                this._astree.enterSetAndLeave('operation', 'compose');
+            if (operation_token.is('key', OPERATION_MAP.TEXT.OVERWRITE)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.OVERWRITE);
+            } else if (operation_token.is('key', OPERATION_MAP.TEXT.APPEND)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.APPEND);
             }
 
             this._tokens.next();
@@ -1069,12 +1084,12 @@ export class SyntaxParser {
                 await this._handleDefinition();
             }
         } else if (operation_token.isAffectingOpToken()) {
-            if (operation_token.is('key', 'get')) {
-                this._astree.enterSetAndLeave('operation', 'print');
-            } else if (operation_token.is('key', 'del')) {
-                this._astree.enterSetAndLeave('operation', 'delete');
-            } else if (operation_token.is('key', 'stat')) {
-                this._astree.enterSetAndLeave('operation', 'nop');
+            if (operation_token.is('key', OPERATION_MAP.TEXT.PRINT)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.PRINT);
+            } else if (operation_token.is('key', OPERATION_MAP.TEXT.DELETE)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.DELETE);
+            } else if (operation_token.is('key', OPERATION_MAP.TEXT.PRINT_STATISTICS)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.NOP);
             }
 
             this._tokens.next();
@@ -1092,12 +1107,12 @@ export class SyntaxParser {
                 await this._handleReadParameters();
             }
         } else if (operation_token.isEditingOpToken()) {
-            if (operation_token.is('key', 'put')) {
-                this._astree.enterSetAndLeave('operation', 'edit');
-            } else if (operation_token.is('key', 'tag')) {
-                this._astree.enterSetAndLeave('operation', 'tag');
-            } else if (operation_token.is('key', 'untag')) {
-                this._astree.enterSetAndLeave('operation', 'untag');
+            if (operation_token.is('key', OPERATION_MAP.TEXT.EDIT)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.EDIT);
+            } else if (operation_token.is('key', OPERATION_MAP.TEXT.EDIT_TAGS)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.EDIT_TAGS);
+            } else if (operation_token.is('key', OPERATION_MAP.TEXT.DELETE_TAGS)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.DELETE_TAGS);
             }
 
             this._tokens.next();
@@ -1109,23 +1124,23 @@ export class SyntaxParser {
                     this._tokens.next();
                 }
 
-                if (operation_token.is('key', 'tag')) {
+                if (operation_token.is('key', OPERATION_MAP.TEXT.EDIT_TAGS)) {
                     this._handleTagsDefinition({ require: false, untag: false });
-                } else if (operation_token.is('key', 'untag')) {
+                } else if (operation_token.is('key', OPERATION_MAP.TEXT.DELETE_TAGS)) {
                     this._handleTagsDefinition({ require: false, untag: true });
                 }
             }
         } else if (operation_token.isCopyOpToken()) {
             this._handleCopyOperation();
         } else if (operation_token.isImportOpToken()) {
-            if (operation_token.is('key', 'import')) {
-                this._astree.enterSetAndLeave('operation', 'import');
+            if (operation_token.is('key', OPERATION_MAP.TEXT.IMPORT)) {
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.MULTIPLE);
             }
 
             this._tokens.next();
 
             await this._handleImportParameters();
-        } else {
+        } else if (!operation_token.is('sym', ';')) {
             this._handleUnexpected();
         }
     }
@@ -1157,13 +1172,12 @@ export class SyntaxParser {
             }
 
             if (this._tokens.peek().is('sym', '{')) {
-                this._astree.enterSetAndLeave('operation', 'multi');
+                this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.MULTIPLE);
                 
                 this._tokens.next();
                 this._astree.enterNested();
                 while (!this._tokens.peek().is('sym', '}')) {
                     this._handleStatement();
-                    this._bracket_end = true;
                 }
                 this._astree.leaveNested();
                 this._tokens.next();
@@ -1172,12 +1186,8 @@ export class SyntaxParser {
             }
         }
 
-        if (this._bracket_end === true) {
-            this._bracket_end = false;
-        } else {
-            if (!this._tokens.peek().is('sym', ';')) {
-                this._handleUnexpected();
-            }
+        if (!this._tokens.peek().is('sym', ';')) {
+            this._handleUnexpected();
         }
 
         this._tokens.next();

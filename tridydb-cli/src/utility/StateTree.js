@@ -43,7 +43,7 @@ export class StateTree {
             tags:   alias.tags   ?? global.defaults.alias.tags,
             state:  alias.state  ?? global.defaults.alias.state,
             nested: alias.nested ?? global.defaults.alias.nested,
-            root:   alias.root   ?? global.defaults.alias.root
+            list:   alias.list   ?? global.defaults.alias.list
         };
     }
 

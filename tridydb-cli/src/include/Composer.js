@@ -10,7 +10,7 @@ import { ContextParser } from './ContextParser.js';
 
 import * as common             from '../utility/common.js';
 import * as error              from '../utility/error.js';
-import { global, CONTEXT_MAP } from '../utility/mapped.js';
+import { global, CONTEXT_MAP, OPERATION_MAP } from '../utility/mapped.js';
 import { StateTree }           from '../utility/StateTree.js';
 import { Tag }                 from '../utility/Tag.js';
 
@@ -521,26 +521,14 @@ export class Composer {
 
     _overwriteModule(template) {
         this._target.setPosValue(template);
-
-        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
-            this._parse();
-        }
     }
 
-    _composeModule(template) {
+    _appendModule(template) {
         if (!common.isDictionary(this._target.getPosValue())) {
             throw new error.SyntaxError(`Tried to append a new submodule to an improperly-formatted root module (was @set with raw input used to change it?).`);
         }
 
-        this._target.enterPos(this._alias.nested);
-        this._target.enterPos(this._target.putPosValue(template) - 1);
-
-        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
-            this._parse();
-        }
-
-        this._target.leavePos();
-        this._target.leavePos();
+        this._target.enterPutAndLeave(this._alias.nested, template);
     }
 
     _printModule() {
@@ -599,10 +587,7 @@ export class Composer {
         this._editModulePart(this._target, template, nulled, 'tags');
         this._editModulePart(this._target, template, nulled, 'state');
 
-        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
-            this._target.enterDeleteAndLeave(this._alias.nested);
-            this._parse();
-        } else if (common.isDictionary(nulled) && (nulled[global.defaults.alias.nested] === true)) {
+        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested)) || (common.isDictionary(nulled) && (nulled[global.defaults.alias.nested] === true))) {
             this._target.enterDeleteAndLeave(this._alias.nested);
         }
     }
@@ -682,20 +667,8 @@ export class Composer {
 
     _loadModule() {
         for (const module of this._saved) {
-            this._composeModule(common.deepCopy(module));
+            this._appendModule(common.deepCopy(module));
         }
-    }
-
-    _multiModule() {
-        let template;
-        template = new StateTree(this._target.getPosValue(), this._alias);
-        template = this._createModuleTemplate(template);
-
-        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
-            this._parse();
-        }
-
-        this._target.setPosValue(template);
     }
 
     async _operateModule(command, opts = { }) {
@@ -708,38 +681,35 @@ export class Composer {
         }
 
         switch (command) {
-            case 'overwrite':
+            case OPERATION_MAP.ASTREE.OVERWRITE:
                 this._overwriteModule(opts.template);
                 break;
-            case 'compose':
-                this._composeModule(opts.template);
+            case OPERATION_MAP.ASTREE.APPEND:
+                this._appendModule(opts.template);
                 break;
-            case 'print':
+            case OPERATION_MAP.ASTREE.PRINT:
                 this._printModule();
                 break;
-            case 'delete':
+            case OPERATION_MAP.ASTREE.DELETE:
                 this._deleteModule();
                 break;
-            case 'edit':
+            case OPERATION_MAP.ASTREE.EDIT:
                 this._editModule(opts.template);
                 break;
-            case 'tag':
+            case OPERATION_MAP.ASTREE.EDIT_TAGS:
                 this._tagModule(opts.template);
                 break;
-            case 'untag':
+            case OPERATION_MAP.ASTREE.DELETE_TAGS:
                 this._untagModule(opts.template);
                 break;
-            case '_save':
+            case OPERATION_MAP.ASTREE.CLIPBOARD_IN:
                 this._saveModule();
                 break;
-            case '_load':
+            case OPERATION_MAP.ASTREE.CLIPBOARD_OUT:
                 this._loadModule();
                 break;
-            case 'multi':
-            case 'import':
-                this._multiModule();
-                break;
-            case 'nop':
+            case OPERATION_MAP.ASTREE.MULTIPLE:
+            case OPERATION_MAP.ASTREE.NOP:
                 break;
         }
     }
@@ -891,10 +861,10 @@ export class Composer {
 
     _postOperation(command, stats) {
         switch (command) {
-            case '_load':
+            case OPERATION_MAP.ASTREE.CLIPBOARD_OUT:
                 this._saved = [ ];
                 break;
-            case 'nop':
+            case OPERATION_MAP.ASTREE.NOP:
                 this._output.modules.push({ content: stats });
                 break;
             default:
@@ -905,6 +875,32 @@ export class Composer {
                         this._output.modules.push({ content: stats });
                 }
                 break;
+        }
+    }
+
+    async _parseNestedStatements(command) {
+        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
+            switch (command) {
+                case OPERATION_MAP.ASTREE.APPEND:
+                    this._target.enterPos(this._alias.nested);
+                    this._target.enterPos(this._target.getPosLength() - 1);
+
+                    break;
+                case OPERATION_MAP.ASTREE.OVERWRITE:
+                case OPERATION_MAP.ASTREE.EDIT:
+                case OPERATION_MAP.ASTREE.MULTIPLE:
+                    break;
+                default:
+                    return;
+            }
+
+            await this._parse();
+
+            switch (command) {
+                case OPERATION_MAP.ASTREE.APPEND:
+                    this._target.leavePos();
+                    this._target.leavePos();
+            }
         }
     }
 
@@ -927,15 +923,14 @@ export class Composer {
 
         let template = null;
         switch (command) {
-            case '_save':
+            case OPERATION_MAP.ASTREE.CLIPBOARD_IN:
                 this._saved = [ ];
                 break;
-            case '_load':
-            case 'print':
-            case 'delete':
-            case 'multi':
-            case 'import':
-            case 'nop':
+            case OPERATION_MAP.ASTREE.CLIPBOARD_OUT:
+            case OPERATION_MAP.ASTREE.PRINT:
+            case OPERATION_MAP.ASTREE.DELETE:
+            case OPERATION_MAP.ASTREE.MULTIPLE:
+            case OPERATION_MAP.ASTREE.NOP:
                 break;
             default:
                 template = this._createModuleTemplate();
@@ -967,6 +962,8 @@ export class Composer {
         try {
             for (let i = 0; i <= repeat; i++) {
                 await this._traverseModule(expression, command, level, randoms, traverse);
+                await this._parseNestedStatements(command);
+
                 if ((limit !== null) && (traverse.count >= limit)) {
                     break;
                 }
@@ -979,7 +976,7 @@ export class Composer {
             }
         } finally {
             this._astree.toLocalRoot();
-            this._target.toGlobalRoot();
+            this._target.toLocalRoot();
         }
 
         this._postOperation(command, stats);

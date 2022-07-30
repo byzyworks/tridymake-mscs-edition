@@ -123,3 +123,32 @@ export const CONTEXT_MAP = Object.freeze({
     'VARIABLE_NEW_RANDOM_EXTRA':           'r',
     'VARIABLE_NEW_RANDOM':                 VALUE_SYMBOL + 'r'
 });
+
+export const OPERATION_MAP = Object.freeze({
+    'TEXT': {
+        'APPEND':           'new',
+        'OVERWRITE':        'set',
+        'EDIT':             'put',
+        'DELETE':           'del',
+        'EDIT_TAGS':        'tag',
+        'DELETE_TAGS':      'untag',
+        'CUT':              'cut',
+        'COPY':             'copy',
+        'PRINT':            'get',
+        'IMPORT':           'import',
+        'PRINT_STATISTICS': 'stat'
+    },
+    'ASTREE': {
+        'APPEND':        'append',
+        'OVERWRITE':     'overwrite',
+        'EDIT':          'edit',
+        'DELETE':        'delete',
+        'EDIT_TAGS':     'tag',
+        'DELETE_TAGS':   'untag',
+        'CLIPBOARD_IN':  '_save',
+        'CLIPBOARD_OUT': '_load',
+        'PRINT':         'print',
+        'MULTIPLE':      '_multiple',
+        'NOP':           '_nop'
+    }
+});

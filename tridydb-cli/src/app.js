@@ -77,6 +77,10 @@ program
         new Option('-L, --localhost', 'Bind only to localhost when in server mode; do not expose service to the network.')
     )
     .addOption(
+        new Option('--list-key <key>', 'The name given to the XML root tag when the output contains multiple modules. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is \'xml\'.')
+            .default(global.defaults.alias.root)
+    )
+    .addOption(
         new Option('-l, --log-level <level>', 'The log level used, as one of NPM\'s available log levels')
             .choices(Object.keys(log_levels))
             .default(global.defaults.log_level)
@@ -122,10 +126,6 @@ program
         new Option('--tree-key <key>', 'The key under which the tree data structure is imported and exported as.')
             .default(global.defaults.alias.nested)
     )
-    .addOption(
-        new Option('--root-key <key>', 'The name given to the XML root tag. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is \'xml\'.')
-            .default(global.defaults.alias.root)
-    )
     .hook('preAction', async (thisCommand, actionCommand) => {
         const opts = program.opts();
 
@@ -133,7 +133,7 @@ program
         global.alias.tags   = opts.tagsKey;
         global.alias.state  = opts.freeKey;
         global.alias.nested = opts.treeKey;
-        global.alias.root   = opts.rootKey;
+        global.alias.list   = opts.listKey;
         
         global.remote.enable  = opts.client;
         global.remote.host    = opts.remoteHost;
@@ -174,6 +174,14 @@ program
         
                 try {
                     input = await db.query(input, { accept_carry: false, filepath: path.resolve(filepath) });
+
+                    if (preset.alias === undefined) {
+                        preset.alias = input.modules.alias ?? global.alias ?? global.defaults.alias;
+                    }
+
+                    for (const module of input.modules) {
+                        preset.modules.push(module);
+                    }
                 } catch (err) {
                     if (err instanceof SyntaxError) {
                         error_handler.handle(err);
@@ -181,14 +189,13 @@ program
                         throw err;
                     }
                 }
-                
-                if (preset.alias === undefined) {
-                    preset.alias = input.modules.alias ?? global.alias ?? global.defaults.alias;
-                }
-                for (const module of input.modules) {
-                    preset.modules.push(module);
-                }
             }
+
+            if (!isEmpty(preset)) {
+                preset = await db.stringify(preset);
+            }
+    
+            console.log(preset);
         }
     })
 ;
@@ -202,12 +209,6 @@ program
         if (!opts.command && !opts.file) {
             program.error('error: either --command or --file need to be given inside of inline mode.');
         }
-
-        if (!isEmpty(preset)) {
-            preset = await db.stringify(preset);
-        }
-
-        console.log(preset);
     })
 ;
 

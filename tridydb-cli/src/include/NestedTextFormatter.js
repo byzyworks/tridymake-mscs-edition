@@ -8,14 +8,12 @@ export class NestedTextFormatter {
         let output = '';
 
         let outer = input.enterGetAndLeave(alias.state);
-        if (common.isObject(outer)) {
-            outer = undefined;
-        } else if (outer !== undefined) {
-            outer = String(outer);
+        if (outer !== undefined) {
+            outer = (common.isObject(outer)) ? JSON.stringify(outer, null, 0) : String(outer);
         }
 
         input.traverse(() => {
-            const inner = this._convertModule(input);
+            const inner = this._convertModule(input, alias);
 
             /**
              * Note: if free is undefined for a parent module, just combine the free modules of its children.
@@ -25,9 +23,10 @@ export class NestedTextFormatter {
             if (outer === undefined) {
                 output += inner;
             } else {
-                const key = input.enterGetAndLeave(alias.type);
-                if ((key !== undefined) && !common.isObject(key)) {
-                    outer = outer.replace(String(key), inner);
+                let key = input.enterGetAndLeave(alias.type);
+                if (key !== undefined) {
+                    key   = (common.isObject(key)) ? JSON.stringify(key, null, 0) : String(key);
+                    outer = outer.replace(key, inner);
                 }
             }
         });

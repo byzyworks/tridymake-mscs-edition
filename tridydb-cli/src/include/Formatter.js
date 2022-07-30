@@ -51,9 +51,9 @@ export class Formatter {
                 return xml.js2xml(converted, { compact: false });
             case 'simple-text':
                 opts.indent = opts.indent ?? -1;
-                return SimpleTextFormatter.convert(input, alias, { indent: opts.indent });
+                return SimpleTextFormatter.convert(input, opts.alias, { indent: opts.indent });
             case 'nested-text':
-                return NestedTextFormatter.convert(input, alias);
+                return NestedTextFormatter.convert(input, opts.alias);
             default:
                 throw new SyntaxError(`Invalid format "${opts.format}".`);
         }

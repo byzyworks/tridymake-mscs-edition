@@ -1,5 +1,5 @@
-import { isNullish }   from './common.js';
-import { CONTEXT_MAP } from './mapped.js';
+import { isNullish }                  from './common.js';
+import { CONTEXT_MAP, OPERATION_MAP } from './mapped.js';
 
 export class Token {
     constructor(type, val, debug = { }) {
@@ -22,6 +22,12 @@ export class Token {
 
     is(type = null, value = null) {
         return (((this.type == type) || (type === null)) && ((this.val == value) || (value === null)));
+    }
+
+    isMacroTerminalContextToken() {
+        return false ||
+            this.is('ctxt_term', CONTEXT_MAP.RECURSIVE_WILDCARD)
+        ;
     }
 
     isIdentifierOnlyTerminalContextToken() {
@@ -155,6 +161,11 @@ export class Token {
         return this.is('ctxt_op', CONTEXT_MAP.TERNARY_2);
     }
 
+    /**
+     * Using this as opposed to just creating a new token with the same type and value is useful because the debug information remains the same as the token created from.
+     * This is useful for creating program-internal tokens that, when there is a problem related to them, the debug output can link back to the user-created token it was generated from.
+     * The alternative is confusing the user with a token they never actually put in.
+     */
     to(type, val) {
         return new Token(type, val, this.debug);
     }
@@ -297,35 +308,35 @@ export class Token {
 
     isDefiningOpToken() {
         return false ||
-            this.is('key', 'set') ||
-            this.is('key', 'new')
+            this.is('key', OPERATION_MAP.TEXT.OVERWRITE) ||
+            this.is('key', OPERATION_MAP.TEXT.APPEND)
         ;
     }
 
     isReadOpToken() {
         return false ||
-            this.is('key', 'get')
+            this.is('key', OPERATION_MAP.TEXT.PRINT)
         ;
     }
 
     isAffectingOpToken() {
         return false ||
             this.isReadOpToken() ||
-            this.is('key', 'del') ||
-            this.is('key', 'stat')
+            this.is('key', OPERATION_MAP.TEXT.DELETE) ||
+            this.is('key', OPERATION_MAP.TEXT.PRINT_STATISTICS)
         ;
     }
 
     isGeneralEditingOpToken() {
         return false ||
-            this.is('key', 'put')
+            this.is('key', OPERATION_MAP.TEXT.EDIT)
         ;
     }
 
     isTagEditingOpToken() {
         return false ||
-            this.is('key', 'tag') ||
-            this.is('key', 'untag')
+            this.is('key', OPERATION_MAP.TEXT.EDIT_TAGS) ||
+            this.is('key', OPERATION_MAP.TEXT.DELETE_TAGS)
         ;
     }
 
@@ -338,20 +349,14 @@ export class Token {
 
     isCopyOpToken() {
         return false ||
-            this.is('key', 'cut') ||
-            this.is('key', 'copy')
+            this.is('key', OPERATION_MAP.TEXT.CUT) ||
+            this.is('key', OPERATION_MAP.TEXT.COPY)
         ;
     }
 
     isImportOpToken() {
         return false ||
-            this.is('key', 'import')
-        ;
-    }
-
-    isExportOpToken() {
-        return false ||
-            this.is('key', 'export')
+            this.is('key', OPERATION_MAP.TEXT.IMPORT)
         ;
     }
 

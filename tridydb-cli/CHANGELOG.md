@@ -218,6 +218,8 @@ Remember also to set the version number inside package.json and utility/common.
 * Added shorthand inverted lookbehind nested operator `!<<` / `@nondescend` (faster equivalent to `exp1 & !(exp1 << exp2)`).
 * Changed `@tag` so that it will re-assign new values that are given instead of ignoring the tags if they are duplicates.
 * Changed `@untag` now has a syntax different from `@tag`, and no longer takes values needlessly (use context value expressions for discriminating).
+* Renamed `--root-key` to `--list-key` and fixed potential bug over confusion.
+* Fixed bug output where output from file or command import (with respect to the program) wouldn't display/export outside of inline mode.
 
 <br>
 
@@ -230,9 +232,6 @@ Remember also to set the version number inside package.json and utility/common.
 * Added `tail` operation clause for placing new modules after another in the same tree. (PENDING)
 * Added `binary` `get` parameter output format clause (similar to arbitrary text output, but for hexadecimal-encoded bytes). (PENDING)
 * Renamed `del` to `delete`. (PENDING)
-* Renamed `put` to `add`. (PENDING)
-* Renamed `new` to `put`. (PENDING)
-* Renamed `toward` to `forward`. (PENDING)
 * Removed all non-primitive raw input; Tridy now requires configuration in its own format. (?) (PENDING)
 
 <br>
