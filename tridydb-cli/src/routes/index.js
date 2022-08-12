@@ -75,7 +75,7 @@ const handleRoute = async (method, req, res, next) => {
 
     const preformat = global.server.preformat ?? global.defaults.server.preformat;
     if (preformat) {
-        if (!isEmpty(output)) {
+        if (!isEmpty(output.modules)) {
             output = await db.stringify(output);
         }
     

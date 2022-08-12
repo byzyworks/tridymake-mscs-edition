@@ -62,12 +62,10 @@ export const cli = async (opts = { }) => {
             retry = true;
         }
 
-        if (!retry && !isEmpty(out)) {
+        if (!retry && !isEmpty(out.modules)) {
             out = await db.stringify(out);
 
-            if (!isEmpty(out)) {
-                console.log(out);
-            }
+            console.log(out);
         }
     }
 

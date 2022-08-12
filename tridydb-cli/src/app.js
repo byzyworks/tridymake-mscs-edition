@@ -78,7 +78,7 @@ program
     )
     .addOption(
         new Option('--list-key <key>', 'The name given to the XML root tag when the output contains multiple modules. If used with @xml input, a root tag named this is also replaced with its contents. Relevant only when the output format is \'xml\'.')
-            .default(global.defaults.alias.root)
+            .default(global.defaults.alias.list)
     )
     .addOption(
         new Option('-l, --log-level <level>', 'The log level used, as one of NPM\'s available log levels')
@@ -191,11 +191,11 @@ program
                 }
             }
 
-            if (!isEmpty(preset)) {
+            if (!isEmpty(preset.modules)) {
                 preset = await db.stringify(preset);
+
+                console.log(preset);
             }
-    
-            console.log(preset);
         }
     })
 ;

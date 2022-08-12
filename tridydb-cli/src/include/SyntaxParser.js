@@ -1061,8 +1061,8 @@ export class SyntaxParser {
             astree_only:  true
         });
         
-        if (!common.isEmpty(output)) {
-            this._astree.enterSetAndLeave(global.defaults.alias.nested, output);
+        if (!common.isEmpty(output[global.defaults.alias.nested])) {
+            this._astree.enterSetAndLeave(global.defaults.alias.nested, output[global.defaults.alias.nested]);
         }
     }
 
