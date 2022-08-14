@@ -12,12 +12,16 @@ export class Token {
         }
     }
 
-    getTokenType() {
+    getType() {
         return this.type;
     }
 
-    getTokenValue() {
+    getValue() {
         return this.val;
+    }
+
+    getSourceFile() {
+        return this.debug.filepath;
     }
 
     is(type = null, value = null) {

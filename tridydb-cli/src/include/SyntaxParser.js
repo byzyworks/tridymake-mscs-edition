@@ -1,4 +1,5 @@
-import fs from 'fs';
+import fs from   'fs';
+import path from 'path';
 
 import * as xml  from 'xml-js';
 import * as yaml from 'js-yaml';
@@ -396,11 +397,22 @@ export class SyntaxParser {
         return null;
     }
 
+    _relativeToScript(link) {
+        let from = this._tokens.peek().getSourceFile();
+        if (!common.isNullish(from)) {
+            from = path.dirname(from);
+            link = path.join(from, link);
+        }
+
+        return link;
+    }
+
     async _readFileImport() {
-        const link = await this._readString({ allow_dynamic: false });
+        let link = this._readString({ allow_dynamic: false });
         if (link === null) {
             return null;
         }
+        link = this._relativeToScript(link);
 
         let content;
         try {
@@ -811,7 +823,6 @@ export class SyntaxParser {
                 await this._handleNestedDefinition();
             }
         }
-
     }
 
     async _handleEditDefinition() {
@@ -1031,10 +1042,11 @@ export class SyntaxParser {
             if (current.is('key', 'file')) {
                 this._tokens.next();
 
-                const link = await this._readString({ allow_dynamic: false });
+                let link = this._readString({ allow_dynamic: false });
                 if (link === undefined) {
                     this._handleUnexpected();
                 }
+                link = this._relativeToScript(link);
 
                 this._astree.enterSetAndLeave('file', link);
             }
@@ -1177,7 +1189,7 @@ export class SyntaxParser {
                 this._tokens.next();
                 this._astree.enterNested();
                 while (!this._tokens.peek().is('sym', '}')) {
-                    this._handleStatement();
+                    await this._handleStatement();
                 }
                 this._astree.leaveNested();
                 this._tokens.next();
