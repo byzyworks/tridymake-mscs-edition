@@ -201,7 +201,7 @@ program
 ;
 
 program
-    .command('inline')
+    .command('inline', { isDefault: true })
     .description('Print the output of --command or --file and exit.')
     .action(async (opts, command) => {
         opts = command.optsWithGlobals();
