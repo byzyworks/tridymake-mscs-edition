@@ -58,6 +58,44 @@ export class Composer {
         this._random.prngs = this._random.seeds.map((seed) => new seedrandom(seed, { entropy: false }));
     }
 
+    _getModuleIndex() {
+        const index = {
+            real:    [ ],
+            extent:  [ ],
+            context: [ ]
+        }
+
+        const raw = this._target.getFullPos();
+        let   ptr = this._target.getRaw();
+
+        /**
+         * Note: the indices are how the JSON database is structured at a low level.
+         * For instance, the coordinates of the first module under the root module would normally be ['tree'][0].
+         * Since it's 2 indices ('tree' and 0) from the perspective of the parent module, we need to make 2 jumps each time.
+         */
+        for (let i = 0; i < raw.length; i += 2) {
+            ptr = ptr[raw[i]];
+            if (!common.isArray(ptr)) {
+                return index;
+            }
+
+            index.real.push(raw[i + 1]);
+
+            index.extent.push(ptr.length);
+
+            ptr = ptr[raw[i + 1]];
+            if (!common.isDictionary(ptr)) {
+                return index;
+            }
+
+            index.context.push(ptr[this._alias.tags] ?? [ ]);
+        }
+
+        index.extent.push((ptr[this._alias.nested] ?? [ ]).length);
+
+        return index;
+    }
+
     _getModuleShuffledIndex(lvl, index, main_query_random) {
         const last_index  = index.real[lvl];
         const last_extent = index.extent[lvl];
@@ -83,11 +121,11 @@ export class Composer {
                 args:   test.function
             };
             for (let i = 0; i < this._random.seeds.length; i++) {
-                operate.params.random.push({
+                params.random.push({
                     global: this._random.seeds[i],
                     query:  query_randoms[i],
                     call:   this._random.prngs[i]()
-                })
+                });
             }
 
             const result = await this._functionCall(func, params, { primitive_only: true });
@@ -714,42 +752,30 @@ export class Composer {
         }
     }
 
-    _getModuleIndex() {
-        const index = {
-            real:    [ ],
-            extent:  [ ],
-            context: [ ]
-        }
+    async _parseNestedStatements(command) {
+        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
+            switch (command) {
+                case OPERATION_MAP.ASTREE.APPEND:
+                    this._target.enterPos(this._alias.nested);
+                    this._target.enterPos(this._target.getPosLength() - 1);
 
-        const raw = this._target.getFullPos();
-        let   ptr = this._target.getRaw();
-
-        /**
-         * Note: the indices are how the JSON database is structured at a low level.
-         * For instance, the coordinates of the first module under the root module would normally be ['tree'][0].
-         * Since it's 2 indices ('tree' and 0) from the perspective of the parent module, we need to make 2 jumps each time.
-         */
-        for (let i = 0; i < raw.length; i += 2) {
-            ptr = ptr[raw[i]];
-            if (!common.isArray(ptr)) {
-                return index;
+                    break;
+                case OPERATION_MAP.ASTREE.OVERWRITE:
+                case OPERATION_MAP.ASTREE.EDIT:
+                case OPERATION_MAP.ASTREE.MULTIPLE:
+                    break;
+                default:
+                    return;
             }
 
-            index.real.push(raw[i + 1]);
+            await this._parse();
 
-            index.extent.push(ptr.length);
-
-            ptr = ptr[raw[i + 1]];
-            if (!common.isDictionary(ptr)) {
-                return index;
+            switch (command) {
+                case OPERATION_MAP.ASTREE.APPEND:
+                    this._target.leavePos();
+                    this._target.leavePos();
             }
-
-            index.context.push(ptr[this._alias.tags] ?? [ ]);
         }
-
-        index.extent.push((ptr[this._alias.nested] ?? [ ]).length);
-
-        return index;
     }
 
     async _traverseModule(test, command, level, query_randoms, opts = { }) {
@@ -798,6 +824,7 @@ export class Composer {
 
         if (matched && (opts.count > opts.offset)) {
             await this._operateModule(command, operate);
+            await this._parseNestedStatements(command);
 
             opts.stats.successes++;
             opts.stats.indeces.push(index.real.join(','));
@@ -878,32 +905,6 @@ export class Composer {
         }
     }
 
-    async _parseNestedStatements(command) {
-        if (!common.isEmpty(this._astree.enterGetAndLeave(global.defaults.alias.nested))) {
-            switch (command) {
-                case OPERATION_MAP.ASTREE.APPEND:
-                    this._target.enterPos(this._alias.nested);
-                    this._target.enterPos(this._target.getPosLength() - 1);
-
-                    break;
-                case OPERATION_MAP.ASTREE.OVERWRITE:
-                case OPERATION_MAP.ASTREE.EDIT:
-                case OPERATION_MAP.ASTREE.MULTIPLE:
-                    break;
-                default:
-                    return;
-            }
-
-            await this._parse();
-
-            switch (command) {
-                case OPERATION_MAP.ASTREE.APPEND:
-                    this._target.leavePos();
-                    this._target.leavePos();
-            }
-        }
-    }
-
     async _parseStatement() {
         const context    = this._astree.enterGetAndLeave('context');
         let   expression = context ? context.expression     : { };
@@ -962,7 +963,6 @@ export class Composer {
         try {
             for (let i = 0; i <= repeat; i++) {
                 await this._traverseModule(expression, command, level, randoms, traverse);
-                await this._parseNestedStatements(command);
 
                 if ((limit !== null) && (traverse.count >= limit)) {
                     break;
