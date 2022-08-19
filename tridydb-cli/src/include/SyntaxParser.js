@@ -501,7 +501,7 @@ export class SyntaxParser {
             data = data.replace(/[\f\n\r\v]+/g, '');
         } else if (type === 'dynamic') {
             data = common.parseDynamic(data);
-        } else if (type !== 'multiline') {
+        } else if ((type !== 'multiline') && (type !== 'text')) {
             /**
              * Both parsers (JSON and YAML) do their own escaping using the backslash characters.
              * Thus, the backslash characters have to themselves be escaped before they are put them.

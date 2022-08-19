@@ -15,7 +15,7 @@ export class TokenLexer {
     load(input, opts = { }) {
         opts.filepath = opts.filepath ?? null;
 
-        if (opts.filepath !== null) {
+        if (opts.filepath !== this._lexer.getFilepath()) {
             this._lexer.clear();
             this._lexer = new CharLexer({ filepath: opts.filepath });
         }
