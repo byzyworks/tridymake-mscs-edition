@@ -480,12 +480,12 @@ export class Composer {
 
         // Because import() doesn't like paths on Windows.
         funcpath = path.relative(__dirname, funcpath);
-        funcpath = funcpath.replace('\\', '/');
+        funcpath = funcpath.replace(/\\/g, '/');
 
         try {
             const mod = await import(funcpath);
 
-            result = await mod.default(params);
+            result = await mod.default(common.deepCopy(params));
         } catch (err) {
             throw new error.FunctionError(err.message);
         }

@@ -157,7 +157,7 @@ export class SyntaxParser {
                 context.push(this._getContextImplicitBinaryOp());
                 
                 if (current.is('ctxt_term')) {
-                    if (current._isMacroTerminalContextToken()) {
+                    if (current.isMacroTerminalContextToken()) {
                         this._handleMacroContextTerminal(context);
                     } else {
                         context.push(current);

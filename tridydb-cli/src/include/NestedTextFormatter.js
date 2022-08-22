@@ -26,6 +26,7 @@ export class NestedTextFormatter {
                 let key = input.enterGetAndLeave(alias.type);
                 if (key !== undefined) {
                     key   = (common.isObject(key)) ? JSON.stringify(key, null, 0) : String(key);
+                    key   = new RegExp(key, 'g');
                     outer = outer.replace(key, inner);
                 }
             }
