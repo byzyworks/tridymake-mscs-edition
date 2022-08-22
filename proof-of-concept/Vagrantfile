@@ -1,0 +1,67 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+nodes = (JSON.parse(File.read("nodes.json")))['nodes']
+
+Vagrant.configure("2") do |config|
+    nodes.each do |node|
+        config.vm.define node['name'] do |instance|
+			instance.vm.hostname = node['name']
+			
+            instance.vm.box = node['box']
+			
+			if node['ssh'] != nil
+				ssh                     = node['ssh']
+				instance.ssh.username   = ssh['username']
+				instance.ssh.password   = ssh['password']
+				instance.ssh.insert_key = ssh['insert_key']
+			end
+            
+            instance.vm.provider :virtualbox do |vb|
+                vb.linked_clone = true
+                vb.name         = node['name']
+                vb.cpus         = node['cpus']
+                vb.memory       = node['ram']
+				if node['gui'] != nil
+					vb.gui = node['gui']
+				end
+            end
+                
+            nics = node['nics']
+            nics.each do |nic|
+				if nic['dhcp'] == nil || nic['dhcp'] == false
+					instance.vm.network :private_network,
+						ip:                 nic['ip'],
+						virtualbox__intnet: nic['network']
+				else
+					instance.vm.network :private_network,
+						type:               'dhcp',
+						virtualbox__intnet: nic['network']
+				end
+            end
+                
+            ports = node['ports']
+            ports.each do |port|
+                instance.vm.network :forwarded_port,
+                    guest:    port['guest'],
+					host:     port['host'],
+					protocol: port['protocol'],
+					id:       port['id']
+            end
+			
+			files = node['files']
+            files.each do |file|
+                instance.vm.provision :file,
+                    source:      file['source'],
+					destination: file['destination']
+            end
+            
+            scripts = node['scripts']
+            scripts.each do |script|
+                instance.vm.provision :shell,
+                    path: script['path'],
+					env:  script['env']
+            end
+        end
+    end
+end

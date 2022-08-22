@@ -1,0 +1,106 @@
+@in base/nodes {
+	@in linux {
+		@in scripts {
+			@new @as update-repos linux system bash script @has {
+				@new path @is "scripts/update-repos/setup.sh";
+			};
+			
+			@new @as set-system-passwords linux system bash script @has {
+				@new path @is "scripts/set-system-passwords/setup.sh";
+				@new env  @has {
+					@new system root password PASSWD_SYSTEM_ROOT;
+					@new system username SYSTEM_USER;
+					@new system password PASSWD_SYSTEM_USER;
+				};
+			};
+		};
+	};
+	
+	@in mysql openmrs linux node {
+		@in files {
+			@new @as setup-mysql-server mysql ubuntu linux files @has {
+				@new source @is "files/mysql-server/.";
+			};
+			
+			@new @as setup-openmrs-database mysql openmrs ubuntu linux files @has {
+				@new source @is "files/openmrs-database/.";
+			};
+		};
+		
+		@in scripts {
+			@new @as setup-mysql-server mysql ubuntu linux bash with-files script @has {
+				@new path @is "scripts/setup-mysql-server/setup.sh";
+			};
+			
+			@new @as setup-openmrs-database mysql openmrs ubuntu linux bash with-files script @has {
+				@new path @is "scripts/setup-openmrs-database/setup.sh";
+				@new env @has {
+					@new APP_SERVER_DC_IPV4_1;
+				};
+			};
+		};
+	};
+
+	@in tomcat openmrs linux node {
+		@in files {
+			@new @as setup-tomcat-server tomcat ubuntu linux files @has {
+				@new source @is "files/tomcat-server/.";
+			};
+			
+			@new @as setup-openmrs-server openmrs ubuntu linux files @has {
+				@new source @is "files/openmrs-server/.";
+			};
+		};
+		
+		@in scripts {
+			@new @as setup-tomcat-server tomcat ubuntu linux bash with-files script @has {
+				@new path @is "scripts/setup-tomcat-server/setup.sh";
+				@new env;
+			};
+			
+			@new @as setup-openmrs-server tomcat openmrs ubuntu linux bash with-files script @has {
+				@new path @is "scripts/setup-openmrs-server/setup.sh";
+				@new env;
+			};
+			
+			@in script/env {
+				@new DB_SERVER_DC_IPV4_1;
+			};
+		};
+	};
+
+	@in nginx linux node {
+		@in scripts {
+			@new @as setup-nginx-server nginx web ubuntu linux bash script @has {
+				@new path @is "scripts/setup-nginx-server/setup.sh";
+				@new env;
+			};
+			
+			@new @as setup-openmrs-proxy reverse-proxy openmrs nginx web ubuntu linux bash script @has {
+				@new path @is "scripts/setup-openmrs-proxy/setup.sh";
+				@new env @has {
+					@new APP_SERVER_DC_IPV4_1;
+				};
+			};
+			
+			@in script/env {
+				@new WWW_SERVER_HOSTNAME;
+			};
+		};
+	};
+	
+	@in client linux node {
+		@in scripts {
+			@new @as append-hosts-file dns linux bash script @has {
+				@new path @is "scripts/append-hosts-file/setup.sh";
+				@new env @has {
+					@new WWW_SERVER_DMZ_IPV4_1;
+					@new WWW_SERVER_HOSTNAME;
+				};
+			};
+		};
+	};
+	
+	@in  node/files/*
+	@new destination @is "payloads";
+};

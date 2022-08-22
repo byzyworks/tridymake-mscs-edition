@@ -1,0 +1,8 @@
+@in base/nodes/(linux node)/(scripts > (with-files script)) {
+	@new @as cleanup linux system bash with-files script @has {
+		@new path @is "scripts/cleanup/setup.sh";
+		@new env @has {
+			@new PAYLOADS @is "payloads";
+		};
+	};
+};

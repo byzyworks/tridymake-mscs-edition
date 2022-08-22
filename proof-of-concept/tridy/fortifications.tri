@@ -1,0 +1,31 @@
+# Decreases the risk of brute-force DOS (I think).
+@in (base $(security <= 4) $(@random > 0.5))/nodes {
+	@in db.wingspan.edu/ram @put @is `1024`;
+};
+@in (base $(security <= 4) $(@random > 0.5))/nodes {
+	@in www.wingspan.edu/ram @put @is `1024`;
+};
+
+@in (base ($(security >= 4) | $(@random > 0.5)))/nodes/(mysql linux node) {
+	@in scripts {
+		@new @as fort-mysql-disable-remote-root mysql ubuntu linux fortification bash script @has {
+			@new path @is "scripts/fort-mysql-disable-remote-root/setup.sh";
+		};
+	};
+};
+
+@in (base ($(security >= 5) | $(@random > 0.5)))/nodes/(nginx linux node) {
+	@in scripts !> fort-nginx-disable-https {
+		@new @as fort-nginx-disable-http nginx web ubuntu linux fortification bash script @has {
+			@new path @is "scripts/fort-nginx-disable-http/setup.sh";
+		};
+	};
+};
+
+@in (base ($(security >= 3) | $(@random > 0.5)))/nodes/(ubuntu linux node) {
+	@in scripts {
+		@new @as fort-enable-firewall ufw ubuntu linux fortification bash script @has {
+			@new path @is "scripts/fort-enable-firewall/setup.sh";
+		};
+	};
+};

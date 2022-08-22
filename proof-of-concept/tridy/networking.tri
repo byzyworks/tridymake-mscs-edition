@@ -1,0 +1,22 @@
+@in base {
+	@in nodes {
+		@in db.wingspan.edu/(dc nic)   @new DB_SERVER_DC_IPV4_1   ip;
+		@in app.wingspan.edu/(dc nic)  @new APP_SERVER_DC_IPV4_1  ip;
+		@in www.wingspan.edu/(dc nic)  @new WWW_SERVER_DC_IPV4_1  ip;
+		@in www.wingspan.edu/(dmz nic) @new WWW_SERVER_DMZ_IPV4_1 ip;
+		@in ws1.wingspan.edu/(dmz nic) @new WS1_CLIENT_DMZ_IPV4_1 ip;
+	};
+
+	@in * // DOMAIN                @put @is "wingspan.edu";
+	@in * // DC_NETMASK            @put @is `24`;
+	@in * // DMZ_NETMASK           @put @is `24`;
+	@in * // DB_SERVER_HOSTNAME    @put @is "db.pvt.wingspan.edu";
+	@in * // DB_SERVER_DC_IPV4_1   @put @is "10.16.127.56";
+	@in * // APP_SERVER_HOSTNAME   @put @is "app.pvt.wingspan.edu";
+	@in * // APP_SERVER_DC_IPV4_1  @put @is "10.16.127.57";
+	@in * // WWW_SERVER_HOSTNAME   @put @is "www.wingspan.edu";
+	@in * // WWW_SERVER_DC_IPV4_1  @put @is "10.16.127.58";
+	@in * // WWW_SERVER_DMZ_IPV4_1 @put @is "10.16.128.2";
+	@in * // WS1_CLIENT_HOSTNAME   @put @is "ws1.wingspan.edu";
+	@in * // WS1_CLIENT_DMZ_IPV4_1 @put @is "10.16.128.3";
+};

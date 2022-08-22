@@ -1,0 +1,23 @@
+@in (base $(security <= 3) $(@random > 0.5))/nodes/(mysql openmrs linux node) {
+	@in scripts {
+		@new @as vuln-mysql-from-any-host mysql openmrs ubuntu linux vulnerability bash script @has {
+			@new path @is "scripts/vuln-mysql-from-any-host/setup.sh";
+		};
+	};
+};
+
+@in (base $(security <= 3) $(@random > 0.5))/nodes/(nginx linux node) {
+	@in scripts !> fort-nginx-disable-http {
+		@new @as vuln-nginx-disable-https nginx web ubuntu linux vulnerability bash script @has {
+			@new path @is "scripts/vuln-nginx-disable-https/setup.sh";
+		};
+	};
+};
+
+@in (base $(security <= 2) $(@random > 0.5))/nodes/(nginx linux node) {
+	@in scripts {
+		@new @as vuln-nginx-unforbidden nginx web ubuntu linux vulnerability bash script @has {
+			@new path @is "scripts/vuln-nginx-unforbidden/setup.sh";
+		};
+	};
+};

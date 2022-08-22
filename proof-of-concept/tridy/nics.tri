@@ -1,0 +1,37 @@
+@in base/nodes {
+	@in db.wingspan.edu
+	@new
+	@as dc nic
+	@of "nics";
+	
+	# Without a firewall, cross-over will have to do.
+	@in app.wingspan.edu
+	@new
+	@as dc nic
+	@of "nics";
+	
+	@in www.wingspan.edu {
+		@new
+		@as dc nic
+		@of "nics";
+		
+		@new
+		@as dmz nic
+		@of "nics";
+	};
+	
+	@in ws1.wingspan.edu
+	@new
+	@as dmz nic
+	@of "nics";
+
+	@in node {
+		@in dc nic {
+			@new network @is "dc";
+		};
+		
+		@in dmz nic {
+			@new network @is "dmz";
+		};
+	};
+};

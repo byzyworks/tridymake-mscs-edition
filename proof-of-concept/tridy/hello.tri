@@ -1,0 +1,25 @@
+@in base/nodes {
+	@in linux {
+		@in files {
+			@new @as hello-world linux system @has {
+				@new source      @is "files/hello-world/.";
+				@new destination @is "~";
+			};
+		};
+		
+		@in scripts {
+			@new @as hello-world linux system script @has {
+				@new path @is "scripts/hello-world/setup.sh";
+				@new env  @has {
+					@new WELCOME_MESSAGE @is "Hello, World!";
+				};
+			};
+			
+			@in (hello-world | set-system-passwords)/env
+			@new system username SYSTEM_USER @is "vagrant";
+		};
+	};
+
+	@in node/scripts/(script !> env)
+	@new env @is @json %{}%;
+};

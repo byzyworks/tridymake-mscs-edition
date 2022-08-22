@@ -1,0 +1,21 @@
+@in base/nodes/node/scripts {
+	@in script !> env
+	@new env @is @json %{}%;
+	
+	@in (mysql script)/env
+	@new mysql root password PASSWD_MYSQL_ROOT;
+	
+	@in (tomcat script)/env
+	@new tomcat admin password PASSWD_TOMCAT_ADMIN;
+	
+	@in (openmrs script)/env {
+		@new mysql openmrs admin password PASSWD_OPENMRS_ADMIN;
+		@new mysql openmrs user password PASSWD_MYSQL_OPENMRS_USER;
+	};
+	
+	@in (with-files script)/env
+	@new PAYLOADS @is "payloads";
+	
+	@in script/env
+	@new DOMAIN;
+};

@@ -1,0 +1,55 @@
+# Add the basic nodes (these will be created always).
+@in base/nodes {
+	# Adds a database server.
+	@new 
+	@as ubuntu database mysql openmrs server linux node db.wingspan.edu
+	@has {
+		@new DB_SERVER_HOSTNAME name;
+		@new cpus @is `1`;
+		@new ram  @is `512`;
+	};
+	
+	# Adds a web application server.
+	@new 
+	@as ubuntu application tomcat openmrs server linux node app.wingspan.edu
+	@has {
+		@new APP_SERVER_HOSTNAME name;
+		@new cpus @is `1`;
+		@new ram  @is `2560`;
+	};
+	
+	# Adds a reverse-proxying web server.
+	@new 
+	@as ubuntu reverse-proxy gateway web nginx php server linux node www.wingspan.edu
+	@has {
+		@new WWW_SERVER_HOSTNAME name;
+		@new cpus @is `1`;
+		@new ram  @is `384`;
+	};
+	
+	# Adds a desktop client
+	@new 
+	@as ubuntu client linux node ws1.wingspan.edu
+	@has {
+		@new WS1_CLIENT_HOSTNAME name;
+		@new box  @is "gusztavvargadr/ubuntu-desktop";
+		@new gui  @is `true`;
+		@new cpus @is `2`;
+		@new ram  @is `2048`;
+	};
+	
+	# Set the default box template (!> means "doesn't parent").
+	@in node !> box
+	@new box @is "ubuntu/bionic64";
+	
+	@in node !> gui
+	@new gui @is `false`;
+	
+	# These parts are dealt with in the other scripts.
+	@in node {
+		@new nics    @is @json %[]%;
+		@new ports   @is @json %[]%;
+		@new files   @is @json %[]%;
+		@new scripts @is @json %[]%;
+	};
+};
