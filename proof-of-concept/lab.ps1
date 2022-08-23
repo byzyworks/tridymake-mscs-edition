@@ -1,6 +1,7 @@
 Param(
 	[Parameter(Mandatory=$true)]  [double] $SecurityCoefficient,
-	[Parameter(Mandatory=$false)] [string] $RandomSeed
+	[Parameter(Mandatory=$false)] [string] $RandomSeed,
+	[Parameter(Mandatory=$true)]  [switch] $NoVagrantUp
 )
 
 $params = @"
@@ -10,10 +11,14 @@ $params = @"
 "@
 $params | Out-File -FilePath "tridy/params.tri" -Encoding 'UTF8'
 
-if ($RandomSeed -eq $null) {
-	tridydb inline --file "tridy/bootstrap.tri"
-} else {
+if ($RandomSeed) {
 	tridydb inline --file "tridy/bootstrap.tri" --random-seed $RandomSeed
+} else {
+	tridydb inline --file "tridy/bootstrap.tri"
+}
+
+if ($NoVagrantUp) {
+	exit
 }
 
 vagrant up

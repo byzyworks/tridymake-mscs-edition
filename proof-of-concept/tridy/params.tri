@@ -1,3 +1,0 @@
-﻿@in base                  @tag security = 6;
-@in base $(security > 6) @tag security = 6;
-@in base $(security < 0) @tag security = 0;
