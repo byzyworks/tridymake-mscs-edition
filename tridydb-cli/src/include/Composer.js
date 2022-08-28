@@ -68,6 +68,12 @@ export class Composer {
         const raw = this._target.getFullPos();
         let   ptr = this._target.getRaw();
 
+        if (!common.isDictionary(ptr)) {
+            return index;
+        }
+        index.real.push(0);
+        index.context.push(ptr[this._alias.tags] ?? [ ]);
+
         /**
          * Note: the indices are how the JSON database is structured at a low level.
          * For instance, the coordinates of the first module under the root module would normally be ['tree'][0].
@@ -275,9 +281,9 @@ export class Composer {
         let answer = false;
 
         this._target.enterPos(this._alias.nested);
-        if (!this._target.isPosEmpty()) {
+        if (!this._target.isPosValueEmpty()) {
             this._target.enterPos(0);
-            while (!this._target.isPosUndefined()) {
+            while (!this._target.isPosValueUndefined()) {
                 b_index = this._getModuleIndex();
 
                 answer = await this._matchingExpression(b, lvl, b_index, query_randoms, opts);
@@ -459,7 +465,7 @@ export class Composer {
         }
 
         this._astree.enterPos('definition');
-        if (!this._astree.isPosUndefined()) {
+        if (!this._astree.isPosValueUndefined()) {
             module.setPosValue(this._astree.getPosValue());
         }
         this._astree.leavePos();
@@ -595,7 +601,7 @@ export class Composer {
             this._target.leavePos();
             this._target.getPosValue().splice(spliced, 1);
             
-            if ((spliced === 0) && this._target.isPosEmpty()) {
+            if ((spliced === 0) && this._target.isPosValueEmpty()) {
                 this._target.deletePosValue();
             }
 
@@ -692,7 +698,7 @@ export class Composer {
             }
         }
 
-        if (this._target.isPosEmpty()) {
+        if (this._target.isPosValueEmpty()) {
             this._target.deletePosValue();
         }
 
@@ -757,7 +763,7 @@ export class Composer {
             switch (command) {
                 case OPERATION_MAP.ASTREE.APPEND:
                     this._target.enterPos(this._alias.nested);
-                    this._target.enterPos(this._target.getPosLength() - 1);
+                    this._target.enterPos(this._target.getPosValueLength() - 1);
 
                     break;
                 case OPERATION_MAP.ASTREE.OVERWRITE:
@@ -785,25 +791,49 @@ export class Composer {
         opts.offset    = opts.offset    ?? 0;
         opts.count     = opts.count     ?? 0;
         opts.stats     = opts.stats     ?? { attempts: 0, successes: 0, indeces: [ ] };
+        opts.condition = opts.condition ?? { };
 
         const index = this._getModuleIndex();
 
-        const matched = await this._matchingExpression(test, level.start, index, query_randoms);
+        let matched;
+        if (opts.condition.else) {
+            if (this._if_result === true) {
+                matched = false;
+            } else if (opts.condition.if) {
+                matched = await this._matchingExpression(test, level.start, index, query_randoms);
+            } else {
+                matched = true;
+            }
+        } else {
+            matched = await this._matchingExpression(test, level.start, index, query_randoms);
+        }
         if (matched === true) {
             opts.count++;
         }
 
+        if (opts.condition.if) {
+            this._if_result = matched;
+        } else if (!opts.condition.else) {
+            this._if_result = null;
+        }
+
         opts.stats.attempts++;
 
-        if (((level.max === null) || (level.current < level.max)) && ((opts.limit === null) || (opts.count < opts.limit))) {
-            await this._target.traverseAsync(async () => {
-                const new_level = { start: level.start, current: level.current + 1, max: level.max };
-
-                await this._traverseModule(test, command, new_level, query_randoms, opts);
-                if ((opts.limit !== null) && (opts.count >= opts.limit)) {
-                    return 'break';
+        if ((level.max === null) || (level.current <= level.max)) {
+            if ((opts.limit === null) || (opts.count < opts.limit)) {
+                if ((!opts.condition.if && !opts.condition.else) || (opts.count === 0)) {
+                    await this._target.traverseAsync(async () => {
+                        const new_level = { start: level.start, current: level.current + 1, max: level.max };
+        
+                        await this._traverseModule(test, command, new_level, query_randoms, opts);
+                        if ((opts.limit !== null) && (opts.count >= opts.limit)) {
+                            return 'break';
+                        } else if ((opts.condition.if || opts.condition.else) && (opts.count > 0)) {
+                            return 'return';
+                        }
+                    });
                 }
-            });
+            }
         }
 
         const operate = {
@@ -823,6 +853,12 @@ export class Composer {
         }
 
         if (matched && (opts.count > opts.offset)) {
+            if (opts.condition.if || opts.condition.else) {
+                while (this._target.getPosLength() > this._if_revert_length) {
+                    this._target.leaveNested();
+                }
+            }
+
             await this._operateModule(command, operate);
             await this._parseNestedStatements(command);
 
@@ -906,11 +942,12 @@ export class Composer {
     }
 
     async _parseStatement() {
-        const context    = this._astree.enterGetAndLeave('context');
-        let   expression = context ? context.expression     : { };
-        let   limit      = context ? context.limit  ?? null : null;
-        const offset     = context ? context.offset ?? 0    : 0;
-        const repeat     = context ? context.repeat ?? 0    : 0;
+        const context     = this._astree.enterGetAndLeave('context');
+        let   expression  = context ? context.expression     : { };
+        let   limit       = context ? context.limit  ?? null : null;
+        const offset      = context ? context.offset ?? 0    : 0;
+        const repeat      = context ? context.repeat ?? 0    : 0;
+        const condition   = this._astree.enterGetAndLeave('condition');
 
         if (!common.isEmpty(expression)) {
             expression = ContextParser.upgrade(expression);
@@ -937,8 +974,11 @@ export class Composer {
                 template = this._createModuleTemplate();
         }
 
-        const start_lvl = this._getStartingLevel();
-        const level     = { start: start_lvl, current: start_lvl };
+        let start_lvl = this._getStartingLevel();
+        if (!condition.if) {
+            start_lvl++;
+        }
+        const level = { start: start_lvl, current: start_lvl };
 
         const max_depth = this._getMaximumDepth(expression);
         level.max       = (max_depth === null) ? null : start_lvl + max_depth;
@@ -957,8 +997,16 @@ export class Composer {
             offset:    offset,
             template:  template,
             functions: functions,
-            stats:     stats
+            stats:     stats,
+            condition: condition
         };
+
+        if (condition.if) {
+            this._if_revert_length = this._target.getPosLength();
+            this._if_result = false;
+        } else if (!condition.else) {
+            this._if_result = null;
+        }
 
         try {
             for (let i = 0; i <= repeat; i++) {

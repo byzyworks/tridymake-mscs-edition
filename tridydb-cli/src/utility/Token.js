@@ -310,6 +310,20 @@ export class Token {
         ;
     }
 
+    isContextPrefixToken() {
+        return false ||
+            this.is('key', 'in') ||
+            this.is('key', 'if')
+        ;
+    }
+
+    isIfStatementToken() {
+        return false ||
+            this.is('key', 'if') ||
+            this.is('key', 'else')
+        ;
+    }
+
     isDefiningOpToken() {
         return false ||
             this.is('key', OPERATION_MAP.TEXT.OVERWRITE) ||

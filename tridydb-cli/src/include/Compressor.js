@@ -78,19 +78,19 @@ export class Compressor {
             if (common.isPrimitive(type)) {
                 target.enterPos(type);
                 if (opts.strict) {
-                    if (common.isArray(target.getPosValue()) || target.isPosUndefined()) {
+                    if (common.isArray(target.getPosValue()) || target.isPosValueUndefined()) {
                         target.putPosValue(mod);
                     } else {
                         target.leavePos();
                         target.enterPos(0);
-                        while (!target.isPosUndefined()) {
+                        while (!target.isPosValueUndefined()) {
                             target.nextItem({ simple: true });
                         }
                         target.setPosValue(mod);
                         target.leavePos();
                         target.enterPos(type);
                     }
-                } else if (target.isPosUndefined()) {
+                } else if (target.isPosValueUndefined()) {
                     target.setPosValue(mod);
                 } else {
                     target.putPosValue(mod);
@@ -98,7 +98,7 @@ export class Compressor {
                 target.leavePos();
             } else {
                 target.enterPos(0);
-                while (!target.isPosUndefined()) {
+                while (!target.isPosValueUndefined()) {
                     target.nextItem({ simple: true });
                 }
                 if (opts.strict) {

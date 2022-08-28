@@ -220,6 +220,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Changed `@untag` now has a syntax different from `@tag`, and no longer takes values needlessly (use context value expressions for discriminating).
 * Renamed `--root-key` to `--list-key` and fixed potential bug over confusion.
 * Fixed bug output where output from file or command import (with respect to the program) wouldn't display/export outside of inline mode.
+* Added `@if` and `@else` (and `@else @if`) as alternative to `@in` that doesn't raise the context level (and only executes once).
 
 <br>
 

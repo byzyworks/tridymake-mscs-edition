@@ -6,4 +6,8 @@
 	@in * // DB_SERVER_DC_IPV4_1  @put @is "10.16.128.4";
 	@in * // APP_SERVER_DC_IPV4_1 @put @is "10.16.128.5";
 	@in * // WWW_SERVER_DC_IPV4_1 @put @is "10.16.128.6";
+	
+	@if $(@random > 0.5) {
+		@del www.wingspan.edu;
+	};
 };

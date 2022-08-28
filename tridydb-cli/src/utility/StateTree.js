@@ -111,6 +111,10 @@ export class StateTree {
         return this._pos[this._pos.length - 1];
     }
 
+    getPosLength() {
+        return this._pos.length;
+    }
+
     getPosValue() {
         let ptr = this._tree;
         for (let i = 0; i < this._pos.length - 1; i++) {
@@ -127,7 +131,7 @@ export class StateTree {
         return ptr[pos];
     }
 
-    getPosLength() {
+    getPosValueLength() {
         const value = this.getPosValue();
         if (!common.isArray(value)) {
             return null;
@@ -232,7 +236,7 @@ export class StateTree {
         }
     }
 
-    isPosEmpty() {
+    isPosValueEmpty() {
         let ptr = this._tree;
         for (let i = 0; i < this._pos.length - 1; i++) {
             if (!common.isObject(ptr[this._pos[i]])) {
@@ -248,7 +252,7 @@ export class StateTree {
         return common.isEmpty(ptr[pos]);
     }
 
-    isPosUndefined() {
+    isPosValueUndefined() {
         return this.getPosValue() === undefined;
     }
 
@@ -320,14 +324,16 @@ export class StateTree {
 
     traverse(callback) {
         this.enterPos(this._alias.nested);
-        if (!this.isPosEmpty()) {
+        if (!this.isPosValueEmpty()) {
             this.enterPos(0);
-            while (!this.isPosUndefined()) {
+            while (!this.isPosValueUndefined()) {
                 const act = callback();
                 if (act === 'break') {
                     break;
                 } else if (act === 'continue') {
                     continue;
+                } else if (act === 'return') {
+                    return 'return';
                 }
                 this.nextItem();
             }
@@ -338,14 +344,16 @@ export class StateTree {
 
     async traverseAsync(callback) {
         this.enterPos(this._alias.nested);
-        if (!this.isPosEmpty()) {
+        if (!this.isPosValueEmpty()) {
             this.enterPos(0);
-            while (!this.isPosUndefined()) {
+            while (!this.isPosValueUndefined()) {
                 const act = await callback();
                 if (act === 'break') {
                     break;
                 } else if (act === 'continue') {
                     continue;
+                } else if (act === 'return') {
+                    return 'return';
                 }
                 this.nextItem();
             }

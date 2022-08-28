@@ -1158,6 +1158,8 @@ export class SyntaxParser {
     }
 
     async _handleStatement() {
+        const condition = { };
+
         if (this._tokens.peek().isControlOpToken()) {
             this._handleControlOperation();
         } else {
@@ -1170,7 +1172,16 @@ export class SyntaxParser {
              */
             this._context_defined = false;
 
-            if (this._tokens.peek().is('key', 'in')) {
+            if (this._tokens.peek().is('key', 'else')) {
+                condition.else = true;
+                
+                this._tokens.next();
+            } else {
+                condition.else = false;
+            }
+            if (this._tokens.peek().isContextPrefixToken()) {
+                condition.if = this._tokens.peek().is('key', 'if');
+
                 this._tokens.next();
 
                 this._handleContext();
@@ -1181,7 +1192,11 @@ export class SyntaxParser {
                 if (this._tokens.peek().is('sym', ';')) {
                     this._handleUnexpected();
                 }
+            } else {
+                condition.if = false;
             }
+
+            this._astree.enterSetAndLeave('condition', common.deepCopy(condition));
 
             if (this._tokens.peek().is('sym', '{')) {
                 this._astree.enterSetAndLeave('operation', OPERATION_MAP.ASTREE.MULTIPLE);
@@ -1198,11 +1213,11 @@ export class SyntaxParser {
             }
         }
 
-        if (!this._tokens.peek().is('sym', ';')) {
+        if (this._tokens.peek().is('sym', ';')) {
+            this._tokens.next();
+        } else if (!condition.if || !this._tokens.peek().is('key', 'else')) {
             this._handleUnexpected();
         }
-
-        this._tokens.next();
 
         this._astree.nextItem();
 
