@@ -146,14 +146,14 @@ export class Composer {
             case CONTEXT_MAP.VARIABLE_DEPTH:
                 return lvl;
             case CONTEXT_MAP.VARIABLE_CHILDREN:
-                return index.extent[lvl + 1];
+                return index.extent[lvl];
             case CONTEXT_MAP.VARIABLE_INDEX:
                 if (!isNaN(b.val) && (Number(b.val) < 0)) {
                     return (index.extent[lvl] - index.real[lvl]) * -1;
                 }
                 return index.real[lvl];
             case CONTEXT_MAP.VARIABLE_SIBLINGS:
-                return index.extent[lvl] - 1;
+                return index.extent[lvl - 1] - 1;
             case CONTEXT_MAP.VARIABLE_QUERY_RANDOM:
                 return query_randoms[0];
             case CONTEXT_MAP.VARIABLE_SHUFFLED_INDEX:
