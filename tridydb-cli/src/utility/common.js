@@ -87,6 +87,30 @@ export const isBasic = (obj) => {
     return false;
 }
 
+export const reduce = (obj, opts = { }) => {
+    opts.degree = opts.degree ?? 3;
+
+    if (opts.degree > 0) {
+        if (isDictionary(obj) && isArrayableObject(obj)) {
+            const reduced = [ ];
+            for (const part of Object.values(obj)) {
+                reduced.push(part);
+            }
+            obj = reduced;
+        }
+
+        if ((opts.degree > 1) && isArray(obj)) {
+            if (obj.length === 1) {
+                obj = obj[0];
+            } else if ((opts.degree > 2) && (obj.length === 0)) {
+                obj = undefined;
+            }
+        }
+    }
+
+    return obj;
+}
+
 export const toArray = (obj) => {
     if (isArray(obj)) {
         return obj;

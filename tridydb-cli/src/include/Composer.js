@@ -13,6 +13,7 @@ import * as error              from '../utility/error.js';
 import { global, CONTEXT_MAP, OPERATION_MAP } from '../utility/mapped.js';
 import { StateTree }           from '../utility/StateTree.js';
 import { Tag }                 from '../utility/Tag.js';
+import { Stack } from '../utility/Stack.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -795,9 +796,11 @@ export class Composer {
 
         const index = this._getModuleIndex();
 
+        const condition_state = this._condition_state.peek();
+
         let matched;
         if (opts.condition.else) {
-            if (this._if_result === true) {
+            if (condition_state.result === true) {
                 matched = false;
             } else if (opts.condition.if) {
                 matched = await this._matchingExpression(test, level.start, index, query_randoms);
@@ -811,10 +814,8 @@ export class Composer {
             opts.count++;
         }
 
-        if (opts.condition.if) {
-            this._if_result = matched;
-        } else if (!opts.condition.else) {
-            this._if_result = null;
+        if (opts.condition.if && matched) {
+            condition_state.result = true;
         }
 
         opts.stats.attempts++;
@@ -1001,16 +1002,20 @@ export class Composer {
             condition: condition
         };
 
-        if (condition.if) {
-            this._if_revert_length = this._target.getPosLength();
-            this._if_result = false;
-        } else if (!condition.else) {
-            this._if_result = null;
+        if (condition.if && !condition.else) {
+            this._condition_state.push({
+                revert_length: this._target.getPosLength(),
+                result:        false
+            });
         }
 
         try {
             for (let i = 0; i <= repeat; i++) {
                 await this._traverseModule(expression, command, level, randoms, traverse);
+
+                if (condition.else && !condition.if) {
+                    this._condition_state.pop();
+                }
 
                 if ((limit !== null) && (traverse.count >= limit)) {
                     break;
@@ -1036,6 +1041,8 @@ export class Composer {
 
     async compose(input, opts = { }) {
         this._astree = new StateTree(input);
+
+        this._condition_state = new Stack();
 
         this._output = { alias: this._alias, modules: [ ] };
 

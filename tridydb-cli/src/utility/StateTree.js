@@ -150,12 +150,19 @@ export class StateTree {
         }
     }
 
-    putPosValue(value) {
+    putPosValue(value, opts = { }) {
+        opts.force_array = opts.force_array ?? true;
+
         this._updatePtrs();
 
         const pos = this.getTopPos();
         if (pos === null) {
             if (this._tree === undefined) {
+                if (!opts.force_array) {
+                    this._tree = value;
+                    return 1;
+                }
+
                 this._tree = [ ];
             } else if (!Array.isArray(this._tree)) {
                 const temp = this._tree;
@@ -165,6 +172,11 @@ export class StateTree {
             return this._tree.push(value);
         } else {
             if (this._ptr[pos] === undefined) {
+                if (!opts.force_array) {
+                    this._ptr[pos] = value;
+                    return 1;
+                }
+
                 this._ptr[pos] = [ ];
             } else if (!Array.isArray(this._ptr[pos])) {
                 const temp = this._ptr[pos];

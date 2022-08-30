@@ -1173,6 +1173,10 @@ export class SyntaxParser {
             this._context_defined = false;
 
             if (this._tokens.peek().is('key', 'else')) {
+                if (!this._last_was_if) {
+                    this._handleUnexpected();
+                }
+
                 condition.else = true;
                 
                 this._tokens.next();
@@ -1180,7 +1184,10 @@ export class SyntaxParser {
                 condition.else = false;
             }
             if (this._tokens.peek().isContextPrefixToken()) {
-                condition.if = this._tokens.peek().is('key', 'if');
+                if (this._tokens.peek().is('key', 'if')) {
+                    condition.if      = true;
+                    this._last_was_if = true;
+                }
 
                 this._tokens.next();
 
@@ -1215,8 +1222,6 @@ export class SyntaxParser {
 
         if (this._tokens.peek().is('sym', ';')) {
             this._tokens.next();
-        } else if (!condition.if || !this._tokens.peek().is('key', 'else')) {
-            this._handleUnexpected();
         }
 
         this._astree.nextItem();
