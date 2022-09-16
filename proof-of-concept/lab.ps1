@@ -1,7 +1,7 @@
 Param(
 	[Parameter(Mandatory=$true)]  [double] $SecurityCoefficient,
 	[Parameter(Mandatory=$false)] [string] $RandomSeed,
-	[Parameter(Mandatory=$true)]  [switch] $NoVagrantUp
+	                              [switch] $NoVagrantUp
 )
 
 $params = @"
