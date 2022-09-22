@@ -1,6 +1,6 @@
 # DISCLAIMER
 
-This version of Tridymake is being treated as **abandoned**, and as such, isn't where active work being done. The version being actively worked on, as an overhaul of this version, would be located here:
+This version of Tridymake is being treated as **abandoned**, and as such, isn't where active work is being done. The version being actively worked on, as an overhaul of this version, is located here:
 
 https://github.com/byzyworks/tridymake
 
