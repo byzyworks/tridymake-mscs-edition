@@ -1,7 +1,7 @@
 import { deepCopy } from './common.js';
 
 export const APP = Object.freeze({
-    NAME:    'TridyDB CLI',
+    NAME:    'Tridymake',
     VERSION: '0.4.0'
 });
 

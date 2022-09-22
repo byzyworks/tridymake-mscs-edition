@@ -12,9 +12,9 @@ $params = @"
 $params | Out-File -FilePath "tridy/params.tri" -Encoding 'UTF8'
 
 if ($RandomSeed) {
-	tridydb inline --file "tridy/bootstrap.tri" --random-seed $RandomSeed
+	tridymake inline --file "tridy/bootstrap.tri" --random-seed $RandomSeed
 } else {
-	tridydb inline --file "tridy/bootstrap.tri"
+	tridymake inline --file "tridy/bootstrap.tri"
 }
 
 if ($NoVagrantUp) {

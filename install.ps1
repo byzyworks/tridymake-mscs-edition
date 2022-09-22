@@ -37,7 +37,7 @@ Write-Host "> Required frameworks/libraries installed.";
 Write-Host;
 
 $bin           = "$PSScriptRoot\bin";
-$make_shortcut = Read-Host "> Would you like to make $bin\tridydb.bat callable from everywhere? [Y/n]";
+$make_shortcut = Read-Host "> Would you like to make $bin\tridymake.bat callable from everywhere? [Y/n]";
 Write-Host;
 if ($make_shortcut -eq 'Y') {
     if (Is-Administrator) {
@@ -54,7 +54,7 @@ if ($make_shortcut -eq 'Y') {
 
 Write-Host "> Running a test...";
 try {
-    bin/tridydb.bat inline --file "src/tests/hello-world/test.tri";
+    bin/tridymake.bat inline --file "src/tests/hello-world/test.tri";
 } catch {
     Write-Host "> Uh oh. That wasn't supposed to happen.";
     Write-Host "> Here's what went wrong:";
@@ -66,5 +66,5 @@ if ($LastExitCode -ne 0) {
 }
 
 Write-Host "> Everything looks good.";
-Write-Host "> TridyDB was successfully installed."
+Write-Host "> Tridymake was successfully installed."
 Write-Host;

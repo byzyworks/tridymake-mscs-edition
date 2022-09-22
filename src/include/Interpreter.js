@@ -1,5 +1,5 @@
 /**
- * TridyDB database class and TridyDB CLI exported module.
+ * Tridymake database class and exported module.
  * 
  * @module
  */

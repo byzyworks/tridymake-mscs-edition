@@ -39,7 +39,7 @@ export class Compressor {
          * In other words, if the user explicitly posts to the module free data like [ "this" ] or { "0": "that" },
          * then it should be assumed that the use of an object container is deliberate and not meant to be altered.
          * That is even if we "could" reduce these down to simply "this" and "that".
-         * The free data structure is meant to contain arbitrary user data that should be altered by TridyDB as little as possible.
+         * The free data structure is meant to contain arbitrary user data that should be altered by Tridymake as little as possible.
          */
         let free = target[alias.state];
         

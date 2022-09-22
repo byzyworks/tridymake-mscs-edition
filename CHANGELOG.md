@@ -15,7 +15,7 @@ Remember also to set the version number inside package.json and utility/common.
 ### 2022/04/29
 ##  Version 0.1.0: Baseline
 
-* TridyDB released in-house; changelog introduced.
+* Tridymake released in-house; changelog introduced.
 
 <br>
 
@@ -29,8 +29,8 @@ Remember also to set the version number inside package.json and utility/common.
 ### 2022/05/24
 ##  Version 0.2.0: Superset
 
-* Added clauses `@raw`, `@typeless`, `@tagless`, `@trimmed`, `@merged`, and `@final` as ending parameters to `@get` as a way to remove TridyDB metadata from the output (as a side effect making the output one-way / non-reusable by Tridy as input), and compress the remaining output down to varying degrees (`@raw` means no compression / the default behavior while `@final` has the greatest compression).
-* Added type specifiers as the fourth piece of TridyDB modules, which is automatically determined from the last tag now when not using `@as` to provide tags.
+* Added clauses `@raw`, `@typeless`, `@tagless`, `@trimmed`, `@merged`, and `@final` as ending parameters to `@get` as a way to remove Tridymake metadata from the output (as a side effect making the output one-way / non-reusable by Tridy as input), and compress the remaining output down to varying degrees (`@raw` means no compression / the default behavior while `@final` has the greatest compression).
+* Added type specifiers as the fourth piece of Tridymake modules, which is automatically determined from the last tag now when not using `@as` to provide tags.
 * Added clause `@of` to specify a module's type in the form of a double-quoted string, used by `@merged` and `@final`'s reduced output as the module's key. If not given, the final tag in the module's tagset (when given without `@as`) will be used.
 * Added `--type-key` program argument (and argument to `tridy.query(...)`) to control the name of the type specifier's own key in storage.
 * Added (multi-line) raw string/primitive input with either single quotation, double quotation, or grave accent marks, for `@is`, `@of`, and module raw input.
@@ -55,7 +55,7 @@ Remember also to set the version number inside package.json and utility/common.
 ### 2022/06/20
 ##  Version 0.3.0: Variation
 
-* Improved TridyDB's flexibility when used as an NPM package; Tridy is now exported as a class as opposed to a singleton, so multiple Tridy instances are possible now.
+* Improved Tridymake's flexibility when used as an NPM package; Tridy is now exported as a class as opposed to a singleton, so multiple Tridy instances are possible now.
 * Changed `@random` to use a seeded random number generator, as opposed to (as previously used) `Math.random()`.
 * Added `--random-seed` program argument (and argument to `Tridy.query(...)`) to force a random seed.
 * Added `Tridy.setRandomSeed(...)` instance method, to force a random seed.
@@ -193,23 +193,7 @@ Remember also to set the version number inside package.json and utility/common.
 * Added client-side validation of server output.
 * Reworked output behavior around aliases; server now forwards its aliases used with output.
 * `@of` re-placed to be required after `@as`.
-* Added `@with` definition clause for specifying attributes. (PENDING)
-* Incorporated attributes with XML output as XML attributes. (PENDING)
-* Incorporated attributes with JSON/YAML output as compressed post-merge mapped data. (PENDING)
-  (This also makes Tridy mappable to an arbitrary JSON even if *just* strings (and empty [ ] and { } objects) are used as raw input)
-* Incorporated attributes with both simple and nested text output as post-merge replacer data. (PENDING)
-* Added `@attr` clause for promoting tags additionally as attributes. (PENDING)
 * Changed `@final` with XML output to replace the root element with its contents if the root contains only one element.
-* Added `@noattr` compression clause. (PENDING)
-* Removed `@trimmed` compression clause. (PENDING)
-* Added `@nofree` compression clause. (PENDING)
-* Added `@notree` compression clause. (PENDING)
-* Renamed `@typeless` to `@notype`. (PENDING)
-* Renamed `@typeless` to `@notags`. (PENDING)
-* Changed `@typeless`, `@tagless` to be non-mutually-exclusive. (PENDING)
-* Added `@attr` operation clause. (PENDING)
-* Added `@unattr` operation clause. (PENDING)
-* Restricted root module accesses to just `@get`, `@new`, and `@del`; context expressions made a requirement for most operations. (PENDING)
 * Added shorthand inclusive recursive transitive nested operator `&//` / `@catchall` (faster equivalent to `(exp1 & exp2) | (exp1 // exp2)`).
 * Added shorthand recursive wilcard `**` / `@all` (equivalent to `* &// *`).
 * Added shorthand inverted lookahead nested operator `!>` / `@nonparent` (faster equivalent to `exp1 & !(exp1 > exp2)`).
@@ -217,23 +201,10 @@ Remember also to set the version number inside package.json and utility/common.
 * Added shorthand inverted lookbehind nested operator `!<` / `@nonchild` (faster equivalent to `exp1 & !(exp1 < exp2)`).
 * Added shorthand inverted lookbehind nested operator `!<<` / `@nondescend` (faster equivalent to `exp1 & !(exp1 << exp2)`).
 * Changed `@tag` so that it will re-assign new values that are given instead of ignoring the tags if they are duplicates.
-* Changed `@untag` now has a syntax different from `@tag`, and no longer takes values needlessly (use context value expressions for discriminating).
+* Changed `@untag` so that it now has a syntax different from `@tag`, and no longer takes values needlessly (use context value expressions for discriminating).
 * Renamed `--root-key` to `--list-key` and fixed potential bug over confusion.
 * Fixed bug output where output from file or command import (with respect to the program) wouldn't display/export outside of inline mode.
 * Added `@if` and `@else` (and `@else @if`) as alternative to `@in` that doesn't raise the context level (and only executes once).
-
-<br>
-
-### Release Date TBD
-##  Version 0.5.0: TBD
-
-* Experimenting with `@`-less clauses / "simplified" syntax, since the overall complexity of the language has grown a lot and the constant `@`'s are simply annoying. (PENDING)
-  (General syntax will be similar to: `(context) <- operation [ tag1 = "value1", tag2, ... ] "type" { "attr1" = "value1", "attr2", ... }: freeformat % freedata % <- { nested1, nested2, ... };`)
-* Added `head` operation clause for placing new modules before another in the same tree. (PENDING)
-* Added `tail` operation clause for placing new modules after another in the same tree. (PENDING)
-* Added `binary` `get` parameter output format clause (similar to arbitrary text output, but for hexadecimal-encoded bytes). (PENDING)
-* Renamed `del` to `delete`. (PENDING)
-* Removed all non-primitive raw input; Tridy now requires configuration in its own format. (?) (PENDING)
 
 <br>
 

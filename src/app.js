@@ -95,7 +95,7 @@ program
             .argParser(parseInt)
     )
     .addOption(
-        new Option('-s, --random-seed <seeds...>', 'Set the random seeds. If there are several, TridyDB will use the first and forward the others separately on-demand.')
+        new Option('-s, --random-seed <seeds...>', 'Set the random seeds. If there are several, Tridymake will use the first and forward the others separately on-demand.')
     )
     .addOption(
         new Option('-t, --remote-timeout <timeout>', 'Timeout period (in milliseconds) to wait for responses when in client mode.')
@@ -109,7 +109,7 @@ program
         new Option('--server-allow-verbatim', 'Allows verbatim (raw token string) queries to be sent to this server. Only applies in server mode. Disabled by default for security reasons.')
     )
     .addOption(
-        new Option('--server-deny-syntax-trees', 'Denies abstract syntax tree queries sent to this server. Only applies in server mode. Note that this will cause problems with TridyDB clients.')
+        new Option('--server-deny-syntax-trees', 'Denies abstract syntax tree queries sent to this server. Only applies in server mode. Note that this will cause problems with Tridymake clients.')
     )
     .addOption(
         new Option('-P, --server-port <port>', 'The port number to bind to when in server mode.')

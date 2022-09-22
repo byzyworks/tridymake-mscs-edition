@@ -27,7 +27,7 @@ echo;
 
 bin="$here/bin";
 
-echo -n "> Would you like to make $bin/tridydb.sh callable from everywhere? [Y/n] ";
+echo -n "> Would you like to make $bin/tridymake.sh callable from everywhere? [Y/n] ";
 read make_shortcut;
 echo;
 if [ "$make_shortcut" = 'Y' ]; then
@@ -38,15 +38,15 @@ if [ "$make_shortcut" = 'Y' ]; then
     fi
     
     mkdir -p "$newbin";
-    ln -sf "$bin/tridydb.sh" "$newbin/tridydb";
+    ln -sf "$bin/tridymake.sh" "$newbin/tridymake";
 fi
 
 echo "> Running a test...";
-if ! bin/tridydb.sh inline --file "src/tests/hello-world/test.tri"; then
+if ! bin/tridymake.sh inline --file "src/tests/hello-world/test.tri"; then
     echo "> Uh oh. That wasn't supposed to happen.";
     exit 1;
 fi
 
 echo "> Everything looks good.";
-echo "> TridyDB was successfully installed."
+echo "> Tridymake was successfully installed."
 echo;

@@ -9,7 +9,7 @@ import { global }                                            from './utility/map
 import { db } from './database.js';
 
 const getPrompt = () => {
-    let prompt = '@TridyDB';
+    let prompt = '@Tridy';
     if (global.remote.enable) {
         prompt += ' @' + global.remote.host;
     }

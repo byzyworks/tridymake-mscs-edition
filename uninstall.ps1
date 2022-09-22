@@ -24,5 +24,5 @@ if ($current -like "*$bin*") {
     [Environment]::SetEnvironmentVariable("PATH", "$new", $scope);
 }
 
-Write-Host "> TridyDB was successfully uninstalled."
+Write-Host "> Tridymake was successfully uninstalled."
 Write-Host;

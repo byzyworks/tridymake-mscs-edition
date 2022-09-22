@@ -1,6 +1,6 @@
 {
-  "name": "tridydb-cli",
-  "version": "0.3.0",
+  "name": "tridymake-mscs-edition",
+  "version": "0.4.0",
   "description": "Interpreter for composing general tree-like data objects using boolean expressions and a specially-built data language.",
   "main": "src/app.js",
   "scripts": {

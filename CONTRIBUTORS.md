@@ -1,6 +1,6 @@
 # Contributors
 
-As the original developer for TridyDB, I would like to formally thank my thesis/project advisor:
+As the original developer for Tridymake, I would like to formally thank my thesis/project advisor:
 
 * [**Dr. Youssif Al-Nashif**](https://github.com/ybalnashif)
 

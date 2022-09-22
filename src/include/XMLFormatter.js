@@ -47,7 +47,7 @@ export class XMLFormatter {
                 /**
                  * This prevents the XML parser from turning empty objects into self-closing tags.
                  * The XML parser library has its own option to do this (prevents interpreting [ ] or { } as such).
-                 * However, only this method limits itself from reaching inside of pre-parsed XML created through TridyDB.
+                 * However, only this method limits itself from reaching inside of pre-parsed XML created through Tridymake.
                  * As a result, it won't alter self-closing tags if the user entered them that way as raw XML.
                  * The third-party XML parser is not smart enough to detect that on its own.
                  */
