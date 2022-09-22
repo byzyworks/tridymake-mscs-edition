@@ -1,5 +1,5 @@
 @tridy;
 
-@set @is @json { "message": "Hello, World!" } @end;
+@set @is @json %{ "message": "Hello, World!" }%;
 
-@get;
+@get @indent 4;

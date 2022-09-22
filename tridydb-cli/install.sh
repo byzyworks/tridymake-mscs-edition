@@ -42,7 +42,7 @@ if [ "$make_shortcut" = 'Y' ]; then
 fi
 
 echo "> Running a test...";
-if ! bin/tridydb.sh inline --file "src/tests/hello-world/test.tri" --pretty; then
+if ! bin/tridydb.sh inline --file "src/tests/hello-world/test.tri"; then
     echo "> Uh oh. That wasn't supposed to happen.";
     exit 1;
 fi

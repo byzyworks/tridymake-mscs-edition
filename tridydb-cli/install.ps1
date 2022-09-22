@@ -54,7 +54,7 @@ if ($make_shortcut -eq 'Y') {
 
 Write-Host "> Running a test...";
 try {
-    bin/tridydb.bat inline --file "src/tests/hello-world/test.tri" --pretty;
+    bin/tridydb.bat inline --file "src/tests/hello-world/test.tri";
 } catch {
     Write-Host "> Uh oh. That wasn't supposed to happen.";
     Write-Host "> Here's what went wrong:";
